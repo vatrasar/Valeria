@@ -64,16 +64,17 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
 
     /// <summary>
     /// Synchronously builds all preview blocks. Code blocks are created as
-    /// plain selectable text and collected for asynchronous highlighting.
+    /// plain selectable text and collected for asynchronous highlighting. Task
+    /// list checkboxes use the callback to update the source document.
     /// Used by EditorViewModel preview refresh.
     /// </summary>
-    public PreviewBuildResult BuildBlocks(MarkdownContent content)
+    public PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null)
     {
         ThemeResources theme = ThemeResources.Resolve();
         BrushSet brushes = BrushSet.Default(theme);
         _pendingTargets = [];
 
-        IReadOnlyList<Control> blocks = content.Blocks.Select(block => BuildBlock(block, theme, brushes)).ToList();
+        IReadOnlyList<Control> blocks = content.Blocks.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
 
         return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
     }
@@ -137,16 +138,20 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         return null;
     }
 
-    private Control BuildBlock(MarkdownBlock block, ThemeResources theme, BrushSet brushes)
+    private Control BuildBlock(
+        MarkdownBlock block,
+        ThemeResources theme,
+        BrushSet brushes,
+        Action<int, bool>? onTaskToggled)
     {
         return block switch
         {
             HeadingBlock heading => BuildHeading(heading, theme, brushes),
             ParagraphBlock paragraph => BuildParagraph(paragraph, theme, brushes, theme.BodyFontSize),
             CodeBlock code => BuildCodeBlock(code, theme),
-            QuoteBlock quote => BuildQuote(quote, theme),
-            BulletListBlock bullet => BuildBulletList(bullet, theme, brushes),
-            OrderedListBlock ordered => BuildOrderedList(ordered, theme, brushes),
+            QuoteBlock quote => BuildQuote(quote, theme, onTaskToggled),
+            BulletListBlock bullet => BuildBulletList(bullet, theme, brushes, onTaskToggled),
+            OrderedListBlock ordered => BuildOrderedList(ordered, theme, brushes, onTaskToggled),
             TableBlock table => BuildTable(table, theme, brushes),
             ThematicBreakBlock => BuildRule(theme),
             HtmlBlock html => BuildHtml(html, theme),
@@ -281,13 +286,13 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         }
     }
 
-    private Control BuildQuote(QuoteBlock quote, ThemeResources theme)
+    private Control BuildQuote(QuoteBlock quote, ThemeResources theme, Action<int, bool>? onTaskToggled)
     {
         BrushSet brushes = BrushSet.Quote(theme);
         StackPanel content = new();
 
         foreach (MarkdownBlock child in quote.Blocks)
-            content.Children.Add(BuildBlock(child, theme, brushes));
+            content.Children.Add(BuildBlock(child, theme, brushes, onTaskToggled));
 
         return new Border
         {
@@ -301,24 +306,32 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         };
     }
 
-    private Control BuildBulletList(BulletListBlock list, ThemeResources theme, BrushSet brushes)
+    private Control BuildBulletList(
+        BulletListBlock list,
+        ThemeResources theme,
+        BrushSet brushes,
+        Action<int, bool>? onTaskToggled)
     {
         StackPanel panel = CreateListPanel();
 
         foreach (ListItemBlock item in list.Items)
-            panel.Children.Add(BuildListItem(item, CreateBulletMarker(theme), theme, brushes));
+            panel.Children.Add(BuildListItem(item, CreateBulletMarker(theme), theme, brushes, onTaskToggled));
 
         return panel;
     }
 
-    private Control BuildOrderedList(OrderedListBlock list, ThemeResources theme, BrushSet brushes)
+    private Control BuildOrderedList(
+        OrderedListBlock list,
+        ThemeResources theme,
+        BrushSet brushes,
+        Action<int, bool>? onTaskToggled)
     {
         StackPanel panel = CreateListPanel();
         int number = list.StartNumber;
 
         foreach (ListItemBlock item in list.Items)
         {
-            panel.Children.Add(BuildListItem(item, CreateNumberMarker(theme, number), theme, brushes));
+            panel.Children.Add(BuildListItem(item, CreateNumberMarker(theme, number), theme, brushes, onTaskToggled));
             number++;
         }
 
@@ -360,13 +373,18 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         };
     }
 
-    private Control BuildListItem(ListItemBlock item, Control marker, ThemeResources theme, BrushSet brushes)
+    private Control BuildListItem(
+        ListItemBlock item,
+        Control marker,
+        ThemeResources theme,
+        BrushSet brushes,
+        Action<int, bool>? onTaskToggled)
     {
-        if (item.IsChecked.HasValue)
-            marker = CreateTaskMarker(item.IsChecked.Value);
+        if (item.IsChecked.HasValue && item.TaskIndex.HasValue)
+            marker = CreateTaskMarker(item.IsChecked.Value, item.TaskIndex.Value, onTaskToggled);
 
         StackPanel content = new();
-        content.Children.AddRange(item.Blocks.Select(child => BuildBlock(child, theme, brushes)));
+        content.Children.AddRange(item.Blocks.Select(child => BuildBlock(child, theme, brushes, onTaskToggled)));
 
         Grid row = new();
         row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
@@ -381,15 +399,20 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         return row;
     }
 
-    private static CheckBox CreateTaskMarker(bool isChecked)
+    private static CheckBox CreateTaskMarker(bool isChecked, int taskIndex, Action<int, bool>? onTaskToggled)
     {
-        return new CheckBox
+        CheckBox checkBox = new()
         {
             IsChecked = isChecked,
-            IsEnabled = false,
-            Focusable = false,
+            IsEnabled = onTaskToggled is not null,
+            Focusable = onTaskToggled is not null,
             Margin = new Thickness(0, 10, 0, 0)
         };
+
+        if (onTaskToggled is not null)
+            checkBox.IsCheckedChanged += (_, _) => onTaskToggled(taskIndex, checkBox.IsChecked == true);
+
+        return checkBox;
     }
 
     private Control BuildTable(TableBlock table, ThemeResources theme, BrushSet brushes)

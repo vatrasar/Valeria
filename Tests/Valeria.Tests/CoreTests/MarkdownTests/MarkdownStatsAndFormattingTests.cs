@@ -168,4 +168,24 @@ public sealed class EditorFormattingTests
     {
         Assert.Null(EditorFormatting.ContinueListItem("plain text", 5));
     }
+
+    [Fact]
+    public void ToggleTask_ChangesSelectedTaskOnly()
+    {
+        FormattingResult? result = EditorFormatting.ToggleTask("- [ ] first\n- [x] second", 0, true);
+
+        Assert.NotNull(result);
+        Assert.Equal("- [x] first\n- [x] second", result!.Text);
+    }
+
+    [Fact]
+    public void ToggleTask_IgnoresTaskLikeTextInsideCodeFence()
+    {
+        const string markdown = "```\n- [ ] code\n```\n\n- [ ] document";
+
+        FormattingResult? result = EditorFormatting.ToggleTask(markdown, 0, true);
+
+        Assert.NotNull(result);
+        Assert.Equal("```\n- [ ] code\n```\n\n- [x] document", result!.Text);
+    }
 }

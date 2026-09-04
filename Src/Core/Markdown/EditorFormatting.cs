@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
@@ -119,6 +120,29 @@ public static partial class EditorFormatting
         int newCaret = lineEnd + 1 + marker.Length;
 
         return new FormattingResult(updated, newCaret, 0);
+    }
+
+    /// <summary>
+    /// Changes one task-list marker while preserving the rest of the markdown source.
+    /// Used by the interactive task checkboxes in the rendered preview.
+    /// </summary>
+    public static FormattingResult? ToggleTask(string text, int taskIndex, bool isChecked)
+    {
+        string safeText = text ?? string.Empty;
+
+        if (taskIndex < 0)
+            return null;
+
+        IReadOnlyList<int> markerIndexes = FindTaskMarkerIndexes(safeText);
+
+        if (taskIndex >= markerIndexes.Count)
+            return null;
+
+        int markerIndex = markerIndexes[taskIndex];
+        string replacement = isChecked ? "[x]" : "[ ]";
+        string updated = safeText.Substring(0, markerIndex) + replacement + safeText.Substring(markerIndex + replacement.Length);
+
+        return new FormattingResult(updated, markerIndex, 0);
     }
 
     /// <summary>
@@ -281,6 +305,36 @@ public static partial class EditorFormatting
         return null;
     }
 
+    private static IReadOnlyList<int> FindTaskMarkerIndexes(string text)
+    {
+        List<int> markerIndexes = [];
+        bool insideFence = false;
+
+        foreach (Match line in MarkdownLinePattern().Matches(text))
+            AddTaskMarkerFromLine(line, markerIndexes, ref insideFence);
+
+        return markerIndexes;
+    }
+
+    private static void AddTaskMarkerFromLine(Match line, List<int> markerIndexes, ref bool insideFence)
+    {
+        string content = line.Value.TrimEnd('\r', '\n');
+
+        if (FencePattern().IsMatch(content))
+        {
+            insideFence = !insideFence;
+            return;
+        }
+
+        if (insideFence)
+            return;
+
+        Match task = TaskMarkerPattern().Match(content);
+
+        if (task.Success)
+            markerIndexes.Add(line.Index + task.Groups["state"].Index - 1);
+    }
+
     private static int SkipIndentation(string line)
     {
         int index = 0;
@@ -327,4 +381,13 @@ public static partial class EditorFormatting
 
     [GeneratedRegex(@"^\s*(\d+)([.)])")]
     private static partial Regex OrderedListItemPattern();
+
+    [GeneratedRegex(@"^.*(?:\r?\n|$)", RegexOptions.Multiline)]
+    private static partial Regex MarkdownLinePattern();
+
+    [GeneratedRegex(@"^\s*(?:>\s*)*(?:`{3,}|~{3,})")]
+    private static partial Regex FencePattern();
+
+    [GeneratedRegex(@"^[ \t]*(?:>[ \t]*)*(?:[-+*]|\d+[.)])[ \t]+\[(?<state>[ xX])\]")]
+    private static partial Regex TaskMarkerPattern();
 }

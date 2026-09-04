@@ -257,7 +257,7 @@ public sealed class EditorScreenIntegrationTests
 
     private sealed class FakeMarkdownPreviewBuilder : IMarkdownPreviewBuilder
     {
-        public PreviewBuildResult BuildBlocks(MarkdownContent content)
+        public PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null)
         {
             return new PreviewBuildResult(Array.Empty<Control>(), ImmutableList<CodeHighlightTarget>.Empty);
         }

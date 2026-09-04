@@ -131,21 +131,31 @@ public sealed class MarkdownPreviewBuilderTests
     }
 
     [Fact]
-    public async Task BuildBlocks_TaskList_ReturnsDisabledCheckBoxes()
+    public async Task BuildBlocks_TaskList_ReturnsInteractiveCheckBoxes()
     {
-        IReadOnlyList<bool?> states = await EvaluateAsync(() =>
-            Build("- [x] done\n- [ ] open")
-                .SelectMany(Descendants<CheckBox>)
-                .Select(box => box.IsChecked)
-                .ToList());
+        (IReadOnlyList<bool?> states, bool allEnabled, int toggledIndex, bool toggledState) = await EvaluateAsync(() =>
+        {
+            int toggledIndex = -1;
+            bool toggledState = false;
+            IReadOnlyList<CheckBox> checkBoxes = Build("- [x] done\n- [ ] open", (index, isChecked) =>
+            {
+                toggledIndex = index;
+                toggledState = isChecked;
+            }).SelectMany(Descendants<CheckBox>).ToList();
 
-        bool allDisabled = await EvaluateAsync(() =>
-            Build("- [x] done\n- [ ] open")
-                .SelectMany(Descendants<CheckBox>)
-                .All(box => !box.IsEnabled));
+            checkBoxes[1].IsChecked = true;
+
+            return (
+                checkBoxes.Select(box => box.IsChecked).ToList(),
+                checkBoxes.All(box => box.IsEnabled),
+                toggledIndex,
+                toggledState);
+        });
 
         Assert.Equal(new bool?[] { true, false }, states);
-        Assert.True(allDisabled);
+        Assert.True(allEnabled);
+        Assert.Equal(1, toggledIndex);
+        Assert.True(toggledState);
     }
 
     [Fact]
@@ -159,9 +169,9 @@ public sealed class MarkdownPreviewBuilderTests
         Assert.Equal(1, accentBorders);
     }
 
-    private IReadOnlyList<Control> Build(string markdown)
+    private IReadOnlyList<Control> Build(string markdown, Action<int, bool>? onTaskToggled = null)
     {
-        return _builder.BuildBlocks(MarkdownParser.Parse(markdown)).Blocks;
+        return _builder.BuildBlocks(MarkdownParser.Parse(markdown), onTaskToggled).Blocks;
     }
 
     private static Task<T> EvaluateAsync<T>(Func<T> evaluate)

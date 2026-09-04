@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Avalonia.Controls.Documents;
 using Valeria.Src.Core.Markdown;
@@ -18,7 +19,7 @@ public interface IMarkdownPreviewBuilder
     /// plain selectable text and collected as <see cref="CodeHighlightTarget"/>
     /// for asynchronous highlighting.
     /// </summary>
-    PreviewBuildResult BuildBlocks(MarkdownContent content);
+    PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null);
 
     /// <summary>
     /// Applies pre-tokenized spans onto a previously built code target.

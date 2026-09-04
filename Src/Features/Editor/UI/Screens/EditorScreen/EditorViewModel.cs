@@ -157,6 +157,20 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     }
 
     /// <summary>
+    /// Updates one task-list marker after a checkbox is toggled in the preview.
+    /// Invoked by MarkdownPreviewBuilder through the rendered checkbox callback.
+    /// </summary>
+    public void ToggleTask(int taskIndex, bool isChecked)
+    {
+        FormattingResult? result = EditorFormatting.ToggleTask(State.MarkdownText, taskIndex, isChecked);
+
+        if (result is null)
+            return;
+
+        SetMarkdownText(result.Text);
+    }
+
+    /// <summary>
     /// Updates the caret position shown in the status bar.
     /// Invoked by EditorView on caret changes.
     /// </summary>
@@ -382,7 +396,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                 if (IsStale(cancellationToken, version))
                     return;
 
-                built = _previewBuilder.BuildBlocks(content);
+                built = _previewBuilder.BuildBlocks(content, ToggleTask);
 
                 UpdateState(state => state with
                 {

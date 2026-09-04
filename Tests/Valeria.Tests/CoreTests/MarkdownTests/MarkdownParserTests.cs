@@ -73,6 +73,8 @@ public sealed class MarkdownParserTests
         Assert.Equal(2, list.Items.Count);
         Assert.Equal(true, list.Items[0].IsChecked);
         Assert.Equal(false, list.Items[1].IsChecked);
+        Assert.Equal(0, list.Items[0].TaskIndex);
+        Assert.Equal(1, list.Items[1].TaskIndex);
         Assert.Equal("done", FlattenBlocks(list.Items[0].Blocks));
     }
 

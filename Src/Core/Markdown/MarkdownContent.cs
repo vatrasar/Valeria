@@ -26,8 +26,8 @@ public sealed record CodeBlock(string? Language, string Code) : MarkdownBlock;
 /// <summary>Blockquote wrapping nested blocks.</summary>
 public sealed record QuoteBlock(ImmutableList<MarkdownBlock> Blocks) : MarkdownBlock;
 
-/// <summary>Single list item. IsChecked is set only for task list items.</summary>
-public sealed record ListItemBlock(ImmutableList<MarkdownBlock> Blocks, bool? IsChecked) : MarkdownBlock;
+/// <summary>Single list item. IsChecked and TaskIndex are set only for task list items.</summary>
+public sealed record ListItemBlock(ImmutableList<MarkdownBlock> Blocks, bool? IsChecked, int? TaskIndex = null) : MarkdownBlock;
 
 /// <summary>Unordered list of items.</summary>
 public sealed record BulletListBlock(ImmutableList<ListItemBlock> Items) : MarkdownBlock;

@@ -32,21 +32,23 @@ public static class MarkdownParser
 
         MdSyntax.MarkdownDocument document = Markdig.Markdown.Parse(markdown, Pipeline);
 
-        return new MarkdownContent(ParseBlocks(document));
+        int taskIndex = 0;
+
+        return new MarkdownContent(ParseBlocks(document, ref taskIndex));
     }
 
-    private static ImmutableList<MarkdownBlock> ParseBlocks(MdSyntax.ContainerBlock container)
+    private static ImmutableList<MarkdownBlock> ParseBlocks(MdSyntax.ContainerBlock container, ref int taskIndex)
     {
         ImmutableList<MarkdownBlock>.Builder builder = ImmutableList.CreateBuilder<MarkdownBlock>();
 
         foreach (MdSyntax.Block? block in container)
-            foreach (MarkdownBlock parsed in ParseBlock(block))
+            foreach (MarkdownBlock parsed in ParseBlock(block, ref taskIndex))
                 builder.Add(parsed);
 
         return builder.ToImmutable();
     }
 
-    private static ImmutableList<MarkdownBlock> ParseBlock(MdSyntax.Block? block)
+    private static ImmutableList<MarkdownBlock> ParseBlock(MdSyntax.Block? block, ref int taskIndex)
     {
         return block switch
         {
@@ -59,14 +61,14 @@ public static class MarkdownParser
             MdSyntax.CodeBlock code => ImmutableList.Create<MarkdownBlock>(
                 new CodeBlock(null, code.Lines.ToString())),
             MdSyntax.QuoteBlock quote => ImmutableList.Create<MarkdownBlock>(
-                new QuoteBlock(ParseBlocks(quote))),
-            MdSyntax.ListBlock list => ImmutableList.Create<MarkdownBlock>(ParseList(list)),
+                new QuoteBlock(ParseBlocks(quote, ref taskIndex))),
+            MdSyntax.ListBlock list => ImmutableList.Create<MarkdownBlock>(ParseList(list, ref taskIndex)),
             MdTables.Table table => ImmutableList.Create<MarkdownBlock>(ParseTable(table)),
             MdSyntax.ThematicBreakBlock => ImmutableList.Create<MarkdownBlock>(new ThematicBreakBlock()),
             MdSyntax.HtmlBlock html => ImmutableList.Create<MarkdownBlock>(
                 new HtmlBlock(html.Lines.ToString())),
             MdSyntax.LeafBlock leaf => ParseLeafFallback(leaf),
-            MdSyntax.ContainerBlock nested => ParseBlocks(nested),
+            MdSyntax.ContainerBlock nested => ParseBlocks(nested, ref taskIndex),
             _ => ImmutableList<MarkdownBlock>.Empty
         };
     }
@@ -102,12 +104,12 @@ public static class MarkdownParser
             new ParagraphBlock(ImmutableList.Create<MarkdownInline>(new TextRun(text))));
     }
 
-    private static MarkdownBlock ParseList(MdSyntax.ListBlock list)
+    private static MarkdownBlock ParseList(MdSyntax.ListBlock list, ref int taskIndex)
     {
         ImmutableList<ListItemBlock>.Builder items = ImmutableList.CreateBuilder<ListItemBlock>();
 
         foreach (MdSyntax.ListItemBlock item in list.OfType<MdSyntax.ListItemBlock>())
-            items.Add(ParseListItem(item));
+            items.Add(ParseListItem(item, ref taskIndex));
 
         if (list.IsOrdered)
             return new OrderedListBlock(ParseOrderedStart(list.OrderedStart), items.ToImmutable());
@@ -123,32 +125,42 @@ public static class MarkdownParser
         return 1;
     }
 
-    private static ListItemBlock ParseListItem(MdSyntax.ListItemBlock item)
+    private static ListItemBlock ParseListItem(MdSyntax.ListItemBlock item, ref int taskIndex)
     {
         bool? isChecked = null;
+        int? taskIndexForItem = null;
         ImmutableList<MarkdownBlock>.Builder blocks = ImmutableList.CreateBuilder<MarkdownBlock>();
 
         foreach (MdSyntax.Block? child in item)
-            foreach (MarkdownBlock parsed in ParseListItemChild(child, ref isChecked))
+            foreach (MarkdownBlock parsed in ParseListItemChild(child, ref isChecked, ref taskIndexForItem, ref taskIndex))
                 blocks.Add(parsed);
 
-        return new ListItemBlock(blocks.ToImmutable(), isChecked);
+        return new ListItemBlock(blocks.ToImmutable(), isChecked, taskIndexForItem);
     }
 
-    private static ImmutableList<MarkdownBlock> ParseListItemChild(MdSyntax.Block? child, ref bool? isChecked)
+    private static ImmutableList<MarkdownBlock> ParseListItemChild(
+        MdSyntax.Block? child,
+        ref bool? isChecked,
+        ref int? taskIndexForItem,
+        ref int taskIndex)
     {
         if (child is MdSyntax.ParagraphBlock paragraph)
             return ImmutableList.Create<MarkdownBlock>(
-                new ParagraphBlock(ParseItemParagraphInlines(paragraph, ref isChecked)));
+                new ParagraphBlock(ParseItemParagraphInlines(paragraph, ref isChecked, ref taskIndexForItem, ref taskIndex)));
 
-        return ParseBlock(child);
+        return ParseBlock(child, ref taskIndex);
     }
 
-    private static ImmutableList<MarkdownInline> ParseItemParagraphInlines(MdSyntax.ParagraphBlock paragraph, ref bool? isChecked)
+    private static ImmutableList<MarkdownInline> ParseItemParagraphInlines(
+        MdSyntax.ParagraphBlock paragraph,
+        ref bool? isChecked,
+        ref int? taskIndexForItem,
+        ref int taskIndex)
     {
         if (paragraph.Inline?.FirstChild is TaskList task)
         {
             isChecked = task.Checked;
+            taskIndexForItem ??= taskIndex++;
 
             return TrimLeadingSpace(ParseInlines(paragraph.Inline));
         }
