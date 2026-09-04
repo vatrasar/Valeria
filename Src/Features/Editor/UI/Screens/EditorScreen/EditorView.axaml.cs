@@ -25,7 +25,8 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// Available functionalities: open/save/save-as files, inline formatting
 /// (bold, italic, strike, code, link), block formatting (headings, lists,
 /// quote, code fence, table), Ctrl+Enter list continuation, editor panel
-/// toggle, live word count and caret readout.
+/// toggle, automatic closing of markdown code fences, live word count and
+/// caret readout.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
 /// (ItemsControl), EditorToggleButton, formatting toolbar, status bar.
 /// Navigate From: application startup.
@@ -49,6 +50,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             RegisterDialogAnchor();
             ConfigureSourceEditor();
             InterceptListContinuation(disposables);
+            InterceptAutoClosingCharacters(disposables);
             BindPreview(disposables);
             BindStatusBar(disposables);
             BindFileCommands(disposables);
@@ -126,6 +128,12 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         Disposable.Create(() => RemoveHandler(InputElement.KeyDownEvent, OnPreviewKeyDown)).DisposeWith(disposables);
     }
 
+    private void InterceptAutoClosingCharacters(CompositeDisposable disposables)
+    {
+        AddHandler(InputElement.TextInputEvent, OnPreviewTextInput, RoutingStrategies.Tunnel);
+        Disposable.Create(() => RemoveHandler(InputElement.TextInputEvent, OnPreviewTextInput)).DisposeWith(disposables);
+    }
+
     private void OnPreviewKeyDown(object? sender, KeyEventArgs keyEvent)
     {
         if (ViewModel is null)
@@ -145,6 +153,129 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
         ApplyResult(result);
         keyEvent.Handled = true;
+    }
+
+    private void OnPreviewTextInput(object? sender, TextInputEventArgs textInputEvent)
+    {
+        if (textInputEvent.Handled || textInputEvent.Text is not { Length: 1 } inputText)
+            return;
+
+        char inputCharacter = inputText[0];
+
+        if (inputCharacter == '`' && TrySkipExistingCodeFence())
+        {
+            textInputEvent.Handled = true;
+            return;
+        }
+
+        if (inputCharacter == '`' && TryCompleteCodeFence())
+        {
+            textInputEvent.Handled = true;
+            return;
+        }
+
+        if (TrySkipExistingClosingCharacter(inputCharacter))
+        {
+            textInputEvent.Handled = true;
+            return;
+        }
+
+        char? closingCharacter = GetClosingCharacter(inputCharacter);
+
+        if (closingCharacter is null)
+            return;
+
+        InsertPairedCharacters(inputCharacter, closingCharacter.Value);
+        textInputEvent.Handled = true;
+    }
+
+    private bool TrySkipExistingClosingCharacter(char inputCharacter)
+    {
+        if (!IsClosingCharacter(inputCharacter) || SourceEditor.SelectionLength != 0)
+            return false;
+
+        int caretOffset = SourceEditor.CaretOffset;
+        string documentText = SourceEditor.Text ?? string.Empty;
+
+        if (caretOffset >= documentText.Length || documentText[caretOffset] != inputCharacter)
+            return false;
+
+        SourceEditor.CaretOffset++;
+        return true;
+    }
+
+    private bool TryCompleteCodeFence()
+    {
+        if (SourceEditor.SelectionLength != 0)
+            return false;
+
+        int caretOffset = SourceEditor.CaretOffset;
+        string documentText = SourceEditor.Text ?? string.Empty;
+
+        if (caretOffset < 2
+            || documentText[caretOffset - 1] != '`'
+            || documentText[caretOffset - 2] != '`'
+            || caretOffset >= 3 && documentText[caretOffset - 3] == '`')
+            return false;
+
+        const string codeFence = "```";
+        SourceEditor.Document.Replace(caretOffset - 2, 2, string.Concat(codeFence, codeFence));
+        SourceEditor.CaretOffset = caretOffset + 1;
+        return true;
+    }
+
+    private bool TrySkipExistingCodeFence()
+    {
+        if (SourceEditor.SelectionLength != 0)
+            return false;
+
+        int caretOffset = SourceEditor.CaretOffset;
+        string documentText = SourceEditor.Text ?? string.Empty;
+
+        if (caretOffset + 2 >= documentText.Length
+            || documentText[caretOffset] != '`'
+            || documentText[caretOffset + 1] != '`'
+            || documentText[caretOffset + 2] != '`')
+            return false;
+
+        SourceEditor.CaretOffset += 3;
+        return true;
+    }
+
+    private void InsertPairedCharacters(char openingCharacter, char closingCharacter)
+    {
+        int selectionStart = SourceEditor.SelectionStart;
+        int selectionLength = SourceEditor.SelectionLength;
+        string selectedText = selectionLength == 0 ? string.Empty : SourceEditor.SelectedText;
+        string pairedText = string.Concat(openingCharacter, selectedText, closingCharacter);
+
+        SourceEditor.Document.Replace(selectionStart, selectionLength, pairedText);
+
+        if (selectionLength == 0)
+        {
+            SourceEditor.CaretOffset = selectionStart + 1;
+            return;
+        }
+
+        SourceEditor.Select(selectionStart + 1, selectionLength);
+    }
+
+    private static char? GetClosingCharacter(char openingCharacter)
+    {
+        return openingCharacter switch
+        {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '"' => '"',
+            '\'' => '\'',
+            _ => null
+        };
+    }
+
+    private static bool IsClosingCharacter(char character)
+    {
+        return character is ')' or ']' or '}' or '"' or '\'';
     }
 
     private void ConfigureSourceEditor()
