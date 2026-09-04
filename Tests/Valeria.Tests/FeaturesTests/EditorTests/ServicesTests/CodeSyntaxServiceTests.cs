@@ -49,4 +49,15 @@ public sealed class CodeSyntaxServiceTests
         Assert.Equal("source.python", _syntax.ResolveScope("python"));
         Assert.Null(_syntax.ResolveScope("unknown"));
     }
+
+    [Fact]
+    public void GetLanguageSuggestions_ReturnsUniqueSupportedIdentifiers()
+    {
+        IReadOnlyList<CodeLanguageSuggestion> suggestions = _syntax.GetLanguageSuggestions();
+
+        Assert.Contains(suggestions, suggestion => suggestion.Identifier == "csharp" && suggestion.DisplayName == "C#");
+        Assert.Contains(suggestions, suggestion => suggestion.Identifier == "python" && suggestion.DisplayName == "Python");
+        Assert.Equal(suggestions.Count, suggestions.Select(suggestion => suggestion.Identifier).Distinct().Count());
+        Assert.All(suggestions, suggestion => Assert.NotNull(_syntax.ResolveScope(suggestion.Identifier)));
+    }
 }

@@ -49,6 +49,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
 
     public int PreviewMaxWidth { get; }
 
+    public IReadOnlyList<CodeLanguageSuggestion> CodeLanguageSuggestions => _syntax.GetLanguageSuggestions();
+
     public EditorViewModel(
         IScreen hostScreen,
         IEditorFileService files,

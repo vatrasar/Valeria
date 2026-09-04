@@ -96,6 +96,45 @@ public sealed class CodeSyntaxService : ICodeSyntaxService
             ["json"] = "JSON"
         };
 
+    private static readonly IReadOnlyList<CodeLanguageSuggestion> LanguageSuggestions =
+    [
+        new("csharp", "C#"),
+        new("python", "Python"),
+        new("javascript", "JavaScript"),
+        new("typescript", "TypeScript"),
+        new("jsx", "JSX"),
+        new("tsx", "TSX"),
+        new("html", "HTML"),
+        new("xml", "XML"),
+        new("axaml", "AXAML"),
+        new("json", "JSON"),
+        new("css", "CSS"),
+        new("scss", "SCSS"),
+        new("less", "Less"),
+        new("yaml", "YAML"),
+        new("ini", "INI"),
+        new("bash", "Bash"),
+        new("powershell", "PowerShell"),
+        new("sql", "SQL"),
+        new("cpp", "C++"),
+        new("c", "C"),
+        new("java", "Java"),
+        new("rust", "Rust"),
+        new("go", "Go"),
+        new("php", "PHP"),
+        new("ruby", "Ruby"),
+        new("swift", "Swift"),
+        new("r", "R"),
+        new("lua", "Lua"),
+        new("perl", "Perl"),
+        new("dockerfile", "Dockerfile"),
+        new("diff", "Diff"),
+        new("markdown", "Markdown"),
+        new("tex", "TeX"),
+        new("vb", "Visual Basic"),
+        new("fsharp", "F#")
+    ];
+
     private static readonly IReadOnlyList<string> PreloadExtensions =
         [".cs", ".py", ".js", ".ts", ".json", ".css", ".html", ".xml", ".yaml", ".cpp", ".c", ".java", ".sh", ".rs", ".go", ".sql"];
 
@@ -121,6 +160,15 @@ public sealed class CodeSyntaxService : ICodeSyntaxService
             return null;
 
         return RegistryOptions.GetScopeByExtension(extension);
+    }
+
+    /// <summary>
+    /// Returns language identifiers supported by the editor's code highlighter.
+    /// Invoked by EditorViewModel for code-fence completion suggestions.
+    /// </summary>
+    public IReadOnlyList<CodeLanguageSuggestion> GetLanguageSuggestions()
+    {
+        return LanguageSuggestions;
     }
 
     /// <summary>

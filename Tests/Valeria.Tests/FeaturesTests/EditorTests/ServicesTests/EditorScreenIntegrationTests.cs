@@ -274,6 +274,11 @@ public sealed class EditorScreenIntegrationTests
             return null;
         }
 
+        public IReadOnlyList<CodeLanguageSuggestion> GetLanguageSuggestions()
+        {
+            return Array.Empty<CodeLanguageSuggestion>();
+        }
+
         public string GetLanguageDisplayName(string? language)
         {
             return string.Empty;

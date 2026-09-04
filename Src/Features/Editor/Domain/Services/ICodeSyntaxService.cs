@@ -19,6 +19,12 @@ public interface ICodeSyntaxService
     string? ResolveScope(string? language);
 
     /// <summary>
+    /// Returns language identifiers supported by the editor's code highlighter.
+    /// Invoked by EditorViewModel for code-fence completion suggestions.
+    /// </summary>
+    IReadOnlyList<CodeLanguageSuggestion> GetLanguageSuggestions();
+
+    /// <summary>
     /// Returns the short display name shown in the code block header.
     /// Invoked by the preview builder for every code block.
     /// </summary>

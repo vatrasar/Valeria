@@ -10,9 +10,13 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using Valeria.Src.Core.Markdown;
+using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Resources;
 using ReactiveUI;
 
@@ -25,10 +29,11 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// Available functionalities: open/save/save-as files, inline formatting
 /// (bold, italic, strike, code, link), block formatting (headings, lists,
 /// quote, code fence, table), Ctrl+Enter list continuation, editor panel
-/// toggle, automatic closing of markdown code fences, live word count and
-/// caret readout.
+/// toggle, automatic closing of markdown code fences, language suggestions
+/// after opening a fenced code block, live word count and caret readout.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
-/// (ItemsControl), EditorToggleButton, formatting toolbar, status bar.
+/// (ItemsControl), code language completion window, EditorToggleButton,
+/// formatting toolbar, status bar.
 /// Navigate From: application startup.
 /// Navigate To: none, single screen application.
 /// </summary>
@@ -40,6 +45,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private const double EditorColumnMinWidth = 250;
 
     private bool _syncingEditor;
+    private CompletionWindow? _codeLanguageCompletionWindow;
 
     public EditorView()
     {
@@ -51,6 +57,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             ConfigureSourceEditor();
             InterceptListContinuation(disposables);
             InterceptAutoClosingCharacters(disposables);
+            InterceptCodeLanguageCompletion(disposables);
             BindPreview(disposables);
             BindStatusBar(disposables);
             BindFileCommands(disposables);
@@ -134,6 +141,22 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         Disposable.Create(() => RemoveHandler(InputElement.TextInputEvent, OnPreviewTextInput)).DisposeWith(disposables);
     }
 
+    private void InterceptCodeLanguageCompletion(CompositeDisposable disposables)
+    {
+        SourceEditor.TextArea.TextEntering += OnTextEntering;
+        Disposable.Create(() => SourceEditor.TextArea.TextEntering -= OnTextEntering).DisposeWith(disposables);
+        Disposable.Create(CloseCodeLanguageCompletion).DisposeWith(disposables);
+    }
+
+    private void OnTextEntering(object? sender, TextInputEventArgs textEvent)
+    {
+        if (_codeLanguageCompletionWindow is null || string.IsNullOrEmpty(textEvent.Text))
+            return;
+
+        if (!IsLanguageIdentifierCharacter(textEvent.Text[0]))
+            _codeLanguageCompletionWindow.CompletionList.RequestInsertion(textEvent);
+    }
+
     private void OnPreviewKeyDown(object? sender, KeyEventArgs keyEvent)
     {
         if (ViewModel is null)
@@ -170,6 +193,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
         if (inputCharacter == '`' && TryCompleteCodeFence())
         {
+            ShowCodeLanguageCompletion();
             textInputEvent.Handled = true;
             return;
         }
@@ -202,6 +226,45 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
         SourceEditor.CaretOffset++;
         return true;
+    }
+
+    private void ShowCodeLanguageCompletion()
+    {
+        CloseCodeLanguageCompletion();
+
+        if (ViewModel is null || ViewModel.CodeLanguageSuggestions.Count == 0)
+            return;
+
+        CompletionWindow completionWindow = new(SourceEditor.TextArea)
+        {
+            StartOffset = SourceEditor.CaretOffset,
+            EndOffset = SourceEditor.CaretOffset
+        };
+
+        foreach (CodeLanguageSuggestion suggestion in ViewModel.CodeLanguageSuggestions)
+            completionWindow.CompletionList.CompletionData.Add(new CodeLanguageCompletionData(suggestion));
+        completionWindow.Closed += OnCodeLanguageCompletionClosed;
+        _codeLanguageCompletionWindow = completionWindow;
+        completionWindow.Show();
+    }
+
+    private void OnCodeLanguageCompletionClosed(object? sender, EventArgs args)
+    {
+        if (sender is CompletionWindow completionWindow)
+            completionWindow.Closed -= OnCodeLanguageCompletionClosed;
+
+        _codeLanguageCompletionWindow = null;
+    }
+
+    private void CloseCodeLanguageCompletion()
+    {
+        _codeLanguageCompletionWindow?.Close();
+        _codeLanguageCompletionWindow = null;
+    }
+
+    private static bool IsLanguageIdentifierCharacter(char character)
+    {
+        return char.IsLetterOrDigit(character) || character is '#' or '+' or '-';
     }
 
     private bool TryCompleteCodeFence()
@@ -524,5 +587,30 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             return family;
 
         return FontFamily.Default;
+    }
+
+    private sealed class CodeLanguageCompletionData : ICompletionData
+    {
+        private readonly CodeLanguageSuggestion _suggestion;
+
+        public CodeLanguageCompletionData(CodeLanguageSuggestion suggestion)
+        {
+            _suggestion = suggestion;
+        }
+
+        public IImage? Image => null;
+
+        public string Text => _suggestion.Identifier;
+
+        public object Content => _suggestion.Identifier;
+
+        public object Description => _suggestion.DisplayName;
+
+        public double Priority => 1;
+
+        public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
+        {
+            textArea.Document.Replace(completionSegment, _suggestion.Identifier);
+        }
     }
 }
