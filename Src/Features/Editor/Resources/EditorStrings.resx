@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="OpenFile" xml:space="preserve">
+    <value>Open file</value>
+  </data>
+  <data name="SaveFile" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="SaveFileAs" xml:space="preserve">
+    <value>Save as</value>
+  </data>
+  <data name="TogglePreview" xml:space="preserve">
+    <value>Toggle preview</value>
+  </data>
+  <data name="Bold" xml:space="preserve">
+    <value>Bold</value>
+  </data>
+  <data name="Italic" xml:space="preserve">
+    <value>Italic</value>
+  </data>
+  <data name="Strikethrough" xml:space="preserve">
+    <value>Strikethrough</value>
+  </data>
+  <data name="InlineCode" xml:space="preserve">
+    <value>Inline code</value>
+  </data>
+  <data name="InsertLink" xml:space="preserve">
+    <value>Insert link</value>
+  </data>
+  <data name="Heading1" xml:space="preserve">
+    <value>Heading 1</value>
+  </data>
+  <data name="Heading2" xml:space="preserve">
+    <value>Heading 2</value>
+  </data>
+  <data name="Heading3" xml:space="preserve">
+    <value>Heading 3</value>
+  </data>
+  <data name="BulletList" xml:space="preserve">
+    <value>Bulleted list</value>
+  </data>
+  <data name="NumberedList" xml:space="preserve">
+    <value>Numbered list</value>
+  </data>
+  <data name="Quote" xml:space="preserve">
+    <value>Quote</value>
+  </data>
+  <data name="CodeBlock" xml:space="preserve">
+    <value>Code block</value>
+  </data>
+  <data name="InsertTable" xml:space="preserve">
+    <value>Insert table</value>
+  </data>
+  <data name="CopyCode" xml:space="preserve">
+    <value>Copy code</value>
+  </data>
+  <data name="PlainText" xml:space="preserve">
+    <value>text</value>
+    <comment>Language label for code blocks without a language</comment>
+  </data>
+  <data name="Words" xml:space="preserve">
+    <value>words</value>
+  </data>
+  <data name="StartTypingHint" xml:space="preserve">
+    <value>Start typing Markdown on the left to see the live preview.</value>
+  </data>
+  <data name="ImagePlaceholder" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="StatusCaret" xml:space="preserve">
+    <value>Ln {0}, Col {1}</value>
+    <comment>Status bar caret position, 0 is line and 1 is column</comment>
+  </data>
+  <data name="PlaceholderBoldText" xml:space="preserve">
+    <value>bold text</value>
+  </data>
+  <data name="PlaceholderItalicText" xml:space="preserve">
+    <value>italic text</value>
+  </data>
+  <data name="PlaceholderStrikeText" xml:space="preserve">
+    <value>struck text</value>
+  </data>
+  <data name="PlaceholderCodeText" xml:space="preserve">
+    <value>code</value>
+  </data>
+  <data name="PlaceholderLinkText" xml:space="preserve">
+    <value>link text</value>
+  </data>
+</root>

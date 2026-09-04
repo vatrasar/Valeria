@@ -1,0 +1,106 @@
+<rxui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
+                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                         xmlns:rxui="http://reactiveui.net"
+                         xmlns:edit="using:AvaloniaEdit"
+                         xmlns:material="using:Material.Icons.Avalonia"
+                         xmlns:res="using:NewMarkText.Src.Features.Editor.Resources"
+                         xmlns:vm="using:NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen"
+                         x:TypeArguments="vm:EditorViewModel"
+                         x:Class="NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen.EditorView">
+  <rxui:ReactiveUserControl.Styles>
+    <StyleInclude Source="ScreenStyles/EditorLayoutStyles.axaml" />
+  </rxui:ReactiveUserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Classes="toolbar">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
+        <Button x:Name="OpenFileButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.OpenFile}">
+          <material:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="SaveFileButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.SaveFile}">
+          <material:MaterialIcon Kind="ContentSave" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="SaveFileAsButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.SaveFileAs}">
+          <material:MaterialIcon Kind="ContentSaveAll" Width="18" Height="18" />
+        </Button>
+        <Border Classes="toolbarSeparator" />
+        <Button x:Name="BoldButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Bold}">
+          <material:MaterialIcon Kind="FormatBold" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="ItalicButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Italic}">
+          <material:MaterialIcon Kind="FormatItalic" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="StrikethroughButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Strikethrough}">
+          <material:MaterialIcon Kind="FormatStrikethrough" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="InlineCodeButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.InlineCode}">
+          <material:MaterialIcon Kind="CodeTags" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="LinkButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.InsertLink}">
+          <material:MaterialIcon Kind="Link" Width="18" Height="18" />
+        </Button>
+        <Border Classes="toolbarSeparator" />
+        <Button x:Name="Heading1Button" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Heading1}">
+          <material:MaterialIcon Kind="FormatHeader1" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="Heading2Button" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Heading2}">
+          <material:MaterialIcon Kind="FormatHeader2" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="Heading3Button" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Heading3}">
+          <material:MaterialIcon Kind="FormatHeader3" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="BulletListButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.BulletList}">
+          <material:MaterialIcon Kind="FormatListBulleted" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="NumberedListButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.NumberedList}">
+          <material:MaterialIcon Kind="FormatListNumbered" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="QuoteButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Quote}">
+          <material:MaterialIcon Kind="FormatQuoteClose" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="CodeBlockButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.CodeBlock}">
+          <material:MaterialIcon Kind="CodeBraces" Width="18" Height="18" />
+        </Button>
+        <Button x:Name="TableButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.InsertTable}">
+          <material:MaterialIcon Kind="Table" Width="18" Height="18" />
+        </Button>
+        </StackPanel>
+        <ToggleButton Grid.Column="1" x:Name="PreviewToggleButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.TogglePreview}">
+          <material:MaterialIcon Kind="EyeOutline" Width="18" Height="18" />
+        </ToggleButton>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" x:Name="SplitGrid">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" MinWidth="250" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" MinWidth="250" />
+      </Grid.ColumnDefinitions>
+      <Border Grid.Column="0" Classes="editorPane">
+        <edit:TextEditor x:Name="SourceEditor" />
+      </Border>
+      <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />
+      <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane">
+        <Grid>
+          <ScrollViewer x:Name="PreviewScroller">
+            <ItemsControl x:Name="PreviewBlocksControl" HorizontalAlignment="Stretch" />
+          </ScrollViewer>
+          <TextBlock x:Name="EmptyHint"
+                     Text="{x:Static res:EditorStrings.StartTypingHint}"
+                     Classes="emptyHint" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Classes="statusbar">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+        <TextBlock x:Name="DocumentTitleLabel" Grid.Column="0" Classes="statusItem" />
+        <TextBlock x:Name="ErrorLabel" Grid.Column="1" Classes="statusItem error" />
+        <TextBlock x:Name="CaretLabel" Grid.Column="2" Classes="statusItem" />
+        <TextBlock x:Name="WordCountLabel" Grid.Column="3" Classes="statusItem" />
+      </Grid>
+    </Border>
+  </Grid>
+</rxui:ReactiveUserControl>

@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/NewMarkText.Tests/NewMarkText.Tests.csproj" />
+  </Folder>
+  <Project Path="NewMarkText.csproj" />
+</Solution>

@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Color x:Key="PageBackgroundColor">#1E1E1E</Color>
+  <Color x:Key="ChromeBackgroundColor">#252526</Color>
+  <Color x:Key="EditorBackgroundColor">#1E1E1E</Color>
+  <Color x:Key="PreviewBackgroundColor">#1E1E1E</Color>
+  <Color x:Key="BorderColor">#3C3C3C</Color>
+  <Color x:Key="PrimaryTextColor">#D4D4D4</Color>
+  <Color x:Key="MutedTextColor">#9D9D9D</Color>
+  <Color x:Key="HeadingColor">#E8E8E8</Color>
+  <Color x:Key="AccentColor">#4FA3E0</Color>
+  <Color x:Key="CodeInlineBackgroundColor">#2D2D2D</Color>
+  <Color x:Key="CodeInlineForegroundColor">#CE9178</Color>
+  <Color x:Key="CodeBlockBackgroundColor">#161616</Color>
+  <Color x:Key="CodeBlockHeaderBackgroundColor">#222222</Color>
+  <Color x:Key="CodeBlockBorderColor">#333333</Color>
+  <Color x:Key="QuoteBackgroundColor">#252526</Color>
+  <Color x:Key="QuoteBorderColor">#4FA3E0</Color>
+  <Color x:Key="QuoteForegroundColor">#A6A6A6</Color>
+  <Color x:Key="TableHeaderBackgroundColor">#2D2D2D</Color>
+  <Color x:Key="TableCellBorderColor">#3C3C3C</Color>
+  <Color x:Key="RuleColor">#3C3C3C</Color>
+  <Color x:Key="EditorSelectionColor">#264F78</Color>
+  <Color x:Key="EditorLineNumberColor">#858585</Color>
+  <Color x:Key="EditorCurrentLineColor">#2A2D2E</Color>
+  <Color x:Key="ErrorColor">#F14C4C</Color>
+
+  <SolidColorBrush x:Key="PageBackgroundBrush" Color="{StaticResource PageBackgroundColor}" />
+  <SolidColorBrush x:Key="ChromeBackgroundBrush" Color="{StaticResource ChromeBackgroundColor}" />
+  <SolidColorBrush x:Key="EditorBackgroundBrush" Color="{StaticResource EditorBackgroundColor}" />
+  <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="{StaticResource PreviewBackgroundColor}" />
+  <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+  <SolidColorBrush x:Key="PrimaryTextBrush" Color="{StaticResource PrimaryTextColor}" />
+  <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource MutedTextColor}" />
+  <SolidColorBrush x:Key="HeadingBrush" Color="{StaticResource HeadingColor}" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="CodeInlineBackgroundBrush" Color="{StaticResource CodeInlineBackgroundColor}" />
+  <SolidColorBrush x:Key="CodeInlineForegroundBrush" Color="{StaticResource CodeInlineForegroundColor}" />
+  <SolidColorBrush x:Key="CodeBlockBackgroundBrush" Color="{StaticResource CodeBlockBackgroundColor}" />
+  <SolidColorBrush x:Key="CodeBlockHeaderBackgroundBrush" Color="{StaticResource CodeBlockHeaderBackgroundColor}" />
+  <SolidColorBrush x:Key="CodeBlockBorderBrush" Color="{StaticResource CodeBlockBorderColor}" />
+  <SolidColorBrush x:Key="QuoteBackgroundBrush" Color="{StaticResource QuoteBackgroundColor}" />
+  <SolidColorBrush x:Key="QuoteBorderBrush" Color="{StaticResource QuoteBorderColor}" />
+  <SolidColorBrush x:Key="QuoteForegroundBrush" Color="{StaticResource QuoteForegroundColor}" />
+  <SolidColorBrush x:Key="TableHeaderBackgroundBrush" Color="{StaticResource TableHeaderBackgroundColor}" />
+  <SolidColorBrush x:Key="TableCellBorderBrush" Color="{StaticResource TableCellBorderColor}" />
+  <SolidColorBrush x:Key="RuleBrush" Color="{StaticResource RuleColor}" />
+  <SolidColorBrush x:Key="EditorSelectionBrush" Color="{StaticResource EditorSelectionColor}" />
+  <SolidColorBrush x:Key="EditorLineNumberBrush" Color="{StaticResource EditorLineNumberColor}" />
+  <SolidColorBrush x:Key="EditorCurrentLineBrush" Color="{StaticResource EditorCurrentLineColor}" />
+  <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+</ResourceDictionary>

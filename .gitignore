@@ -1,0 +1,92 @@
+## .NET / C# / Avalonia
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Oo]ut/
+[Pp]ublish/
+[Aa]rtifacts/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# MSBuild
+*.binlog
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Test coverage
+*.coverage
+*.coveragexml
+coverage*/
+CoverageReport*/
+TestCoverageReport*/
+lcov.info
+
+# Publish single-file / self-contained output
+publish/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+.ionide/
+.rider/
+*.sln.iml
+
+## OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo
+.fuse_hidden*
+.nfs*
+
+## SQLite / EF Core local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.mdf
+*.ldf
+
+## Local config overrides (keep appsettings.json tracked)
+appsettings.*.json
+!appsettings.json
+conf.txt
+
+## Debian packaging (.deb release flow, /opt/appName is read-only)
+*.deb
+*.ddeb
+*.changes
+*.buildinfo
+debian/files
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/tmp/
+debuild/
+
+## Temporary / backup
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.[Oo]rig

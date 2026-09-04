@@ -1,0 +1,13 @@
+<rxui:ReactiveWindow xmlns="https://github.com/avaloniaui"
+                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        xmlns:rxui="http://reactiveui.net"
+                        xmlns:vm="using:NewMarkText.Src.Features.Shell.UI.Screens.Main"
+                        x:TypeArguments="vm:MainWindowViewModel"
+                        x:Class="NewMarkText.Src.Features.Shell.UI.Screens.Main.MainWindow"
+                        Title="NewMarkText"
+                        Width="1280" Height="800"
+                        MinWidth="900" MinHeight="600"
+                        Icon="/Assets/avalonia-logo.ico"
+                        Background="{DynamicResource PageBackgroundBrush}">
+  <rxui:RoutedViewHost x:Name="MainRouter" />
+</rxui:ReactiveWindow>
