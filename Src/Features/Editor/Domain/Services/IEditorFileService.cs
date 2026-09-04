@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NewMarkText.Src.Features.Editor.Domain.Services;
+namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
 /// Reads and writes markdown text files with cancellation support.

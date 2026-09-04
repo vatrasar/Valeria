@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace NewMarkText.Src.Core.Markdown;
+namespace Valeria.Src.Core.Markdown;
 
 /// <summary>
 /// UI-agnostic intermediate representation of a parsed markdown document.

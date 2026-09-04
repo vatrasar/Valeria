@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\NewMarkText.csproj" />
+    <ProjectReference Include="..\..\Valeria.csproj" />
   </ItemGroup>
 
 </Project>

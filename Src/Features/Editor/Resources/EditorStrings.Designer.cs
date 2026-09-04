@@ -3,7 +3,7 @@ using System.Resources;
 
 #nullable enable
 
-namespace NewMarkText.Src.Features.Editor.Resources;
+namespace Valeria.Src.Features.Editor.Resources;
 
 /// <summary>
 /// Strongly-typed access to Editor/Resources/EditorStrings.resx.
@@ -19,7 +19,7 @@ public static class EditorStrings
         get
         {
             _resourceManager ??= new ResourceManager(
-                "NewMarkText.Src.Features.Editor.Resources.EditorStrings",
+                "Valeria.Src.Features.Editor.Resources.EditorStrings",
                 typeof(EditorStrings).Assembly);
 
             return _resourceManager;

@@ -1,8 +1,8 @@
 using System.Linq;
-using NewMarkText.Src.Core.Markdown;
+using Valeria.Src.Core.Markdown;
 using Xunit;
 
-namespace NewMarkText.Tests.CoreTests.MarkdownTests;
+namespace Valeria.Tests.CoreTests.MarkdownTests;
 
 public sealed class MarkdownParserTests
 {

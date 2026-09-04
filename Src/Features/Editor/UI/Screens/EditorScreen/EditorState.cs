@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using Avalonia.Controls;
-using NewMarkText.Src.Shared.Resources;
+using Valeria.Src.Shared.Resources;
 
-namespace NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
+namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 /// <summary>
 /// Immutable state of the markdown editor screen.

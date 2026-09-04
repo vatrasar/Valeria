@@ -9,17 +9,17 @@ using Avalonia.Controls;
 using Microsoft.Extensions.Options;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
-using NewMarkText.Src.Core.Config;
-using NewMarkText.Src.Core.Markdown;
-using NewMarkText.Src.Core.Mvvm;
-using NewMarkText.Src.Features.Editor.Domain.Services;
-using NewMarkText.Src.Infrastructure.Services;
-using NewMarkText.Src.Shared.Resources;
+using Valeria.Src.Core.Config;
+using Valeria.Src.Core.Markdown;
+using Valeria.Src.Core.Mvvm;
+using Valeria.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Infrastructure.Services;
+using Valeria.Src.Shared.Resources;
 
-namespace NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
+namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 /// <summary>
-/// View model of the split markdown editor screen with live MarkText styled preview.
+/// View model of the split markdown editor screen with live styled preview.
 /// </summary>
 public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableViewModel
 {

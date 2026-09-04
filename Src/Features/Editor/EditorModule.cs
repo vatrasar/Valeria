@@ -1,9 +1,9 @@
 using ReactiveUI;
 using Splat;
-using NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
-using NewMarkText.Src.Infrastructure.Navigation;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
+using Valeria.Src.Infrastructure.Navigation;
 
-namespace NewMarkText.Src.Features.Editor;
+namespace Valeria.Src.Features.Editor;
 
 /// <summary>
 /// Registers the editor feature views for ReactiveUI routing.

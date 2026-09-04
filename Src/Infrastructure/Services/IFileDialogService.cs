@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 
-namespace NewMarkText.Src.Infrastructure.Services;
+namespace Valeria.Src.Infrastructure.Services;
 
 /// <summary>
 /// Opens native file dialogs anchored to the current window.

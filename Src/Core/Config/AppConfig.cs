@@ -1,11 +1,11 @@
-namespace NewMarkText.Src.Core.Config;
+namespace Valeria.Src.Core.Config;
 
 /// <summary>
 /// Strongly-typed application configuration bound from appsettings.json.
 /// </summary>
 public sealed class AppConfig
 {
-    public const string SectionName = "NewMarkText";
+    public const string SectionName = "Valeria";
 
     public EditorOptions Editor { get; set; } = new();
 

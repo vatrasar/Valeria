@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
-namespace NewMarkText.Src.Core.Markdown;
+namespace Valeria.Src.Core.Markdown;
 
 /// <summary>
 /// Result of a pure text transformation requested by a formatting action.

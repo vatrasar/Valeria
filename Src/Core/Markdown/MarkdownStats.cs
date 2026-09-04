@@ -1,4 +1,4 @@
-namespace NewMarkText.Src.Core.Markdown;
+namespace Valeria.Src.Core.Markdown;
 
 /// <summary>
 /// Read-only statistics computed from markdown source.

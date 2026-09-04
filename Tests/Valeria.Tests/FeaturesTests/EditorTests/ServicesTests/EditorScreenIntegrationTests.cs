@@ -13,14 +13,14 @@ using Avalonia.VisualTree;
 using AvaloniaEdit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
-using NewMarkText.Src.Features.Shell.UI.Screens.Main;
-using NewMarkText.Src.Infrastructure;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
+using Valeria.Src.Features.Shell.UI.Screens.Main;
+using Valeria.Src.Infrastructure;
 using ReactiveUI;
 using Splat;
 using Xunit;
 
-namespace NewMarkText.Tests.FeaturesTests.EditorTests.ServicesTests;
+namespace Valeria.Tests.FeaturesTests.EditorTests.ServicesTests;
 
 public sealed class EditorScreenIntegrationTests
 {
@@ -112,7 +112,7 @@ public sealed class EditorScreenIntegrationTests
             Locator.CurrentMutable.Register(() => new AvaloniaActivationForViewFetcher(), typeof(IActivationForViewFetcher));
 
             IConfiguration configuration = new ConfigurationBuilder().Build();
-            ServiceProvider provider = new ServiceCollection().AddNewMarkText(configuration).BuildServiceProvider();
+            ServiceProvider provider = new ServiceCollection().AddValeria(configuration).BuildServiceProvider();
 
             MainWindowViewModel shell = provider.GetRequiredService<MainWindowViewModel>();
             EditorViewModel editor = ActivatorUtilities.CreateInstance<EditorViewModel>(provider, shell);

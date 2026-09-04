@@ -9,7 +9,7 @@ using MdSyntax = Markdig.Syntax;
 using MdInlines = Markdig.Syntax.Inlines;
 using MdTables = Markdig.Extensions.Tables;
 
-namespace NewMarkText.Src.Core.Markdown;
+namespace Valeria.Src.Core.Markdown;
 
 /// <summary>
 /// Parses markdown source into a UI-agnostic <see cref="MarkdownContent"/> tree.

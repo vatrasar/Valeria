@@ -1,10 +1,10 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
-using NewMarkText.Src.Core.Mvvm;
-using NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
+using Valeria.Src.Core.Mvvm;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
-namespace NewMarkText.Src.Features.Shell.UI.Screens.Main;
+namespace Valeria.Src.Features.Shell.UI.Screens.Main;
 
 /// <summary>
 /// Application shell view model and routing owner.

@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Headless;
 
-[assembly: AvaloniaTestApplication(typeof(NewMarkText.Tests.TestApp))]
+[assembly: AvaloniaTestApplication(typeof(Valeria.Tests.TestApp))]
 
-namespace NewMarkText.Tests;
+namespace Valeria.Tests;
 
 /// <summary>
 /// Minimal headless application bootstrapping the Avalonia platform for UI tests.

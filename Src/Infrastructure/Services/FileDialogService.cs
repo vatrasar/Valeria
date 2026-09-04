@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
-namespace NewMarkText.Src.Infrastructure.Services;
+namespace Valeria.Src.Infrastructure.Services;
 
 /// <summary>
 /// Native file dialogs for markdown files based on Avalonia StorageProvider.

@@ -1,9 +1,9 @@
 using ReactiveUI;
 using Splat;
-using NewMarkText.Src.Features.Shell.UI.Screens.Main;
-using NewMarkText.Src.Infrastructure.Navigation;
+using Valeria.Src.Features.Shell.UI.Screens.Main;
+using Valeria.Src.Infrastructure.Navigation;
 
-namespace NewMarkText.Src.Features.Shell;
+namespace Valeria.Src.Features.Shell;
 
 /// <summary>
 /// Registers the shell feature views for ReactiveUI routing.

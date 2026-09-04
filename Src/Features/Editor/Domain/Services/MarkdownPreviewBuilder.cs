@@ -13,13 +13,13 @@ using AvaloniaEdit;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using Microsoft.Extensions.Options;
-using NewMarkText.Src.Core.Config;
-using NewMarkText.Src.Core.Markdown;
+using Valeria.Src.Core.Config;
+using Valeria.Src.Core.Markdown;
 
-namespace NewMarkText.Src.Features.Editor.Domain.Services;
+namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
-/// Renders parsed markdown into MarkText styled dark preview controls.
+/// Renders parsed markdown into dark styled preview controls.
 /// Code blocks use TextMate grammars for rich syntax highlighting.
 /// Invoked by EditorViewModel on every debounced text change.
 /// </summary>

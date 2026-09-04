@@ -1,6 +1,6 @@
 using Splat;
 
-namespace NewMarkText.Src.Infrastructure.Navigation;
+namespace Valeria.Src.Infrastructure.Navigation;
 
 /// <summary>
 /// Contract implemented by every feature module to register its views for routing.

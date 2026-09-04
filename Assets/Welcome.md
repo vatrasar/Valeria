@@ -1,12 +1,12 @@
-# Welcome to NewMarkText
+# Welcome to Valeria
 
-A dark markdown editor with a live preview inspired by **MarkText**. Edit on the left, read on the right.
+A dark markdown editor with a live styled preview. Edit on the left, read on the right.
 
 ## Typography
 
 Regular paragraph with *italic*, **bold**, ***both***, ~~struck~~ and `inline code` spanning multiple styles in one place.
 
-> Blockquotes render with an accent bar and muted text, just like in MarkText.
+> Blockquotes render with an accent bar and muted text.
 >
 > > Nested quotes keep working too.
 
@@ -65,7 +65,7 @@ def render(blocks):
 
 ## Links and images
 
-Visit the [MarkText repository](https://github.com/marktext/marktext) for inspiration.
+Links render in accent color and open in the browser, like [this example link](https://example.com).
 
 ![Sample image](https://example.com/sample.png)
 

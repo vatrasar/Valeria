@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Platform;
 
-namespace NewMarkText.Src.Features.Editor.Domain.Services;
+namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
 /// UTF-8 file access for markdown documents.
@@ -37,7 +37,7 @@ public sealed class EditorFileService : IEditorFileService
     /// </summary>
     public async Task<string> LoadWelcomeDocumentAsync(CancellationToken cancellationToken)
     {
-        Uri assetUri = new("avares://NewMarkText/Assets/Welcome.md");
+        Uri assetUri = new("avares://Valeria/Assets/Welcome.md");
 
         using Stream stream = AssetLoader.Open(assetUri);
         using StreamReader reader = new(stream, Encoding.UTF8);

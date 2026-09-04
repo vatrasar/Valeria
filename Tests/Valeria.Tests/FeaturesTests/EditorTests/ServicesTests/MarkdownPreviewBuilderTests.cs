@@ -12,12 +12,12 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using AvaloniaEdit;
 using Microsoft.Extensions.Options;
-using NewMarkText.Src.Core.Config;
-using NewMarkText.Src.Core.Markdown;
-using NewMarkText.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Core.Config;
+using Valeria.Src.Core.Markdown;
+using Valeria.Src.Features.Editor.Domain.Services;
 using Xunit;
 
-namespace NewMarkText.Tests.FeaturesTests.EditorTests.ServicesTests;
+namespace Valeria.Tests.FeaturesTests.EditorTests.ServicesTests;
 
 public sealed class MarkdownPreviewBuilderTests
 {

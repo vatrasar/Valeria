@@ -5,11 +5,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NewMarkText.Src.Features.Shell.UI.Screens.Main;
-using NewMarkText.Src.Infrastructure;
-using NewMarkText.Src.Infrastructure.Navigation;
+using Valeria.Src.Features.Shell.UI.Screens.Main;
+using Valeria.Src.Infrastructure;
+using Valeria.Src.Infrastructure.Navigation;
 
-namespace NewMarkText;
+namespace Valeria;
 
 public partial class App : Application
 {
@@ -28,7 +28,7 @@ public partial class App : Application
             .Build();
 
         _services = new ServiceCollection()
-            .AddNewMarkText(configuration)
+            .AddValeria(configuration)
             .BuildServiceProvider();
 
         AppBootstrapper.RegisterFeatureModules();

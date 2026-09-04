@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using Avalonia.Controls;
-using NewMarkText.Src.Core.Markdown;
+using Valeria.Src.Core.Markdown;
 
-namespace NewMarkText.Src.Features.Editor.Domain.Services;
+namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
 /// Builds Avalonia preview controls from parsed markdown content.
-/// Styling follows the MarkText look adapted to a dark theme.
+/// Styling follows the dark document theme with rich code highlighting.
 /// </summary>
 public interface IMarkdownPreviewBuilder
 {

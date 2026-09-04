@@ -1,8 +1,8 @@
-using NewMarkText.Src.Features.Editor.Resources;
-using SharedStrings = NewMarkText.Src.Shared.Resources.GlobalStrings;
+using Valeria.Src.Features.Editor.Resources;
+using SharedStrings = Valeria.Src.Shared.Resources.GlobalStrings;
 using Xunit;
 
-namespace NewMarkText.Tests.CoreTests.MarkdownTests;
+namespace Valeria.Tests.CoreTests.MarkdownTests;
 
 public sealed class LocalizationTests
 {

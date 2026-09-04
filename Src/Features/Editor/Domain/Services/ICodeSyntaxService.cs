@@ -1,6 +1,6 @@
 using AvaloniaEdit;
 
-namespace NewMarkText.Src.Features.Editor.Domain.Services;
+namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
 /// Applies TextMate grammars to AvaloniaEdit editors so code is highlighted

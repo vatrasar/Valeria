@@ -2,7 +2,7 @@
 using Avalonia.ReactiveUI;
 using System;
 
-namespace NewMarkText;
+namespace Valeria;
 
 sealed class Program
 {

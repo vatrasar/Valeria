@@ -2,7 +2,7 @@ using System;
 using System.Reactive.Disposables;
 using ReactiveUI;
 
-namespace NewMarkText.Src.Core.Mvvm;
+namespace Valeria.Src.Core.Mvvm;
 
 /// <summary>
 /// Base class for simple view models without complex state.

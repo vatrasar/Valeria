@@ -3,11 +3,11 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using Avalonia.Controls;
 using Avalonia.ReactiveUI;
-using NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
-using NewMarkText.Src.Shared.Resources;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
+using Valeria.Src.Shared.Resources;
 using ReactiveUI;
 
-namespace NewMarkText.Src.Features.Shell.UI.Screens.Main;
+namespace Valeria.Src.Features.Shell.UI.Screens.Main;
 
 /// <summary>
 /// Application shell window: hosts the router outlet and tracks the document title.

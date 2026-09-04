@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Valeria.Tests/Valeria.Tests.csproj" />
+  </Folder>
+  <Project Path="Valeria.csproj" />
+</Solution>

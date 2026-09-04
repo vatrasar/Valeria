@@ -12,14 +12,14 @@ using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
-using NewMarkText.Src.Core.Markdown;
-using NewMarkText.Src.Features.Editor.Resources;
+using Valeria.Src.Core.Markdown;
+using Valeria.Src.Features.Editor.Resources;
 using ReactiveUI;
 
-namespace NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
+namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 /// <summary>
-/// Editor screen: split markdown source editor with live MarkText styled preview.
+/// Editor screen: split markdown source editor with live styled preview.
 /// Purpose: edit markdown with syntax colored source on the left and rendered
 /// dark preview with highlighted code blocks on the right.
 /// Available functionalities: open/save/save-as files, inline formatting
@@ -33,7 +33,7 @@ namespace NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen;
 public partial class EditorView : ReactiveUserControl<EditorViewModel>
 {
     private const string EmbeddedHighlightingResource =
-        "NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
+        "Valeria.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
 
     private const double PreviewColumnMinWidth = 250;
 

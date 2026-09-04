@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NewMarkText.Src.Core.Config;
-using NewMarkText.Src.Features.Editor.Domain.Services;
-using NewMarkText.Src.Features.Shell.UI.Screens.Main;
-using NewMarkText.Src.Infrastructure.Services;
+using Valeria.Src.Core.Config;
+using Valeria.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Features.Shell.UI.Screens.Main;
+using Valeria.Src.Infrastructure.Services;
 
-namespace NewMarkText.Src.Infrastructure;
+namespace Valeria.Src.Infrastructure;
 
 /// <summary>
 /// Composition root: registers configuration, services and shell.
@@ -13,7 +13,7 @@ namespace NewMarkText.Src.Infrastructure;
 /// </summary>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddNewMarkText(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddValeria(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AppConfig>(configuration.GetSection(AppConfig.SectionName));
 

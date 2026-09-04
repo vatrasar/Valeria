@@ -4,15 +4,15 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Headless;
-using NewMarkText.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Features.Editor.Domain.Services;
 using Xunit;
 
-namespace NewMarkText.Tests.FeaturesTests.EditorTests.ServicesTests;
+namespace Valeria.Tests.FeaturesTests.EditorTests.ServicesTests;
 
 public sealed class EditorFileServiceTests
 {
     private const string HighlightingResourceName =
-        "NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
+        "Valeria.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
 
     private readonly EditorFileService _files = new();
 

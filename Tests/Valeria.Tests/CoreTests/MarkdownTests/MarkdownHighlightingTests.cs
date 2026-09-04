@@ -7,15 +7,15 @@ using Avalonia.Headless;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
-using NewMarkText.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Features.Editor.Domain.Services;
 using Xunit;
 
-namespace NewMarkText.Tests.CoreTests.MarkdownTests;
+namespace Valeria.Tests.CoreTests.MarkdownTests;
 
 public sealed class MarkdownHighlightingTests
 {
     private const string HighlightingResourceName =
-        "NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
+        "Valeria.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
 
     [Fact]
     public async Task HighlightWelcomeDocument_AllLines_HighlightsWithoutExceptions()

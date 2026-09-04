@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Splat;
 
-namespace NewMarkText.Src.Infrastructure.Navigation;
+namespace Valeria.Src.Infrastructure.Navigation;
 
 /// <summary>
 /// Discovers all feature modules in this assembly and lets them register routing views.

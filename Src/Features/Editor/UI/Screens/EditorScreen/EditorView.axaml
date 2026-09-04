@@ -3,10 +3,10 @@
                          xmlns:rxui="http://reactiveui.net"
                          xmlns:edit="using:AvaloniaEdit"
                          xmlns:material="using:Material.Icons.Avalonia"
-                         xmlns:res="using:NewMarkText.Src.Features.Editor.Resources"
-                         xmlns:vm="using:NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen"
+                         xmlns:res="using:Valeria.Src.Features.Editor.Resources"
+                         xmlns:vm="using:Valeria.Src.Features.Editor.UI.Screens.EditorScreen"
                          x:TypeArguments="vm:EditorViewModel"
-                         x:Class="NewMarkText.Src.Features.Editor.UI.Screens.EditorScreen.EditorView">
+                         x:Class="Valeria.Src.Features.Editor.UI.Screens.EditorScreen.EditorView">
   <rxui:ReactiveUserControl.Styles>
     <StyleInclude Source="ScreenStyles/EditorLayoutStyles.axaml" />
   </rxui:ReactiveUserControl.Styles>

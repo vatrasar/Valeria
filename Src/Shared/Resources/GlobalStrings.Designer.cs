@@ -3,7 +3,7 @@ using System.Resources;
 
 #nullable enable
 
-namespace NewMarkText.Src.Shared.Resources;
+namespace Valeria.Src.Shared.Resources;
 
 /// <summary>
 /// Strongly-typed access to Shared/Resources/GlobalStrings.resx.
@@ -19,7 +19,7 @@ public static class GlobalStrings
         get
         {
             _resourceManager ??= new ResourceManager(
-                "NewMarkText.Src.Shared.Resources.GlobalStrings",
+                "Valeria.Src.Shared.Resources.GlobalStrings",
                 typeof(GlobalStrings).Assembly);
 
             return _resourceManager;
