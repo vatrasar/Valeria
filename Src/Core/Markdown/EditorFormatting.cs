@@ -98,6 +98,30 @@ public static partial class EditorFormatting
     }
 
     /// <summary>
+    /// Inserts a new empty list item after the line at the caret when that line
+    /// is a markdown list item (bullet or ordered). Returns null otherwise.
+    /// Used by the Ctrl+Enter shortcut.
+    /// </summary>
+    public static FormattingResult? ContinueListItem(string text, int caretOffset)
+    {
+        string safeText = text ?? string.Empty;
+        int caret = Math.Clamp(caretOffset, 0, safeText.Length);
+        int lineStart = FindLineStart(safeText, caret);
+        int lineEnd = FindLineEnd(safeText, caret);
+        string line = safeText.Substring(lineStart, lineEnd - lineStart);
+
+        string? marker = BuildContinuedMarker(line);
+
+        if (marker is null)
+            return null;
+
+        string updated = safeText.Insert(lineEnd, LineEnding + marker);
+        int newCaret = lineEnd + 1 + marker.Length;
+
+        return new FormattingResult(updated, newCaret, 0);
+    }
+
+    /// <summary>
     /// Wraps selected lines in a fenced code block, or inserts an empty fence at the caret.
     /// Used by the code block toolbar action.
     /// </summary>
@@ -243,9 +267,64 @@ public static partial class EditorFormatting
         return replacement + line;
     }
 
+    private static string? BuildContinuedMarker(string line)
+    {
+        int index = SkipIndentation(line);
+        string leading = line.Substring(0, index);
+
+        if (TryGetBulletPrefix(line, index, out string? bulletPrefix))
+            return leading + bulletPrefix;
+
+        if (TryGetOrderedPrefix(line, out string? orderedPrefix))
+            return leading + orderedPrefix;
+
+        return null;
+    }
+
+    private static int SkipIndentation(string line)
+    {
+        int index = 0;
+
+        while (index < line.Length && char.IsWhiteSpace(line[index]))
+            index++;
+
+        return index;
+    }
+
+    private static bool TryGetBulletPrefix(string line, int contentStart, [NotNullWhen(true)] out string? prefix)
+    {
+        prefix = null;
+
+        if (line.Length <= contentStart || line[contentStart] is not ('-' or '*' or '+'))
+            return false;
+
+        if (line.Length <= contentStart + 1 || line[contentStart + 1] != ' ')
+            return false;
+
+        prefix = line[contentStart] + " ";
+
+        return true;
+    }
+
+    private static bool TryGetOrderedPrefix(string line, [NotNullWhen(true)] out string? prefix)
+    {
+        prefix = null;
+        Match ordered = OrderedListItemPattern().Match(line);
+
+        if (!ordered.Success || !int.TryParse(ordered.Groups[1].Value, out int number))
+            return false;
+
+        prefix = number + 1 + ordered.Groups[2].Value + " ";
+
+        return true;
+    }
+
     [GeneratedRegex(@"^#{1,6} ")]
     private static partial Regex HeadingPattern();
 
     [GeneratedRegex(@"^\d+[.)] ")]
     private static partial Regex OrderedListPattern();
+
+    [GeneratedRegex(@"^\s*(\d+)([.)])")]
+    private static partial Regex OrderedListItemPattern();
 }

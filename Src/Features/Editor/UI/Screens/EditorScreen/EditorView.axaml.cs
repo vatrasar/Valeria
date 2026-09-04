@@ -24,7 +24,8 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// dark preview with highlighted code blocks on the right.
 /// Available functionalities: open/save/save-as files, inline formatting
 /// (bold, italic, strike, code, link), block formatting (headings, lists,
-/// quote, code fence, table), editor panel toggle, live word count and caret readout.
+/// quote, code fence, table), Ctrl+Enter list continuation, editor panel
+/// toggle, live word count and caret readout.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
 /// (ItemsControl), EditorToggleButton, formatting toolbar, status bar.
 /// Navigate From: application startup.
@@ -47,6 +48,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         {
             RegisterDialogAnchor();
             ConfigureSourceEditor();
+            InterceptListContinuation(disposables);
             BindPreview(disposables);
             BindStatusBar(disposables);
             BindFileCommands(disposables);
@@ -116,6 +118,33 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private void RegisterDialogAnchor()
     {
         ViewModel?.SetTopLevelProvider(() => TopLevel.GetTopLevel(this));
+    }
+
+    private void InterceptListContinuation(CompositeDisposable disposables)
+    {
+        AddHandler(InputElement.KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+        Disposable.Create(() => RemoveHandler(InputElement.KeyDownEvent, OnPreviewKeyDown)).DisposeWith(disposables);
+    }
+
+    private void OnPreviewKeyDown(object? sender, KeyEventArgs keyEvent)
+    {
+        if (ViewModel is null)
+            return;
+
+        bool isCtrlEnter = keyEvent.KeyModifiers.HasFlag(KeyModifiers.Control)
+                           && !keyEvent.KeyModifiers.HasFlag(KeyModifiers.Shift)
+                           && keyEvent.Key is Key.Return or Key.Enter;
+
+        if (!isCtrlEnter)
+            return;
+
+        FormattingResult? result = ViewModel.ContinueList(SourceEditor.CaretOffset);
+
+        if (result is null)
+            return;
+
+        ApplyResult(result);
+        keyEvent.Handled = true;
     }
 
     private void ConfigureSourceEditor()

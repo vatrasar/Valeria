@@ -259,6 +259,23 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         return result;
     }
 
+    /// <summary>
+    /// Inserts a new list item after the line at the caret, or returns null when
+    /// the caret line is not a markdown list item.
+    /// Invoked by EditorView on the Ctrl+Enter shortcut.
+    /// </summary>
+    public FormattingResult? ContinueList(int caretOffset)
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem(State.MarkdownText, caretOffset);
+
+        if (result is null)
+            return null;
+
+        SetMarkdownText(result.Text);
+
+        return result;
+    }
+
     [ReactiveCommand]
     private async Task OpenFile(CancellationToken cancellationToken)
     {

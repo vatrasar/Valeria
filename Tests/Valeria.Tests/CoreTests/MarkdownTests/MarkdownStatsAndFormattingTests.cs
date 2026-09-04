@@ -98,4 +98,74 @@ public sealed class EditorFormattingTests
         Assert.Contains("| Header 1 | Header 2 |", result.Text);
         Assert.StartsWith("# Title\n", result.Text);
     }
+
+    [Fact]
+    public void ContinueListItem_BulletLine_InsertsNewEmptyItem()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("- item", 6);
+
+        Assert.NotNull(result);
+        Assert.Equal("- item\n- ", result!.Text);
+        Assert.Equal(9, result.CaretOffset);
+    }
+
+    [Fact]
+    public void ContinueListItem_OrderedLine_IncrementsNumber()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("1. item", 7);
+
+        Assert.NotNull(result);
+        Assert.Equal("1. item\n2. ", result!.Text);
+    }
+
+    [Fact]
+    public void ContinueListItem_MidLine_InsertsAfterLine()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("- hello world", 3);
+
+        Assert.NotNull(result);
+        Assert.Equal("- hello world\n- ", result!.Text);
+    }
+
+    [Fact]
+    public void ContinueListItem_OrderedParenMarker_PreservesMarker()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("1) item", 7);
+
+        Assert.NotNull(result);
+        Assert.Equal("1) item\n2) ", result!.Text);
+    }
+
+    [Fact]
+    public void ContinueListItem_BulletCharacter_PreservesBullet()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("* star\n* star", 11);
+
+        Assert.NotNull(result);
+        Assert.Equal("* star\n* star\n* ", result!.Text);
+    }
+
+    [Fact]
+    public void ContinueListItem_IndentedItem_KeepsIndentation()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("  - nested item", 15);
+
+        Assert.NotNull(result);
+        Assert.Equal("  - nested item\n  - ", result!.Text);
+    }
+
+    [Fact]
+    public void ContinueListItem_TabIndentedItem_KeepsTabIndentation()
+    {
+        FormattingResult? result = EditorFormatting.ContinueListItem("\t- nested item", 14);
+
+        Assert.NotNull(result);
+        Assert.Equal("\t- nested item\n\t- ", result!.Text);
+    }
+
+    [Fact]
+    public void ContinueListItem_PlainLine_ReturnsNull()
+    {
+        Assert.Null(EditorFormatting.ContinueListItem("plain text", 5));
+    }
 }
