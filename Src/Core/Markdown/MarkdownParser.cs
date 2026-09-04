@@ -303,10 +303,7 @@ public static class MarkdownParser
 
     private static MarkdownInline ParseLineBreak(MdInlines.LineBreakInline lineBreak)
     {
-        if (lineBreak.IsHard)
-            return new HardLineBreak();
-
-        return new TextRun(" ");
+        return new HardLineBreak();
     }
 
     private static string ExtractPlainText(MdInlines.ContainerInline container)

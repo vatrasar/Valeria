@@ -138,6 +138,15 @@ public sealed class MarkdownParserTests
         Assert.IsType<ThematicBreakBlock>(content.Blocks[1]);
     }
 
+    [Fact]
+    public void Parse_SingleNewline_ReturnsLineBreakInline()
+    {
+        MarkdownContent content = MarkdownParser.Parse("first line\nsecond line");
+
+        ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(content.Blocks));
+        Assert.Contains(paragraph.Inlines, inline => inline is HardLineBreak);
+    }
+
     private static string FlattenText(System.Collections.Immutable.ImmutableList<MarkdownInline> inlines)
     {
         return string.Concat(inlines.Select(FlattenInline));

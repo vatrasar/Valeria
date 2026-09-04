@@ -86,5 +86,7 @@ public sealed record ImageSpan(string AlternativeText, string Url) : MarkdownInl
 /// <summary>Transparent grouping of inlines used when flattening unknown containers.</summary>
 public sealed record GroupSpan(ImmutableList<MarkdownInline> Children) : MarkdownInline;
 
-/// <summary>Hard line break inside a paragraph.</summary>
+/// <summary>Line break inside a paragraph. Covers hard breaks (two trailing
+/// spaces or a backslash) as well as plain single newlines, which render as
+/// an actual new line in the preview (WYSIWYG-style soft breaks).</summary>
 public sealed record HardLineBreak : MarkdownInline;
