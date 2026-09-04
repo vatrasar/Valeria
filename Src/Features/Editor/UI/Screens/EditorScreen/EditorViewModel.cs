@@ -32,6 +32,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     private readonly IMarkdownPreviewBuilder _previewBuilder;
     private readonly ICodeSyntaxService _syntax;
     private readonly IFileDialogService _dialogs;
+    private readonly string _initialFilePath;
     private readonly int _previewDebounceMilliseconds;
     private string _savedSnapshot = string.Empty;
     private bool _isInitialized;
@@ -54,7 +55,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         IMarkdownPreviewBuilder previewBuilder,
         ICodeSyntaxService syntax,
         IFileDialogService dialogs,
-        IOptions<AppConfig> config)
+        IOptions<AppConfig> config,
+        string initialFilePath)
         : base(new EditorState())
     {
         HostScreen = hostScreen;
@@ -62,6 +64,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         _previewBuilder = previewBuilder;
         _syntax = syntax;
         _dialogs = dialogs;
+        _initialFilePath = initialFilePath;
         _previewDebounceMilliseconds = config.Value.Editor.PreviewDebounceMilliseconds;
         EditorFontSize = config.Value.Editor.FontSize;
         EditorTabWidth = config.Value.Editor.TabWidth;
@@ -85,7 +88,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     }
 
     /// <summary>
-    /// Loads the bundled welcome document on first activation when empty.
+    /// Loads the initial document on first activation when empty, either the
+    /// startup file passed on the command line or the bundled welcome document.
     /// Invoked once by EditorView code-behind.
     /// </summary>
     public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -100,10 +104,22 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         if (!string.IsNullOrEmpty(State.MarkdownText))
             return;
 
+        await LoadInitialDocumentAsync(cancellationToken);
+    }
+
+    private async Task LoadInitialDocumentAsync(CancellationToken cancellationToken)
+    {
         try
         {
-            string welcome = await _files.LoadWelcomeDocumentAsync(cancellationToken);
-            ApplyLoadedDocument(welcome, null);
+            if (string.IsNullOrEmpty(_initialFilePath))
+            {
+                string welcome = await _files.LoadWelcomeDocumentAsync(cancellationToken);
+                ApplyLoadedDocument(welcome, null);
+                return;
+            }
+
+            string content = await _files.ReadTextAsync(_initialFilePath, cancellationToken);
+            ApplyLoadedDocument(content, _initialFilePath);
         }
         catch (Exception exception)
         {

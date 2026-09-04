@@ -22,7 +22,9 @@ public static class DependencyInjection
         services.AddSingleton<IMarkdownPreviewBuilder, MarkdownPreviewBuilder>();
         services.AddSingleton<IFileDialogService, FileDialogService>();
 
-        services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<MainWindowViewModel>(provider =>
+            ActivatorUtilities.CreateInstance<MainWindowViewModel>(provider, string.Empty));
+
         services.AddTransient<MainWindow>();
 
         return services;

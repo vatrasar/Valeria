@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +16,10 @@ using Avalonia.VisualTree;
 using AvaloniaEdit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Valeria.Src.Core.Markdown;
+using Valeria.Src.Features.Editor.Domain.Models;
+using Valeria.Src.Features.Editor.Domain.Services;
 using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 using Valeria.Src.Features.Shell.UI.Screens.Main;
 using Valeria.Src.Infrastructure;
@@ -137,6 +144,50 @@ public sealed class EditorScreenIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task InitializeAsync_ForCommandLineFilePath_LoadsFileContent()
+    {
+        IScheduler originalScheduler = RxApp.MainThreadScheduler;
+        string filePath = Path.Combine(Path.GetTempPath(), "valeria-command-line-test.md");
+        const string expectedContent = "# Z pliku\n\nWczytane z argumentu.";
+
+        try
+        {
+            RxApp.MainThreadScheduler = CurrentThreadScheduler.Instance;
+
+            EditorViewModel editor = CreateEditorWithFile(filePath, expectedContent);
+
+            await editor.InitializeAsync(CancellationToken.None);
+
+            Assert.True(string.IsNullOrEmpty(editor.State.ErrorMessage), $"ErrorMessage: {editor.State.ErrorMessage}");
+            Assert.Equal(expectedContent, editor.State.MarkdownText);
+            Assert.Equal(filePath, editor.State.FilePath);
+        }
+        finally
+        {
+            RxApp.MainThreadScheduler = originalScheduler;
+        }
+    }
+
+    private static EditorViewModel CreateEditorWithFile(string filePath, string content)
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddValeria(configuration);
+        services.RemoveAll<IEditorFileService>();
+        services.AddSingleton<IEditorFileService>(new FakeEditorFileService(content));
+        services.RemoveAll<IMarkdownPreviewBuilder>();
+        services.AddSingleton<IMarkdownPreviewBuilder>(new FakeMarkdownPreviewBuilder());
+        services.RemoveAll<ICodeSyntaxService>();
+        services.AddSingleton<ICodeSyntaxService>(new FakeCodeSyntaxService());
+        ServiceProvider provider = services.BuildServiceProvider();
+
+        return ActivatorUtilities.CreateInstance<EditorViewModel>(
+            provider,
+            new MainWindowViewModel(provider, filePath),
+            filePath);
+    }
+
     private static async Task<(Window Window, EditorViewModel Editor)> SetupEditorAsync(HeadlessUnitTestSession session)
     {
         return await session.Dispatch(() =>
@@ -148,7 +199,7 @@ public sealed class EditorScreenIntegrationTests
             ServiceProvider provider = new ServiceCollection().AddValeria(configuration).BuildServiceProvider();
 
             MainWindowViewModel shell = provider.GetRequiredService<MainWindowViewModel>();
-            EditorViewModel editor = ActivatorUtilities.CreateInstance<EditorViewModel>(provider, shell);
+            EditorViewModel editor = ActivatorUtilities.CreateInstance<EditorViewModel>(provider, shell, string.Empty);
             EditorView view = new() { ViewModel = editor };
 
             Window window = new() { Content = view, Width = 1280, Height = 800 };
@@ -177,5 +228,65 @@ public sealed class EditorScreenIntegrationTests
             throw new InvalidOperationException("Editable source TextEditor was not found.");
 
         return source;
+    }
+
+    private sealed class FakeEditorFileService : IEditorFileService
+    {
+        private readonly string _content;
+
+        public FakeEditorFileService(string content)
+        {
+            _content = content;
+        }
+
+        public Task<string> ReadTextAsync(string path, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_content);
+        }
+
+        public Task WriteTextAsync(string path, string content, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<string> LoadWelcomeDocumentAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_content);
+        }
+    }
+
+    private sealed class FakeMarkdownPreviewBuilder : IMarkdownPreviewBuilder
+    {
+        public PreviewBuildResult BuildBlocks(MarkdownContent content)
+        {
+            return new PreviewBuildResult(Array.Empty<Control>(), ImmutableList<CodeHighlightTarget>.Empty);
+        }
+
+        public void ApplyHighlight(CodeHighlightTarget target, IReadOnlyList<HighlightedLine> lines)
+        {
+        }
+    }
+
+    private sealed class FakeCodeSyntaxService : ICodeSyntaxService
+    {
+        public string? ResolveScope(string? language)
+        {
+            return null;
+        }
+
+        public string GetLanguageDisplayName(string? language)
+        {
+            return string.Empty;
+        }
+
+        public Task<IReadOnlyList<HighlightedLine>> HighlightCodeAsync(string? language, string code, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<HighlightedLine>>(Array.Empty<HighlightedLine>());
+        }
+
+        public Task PrewarmAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 }
