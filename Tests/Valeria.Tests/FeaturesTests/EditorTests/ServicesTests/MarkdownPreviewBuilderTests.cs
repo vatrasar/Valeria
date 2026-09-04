@@ -6,14 +6,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using AvaloniaEdit;
 using Microsoft.Extensions.Options;
 using Valeria.Src.Core.Config;
 using Valeria.Src.Core.Markdown;
+using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
 using Xunit;
 
@@ -41,19 +42,75 @@ public sealed class MarkdownPreviewBuilderTests
     }
 
     [Fact]
-    public async Task BuildBlocks_FencedCSharp_ReturnsEditorWithCodeAndHeader()
+    public async Task BuildBlocks_FencedCSharp_ReturnsSelectableTextWithCodeAndHeader()
     {
         (string? code, bool hasLanguageLabel) = await EvaluateAsync(() =>
         {
             IReadOnlyList<Control> blocks = Build("```csharp\nvar x = 1;\n```");
-            TextEditor? editor = blocks.SelectMany(Descendants<TextEditor>).FirstOrDefault();
+            SelectableTextBlock? text = blocks.SelectMany(Descendants<SelectableTextBlock>).FirstOrDefault();
             bool hasLabel = blocks.SelectMany(Descendants<TextBlock>).Any(label => label.Text == "C#");
 
-            return (editor?.Text, hasLabel);
+            return (text?.Text, hasLabel);
         });
 
         Assert.Contains("var x = 1;", code);
         Assert.True(hasLanguageLabel);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_FencedCode_ReturnsHighlightTargetForLanguage()
+    {
+        (string? language, string code, int targetCount) = await EvaluateAsync(() =>
+        {
+            PreviewBuildResult result = _builder.BuildBlocks(MarkdownParser.Parse("```py\nx = 1\n```"));
+            CodeHighlightTarget target = result.CodeTargets.First();
+
+            return (target.Language, target.Code, result.CodeTargets.Count);
+        });
+
+        Assert.Equal(1, targetCount);
+        Assert.Equal("py", language);
+        Assert.Contains("x = 1", code);
+    }
+
+    [Fact]
+    public async Task ApplyHighlight_PopulatesInlinesWithVisibleText()
+    {
+        (int inlinesCount, string combinedText) = await EvaluateAsync(() =>
+        {
+            PreviewBuildResult result = _builder.BuildBlocks(MarkdownParser.Parse("```csharp\nint x = 5;\n```"));
+            CodeHighlightTarget target = result.CodeTargets.First();
+
+            HighlightedSpan span1 = new("int", "#569CD6", false, false);
+            HighlightedSpan span2 = new(" x = 5;", null, false, false);
+            HighlightedLine line = new(System.Collections.Immutable.ImmutableList.Create(span1, span2));
+
+            _builder.ApplyHighlight(target, new[] { line });
+
+            string text = string.Concat(target.TextBlock.Inlines?.OfType<Run>().Select(r => r.Text) ?? Enumerable.Empty<string>());
+
+            return (target.TextBlock.Inlines?.Count ?? 0, text);
+        });
+
+        Assert.True(inlinesCount >= 2);
+        Assert.Equal("int x = 5;", combinedText);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_FencedCode_ConfiguresHorizontalScrollAndNoWrap()
+    {
+        (TextWrapping wrapping, ScrollBarVisibility hScroll, ScrollBarVisibility vScroll) = await EvaluateAsync(() =>
+        {
+            IReadOnlyList<Control> blocks = Build("```csharp\nvar veryLongLine = 123456789;\n```");
+            SelectableTextBlock text = blocks.SelectMany(Descendants<SelectableTextBlock>).First();
+            ScrollViewer scroller = blocks.SelectMany(Descendants<ScrollViewer>).First();
+
+            return (text.TextWrapping, scroller.HorizontalScrollBarVisibility, scroller.VerticalScrollBarVisibility);
+        });
+
+        Assert.Equal(TextWrapping.NoWrap, wrapping);
+        Assert.Equal(ScrollBarVisibility.Auto, hScroll);
+        Assert.Equal(ScrollBarVisibility.Auto, vScroll);
     }
 
     [Fact]
@@ -104,7 +161,7 @@ public sealed class MarkdownPreviewBuilderTests
 
     private IReadOnlyList<Control> Build(string markdown)
     {
-        return _builder.BuildBlocks(MarkdownParser.Parse(markdown));
+        return _builder.BuildBlocks(MarkdownParser.Parse(markdown)).Blocks;
     }
 
     private static Task<T> EvaluateAsync<T>(Func<T> evaluate)

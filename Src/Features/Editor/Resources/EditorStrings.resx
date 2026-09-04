@@ -79,6 +79,10 @@
   <data name="ImagePlaceholder" xml:space="preserve">
     <value>Image</value>
   </data>
+  <data name="PreviewUpdating" xml:space="preserve">
+    <value>Updating…</value>
+    <comment>Shown over the preview while code blocks are being highlighted</comment>
+  </data>
   <data name="StatusCaret" xml:space="preserve">
     <value>Ln {0}, Col {1}</value>
     <comment>Status bar caret position, 0 is line and 1 is column</comment>

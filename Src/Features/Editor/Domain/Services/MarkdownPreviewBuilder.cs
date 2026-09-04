@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -9,18 +10,19 @@ using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
-using AvaloniaEdit;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using Microsoft.Extensions.Options;
 using Valeria.Src.Core.Config;
 using Valeria.Src.Core.Markdown;
+using Valeria.Src.Features.Editor.Domain.Models;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
 /// Renders parsed markdown into dark styled preview controls.
-/// Code blocks use TextMate grammars for rich syntax highlighting.
+/// Code blocks are rendered as lightweight selectable text and colorized
+/// asynchronously by EditorViewModel via <see cref="ApplyHighlight"/>.
 /// Invoked by EditorViewModel on every debounced text change.
 /// </summary>
 public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
@@ -52,6 +54,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
 
     private readonly ICodeSyntaxService _syntax;
     private readonly PreviewOptions _options;
+    private List<CodeHighlightTarget> _pendingTargets = [];
 
     public MarkdownPreviewBuilder(ICodeSyntaxService syntax, IOptions<AppConfig> config)
     {
@@ -60,15 +63,78 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     }
 
     /// <summary>
-    /// Builds one control per top level markdown block.
+    /// Synchronously builds all preview blocks. Code blocks are created as
+    /// plain selectable text and collected for asynchronous highlighting.
     /// Used by EditorViewModel preview refresh.
     /// </summary>
-    public IReadOnlyList<Control> BuildBlocks(MarkdownContent content)
+    public PreviewBuildResult BuildBlocks(MarkdownContent content)
     {
         ThemeResources theme = ThemeResources.Resolve();
         BrushSet brushes = BrushSet.Default(theme);
+        _pendingTargets = [];
 
-        return content.Blocks.Select(block => BuildBlock(block, theme, brushes)).ToList();
+        IReadOnlyList<Control> blocks = content.Blocks.Select(block => BuildBlock(block, theme, brushes)).ToList();
+
+        return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
+    }
+
+    /// <summary>
+    /// Applies pre-tokenized spans onto a previously built code target.
+    /// Called on the UI thread once background highlighting finished.
+    /// </summary>
+    public void ApplyHighlight(CodeHighlightTarget target, IReadOnlyList<HighlightedLine> lines)
+    {
+        SelectableTextBlock text = target.TextBlock;
+        ThemeResources theme = ThemeResources.Resolve();
+        InlineCollection? inlines = text.Inlines;
+
+        if (inlines is null)
+            return;
+
+        text.Text = string.Empty;
+        inlines.Clear();
+
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++)
+        {
+            if (lineIndex > 0)
+                inlines.Add(new LineBreak());
+
+            FillLineInlines(lines[lineIndex], inlines, theme);
+        }
+    }
+
+    private void FillLineInlines(HighlightedLine line, InlineCollection target, ThemeResources theme)
+    {
+        foreach (HighlightedSpan span in line.Spans)
+            target.Add(CreateSpanRun(span, theme));
+    }
+
+    private static Run CreateSpanRun(HighlightedSpan span, ThemeResources theme)
+    {
+        return new Run(span.Text)
+        {
+            FontFamily = theme.MonoFont,
+            FontSize = theme.CodeFontSize,
+            Foreground = TryCreateBrush(span.ForegroundHex) ?? theme.Body,
+            FontWeight = span.IsBold ? FontWeight.Bold : FontWeight.Normal,
+            FontStyle = span.IsItalic ? FontStyle.Italic : FontStyle.Normal
+        };
+    }
+
+    private static IBrush? TryCreateBrush(string? hex)
+    {
+        if (string.IsNullOrEmpty(hex))
+            return null;
+
+        string value = hex.TrimStart('#');
+
+        if (value.Length == 6 && uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
+            return new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+
+        if (value.Length == 8 && uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint argb))
+            return new SolidColorBrush(Color.FromArgb((byte)(argb >> 24), (byte)(argb >> 16), (byte)(argb >> 8), (byte)argb));
+
+        return null;
     }
 
     private Control BuildBlock(MarkdownBlock block, ThemeResources theme, BrushSet brushes)
@@ -123,18 +189,23 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
 
     private Control BuildCodeBlock(CodeBlock code, ThemeResources theme)
     {
-        TextEditor editor = CreateCodeEditor(code, theme);
+        SelectableTextBlock text = CreateCodeText(code, theme);
+        _pendingTargets.Add(new CodeHighlightTarget(text, code.Language, code.Code.TrimEnd('\n')));
 
-        Border header = CreateCodeHeader(code, editor, theme);
+        Border header = CreateCodeHeader(code, theme);
 
-        Grid layout = new();
-        layout.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        layout.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        ScrollViewer scroller = new()
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            MaxHeight = _options.CodeBlockMaxHeight,
+            Content = text
+        };
 
-        Grid.SetRow(header, 0);
-        Grid.SetRow(editor, 1);
+        DockPanel layout = new() { LastChildFill = true };
+        DockPanel.SetDock(header, Dock.Top);
         layout.Children.Add(header);
-        layout.Children.Add(editor);
+        layout.Children.Add(scroller);
 
         return new Border
         {
@@ -148,34 +219,20 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         };
     }
 
-    private TextEditor CreateCodeEditor(CodeBlock code, ThemeResources theme)
+    private static SelectableTextBlock CreateCodeText(CodeBlock code, ThemeResources theme)
     {
-        TextEditor editor = new()
+        return new SelectableTextBlock
         {
             Text = code.Code.TrimEnd('\n'),
             FontFamily = theme.MonoFont,
             FontSize = theme.CodeFontSize,
-            Background = Brushes.Transparent,
             Foreground = theme.Body,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(12, 8),
-            IsReadOnly = true,
-            ShowLineNumbers = true,
-            WordWrap = false,
-            MaxHeight = _options.CodeBlockMaxHeight,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            TextWrapping = TextWrapping.NoWrap,
+            Margin = new Thickness(12, 8, 32, 24)
         };
-
-        editor.TextArea.SelectionBrush = theme.EditorSelection;
-        editor.LineNumbersForeground = theme.EditorLineNumbers;
-
-        _syntax.ApplyGrammar(editor, code.Language);
-
-        return editor;
     }
 
-    private Border CreateCodeHeader(CodeBlock code, TextEditor editor, ThemeResources theme)
+    private Border CreateCodeHeader(CodeBlock code, ThemeResources theme)
     {
         TextBlock languageLabel = new()
         {

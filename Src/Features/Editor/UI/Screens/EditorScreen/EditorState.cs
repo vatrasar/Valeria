@@ -27,6 +27,8 @@ public record EditorState
 
     public bool IsPreviewVisible { get; init; } = true;
 
+    public bool IsPreviewIdle { get; init; } = true;
+
     public ImmutableList<Control> PreviewBlocks { get; init; } = ImmutableList<Control>.Empty;
 
     public bool IsEmpty => string.IsNullOrWhiteSpace(MarkdownText);

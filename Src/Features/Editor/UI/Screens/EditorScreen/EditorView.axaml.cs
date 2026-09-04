@@ -158,6 +158,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     {
         this.OneWayBind(ViewModel, viewModel => viewModel.State.PreviewBlocks, view => view.PreviewBlocksControl.ItemsSource);
         this.OneWayBind(ViewModel, viewModel => viewModel.State.IsPreviewVisible, view => view.PreviewToggleButton.IsChecked);
+        this.OneWayBind(ViewModel, viewModel => viewModel.State.IsPreviewIdle, view => view.PreviewUpdatingIndicator.IsVisible, isIdle => !isIdle);
 
         this.WhenAnyValue(view => view.ViewModel!.State.IsPreviewVisible)
             .Subscribe(Observer.Create<bool>(SetPreviewVisibility))

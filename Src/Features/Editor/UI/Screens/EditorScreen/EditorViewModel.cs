@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -12,6 +14,7 @@ using ReactiveUI.SourceGenerators;
 using Valeria.Src.Core.Config;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Core.Mvvm;
+using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
 using Valeria.Src.Infrastructure.Services;
 using Valeria.Src.Shared.Resources;
@@ -20,15 +23,20 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 /// <summary>
 /// View model of the split markdown editor screen with live styled preview.
+/// Preview rebuilds are debounced and cancelled while typing; code blocks
+/// are highlighted in the background so typing is never blocked.
 /// </summary>
 public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableViewModel
 {
     private readonly IEditorFileService _files;
     private readonly IMarkdownPreviewBuilder _previewBuilder;
+    private readonly ICodeSyntaxService _syntax;
     private readonly IFileDialogService _dialogs;
     private readonly int _previewDebounceMilliseconds;
     private string _savedSnapshot = string.Empty;
     private bool _isInitialized;
+    private bool _isPrewarmed;
+    private int _previewVersion;
 
     public string? UrlPathSegment => "editor";
 
@@ -44,6 +52,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         IScreen hostScreen,
         IEditorFileService files,
         IMarkdownPreviewBuilder previewBuilder,
+        ICodeSyntaxService syntax,
         IFileDialogService dialogs,
         IOptions<AppConfig> config)
         : base(new EditorState())
@@ -51,6 +60,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         HostScreen = hostScreen;
         _files = files;
         _previewBuilder = previewBuilder;
+        _syntax = syntax;
         _dialogs = dialogs;
         _previewDebounceMilliseconds = config.Value.Editor.PreviewDebounceMilliseconds;
         EditorFontSize = config.Value.Editor.FontSize;
@@ -59,8 +69,9 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
 
         this.WhenAnyValue(viewModel => viewModel.State.MarkdownText)
             .Throttle(TimeSpan.FromMilliseconds(_previewDebounceMilliseconds), RxApp.TaskpoolScheduler)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(_ => RefreshPreview())
+            .Select(_ => Observable.FromAsync(ProcessPreviewAsync))
+            .Switch()
+            .Subscribe()
             .DisposeWith(Disposables);
     }
 
@@ -79,16 +90,15 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     /// </summary>
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
+        PrewarmHighlighter(cancellationToken);
+
         if (_isInitialized)
             return;
 
         _isInitialized = true;
 
         if (!string.IsNullOrEmpty(State.MarkdownText))
-        {
-            RefreshPreview();
             return;
-        }
 
         try
         {
@@ -99,6 +109,15 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         {
             UpdateState(state => state with { ErrorMessage = exception.Message });
         }
+    }
+
+    private void PrewarmHighlighter(CancellationToken cancellationToken)
+    {
+        if (_isPrewarmed)
+            return;
+
+        _isPrewarmed = true;
+        _ = _syntax.PrewarmAsync(cancellationToken);
     }
 
     /// <summary>
@@ -307,24 +326,92 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             ErrorMessage = null
         });
 
-        RefreshPreview();
+        _ = ProcessPreviewAsync(CancellationToken.None);
     }
 
-    private void RefreshPreview()
+    private async Task ProcessPreviewAsync(CancellationToken cancellationToken)
     {
         try
         {
-            MarkdownContent content = MarkdownParser.Parse(State.MarkdownText);
+            int version = Interlocked.Increment(ref _previewVersion);
+            string snapshot = State.MarkdownText;
 
-            UpdateState(state => state with
+            MarkdownContent content = await Task.Run(() => MarkdownParser.Parse(snapshot), cancellationToken).ConfigureAwait(false);
+
+            if (IsStale(cancellationToken, version))
+                return;
+
+            PreviewBuildResult? built = null;
+            await RunOnUiThread(() =>
             {
-                PreviewBlocks = ImmutableList.CreateRange(_previewBuilder.BuildBlocks(content))
+                if (IsStale(cancellationToken, version))
+                    return;
+
+                built = _previewBuilder.BuildBlocks(content);
+
+                UpdateState(state => state with
+                {
+                    PreviewBlocks = ImmutableList.CreateRange(built.Blocks),
+                    IsPreviewIdle = built.CodeTargets.Count == 0
+                });
+            });
+
+            if (built is null || IsStale(cancellationToken, version) || built.CodeTargets.Count == 0)
+                return;
+
+            foreach (CodeHighlightTarget target in built.CodeTargets)
+            {
+                IReadOnlyList<HighlightedLine> lines = await _syntax.HighlightCodeAsync(target.Language, target.Code, cancellationToken);
+
+                if (IsStale(cancellationToken, version))
+                    return;
+
+                await RunOnUiThread(() =>
+                {
+                    if (IsStale(cancellationToken, version))
+                        return;
+
+                    _previewBuilder.ApplyHighlight(target, lines);
+                });
+            }
+
+            await RunOnUiThread(() =>
+            {
+                if (IsStale(cancellationToken, version))
+                    return;
+
+                UpdateState(state => state with { IsPreviewIdle = true });
             });
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            UpdateState(state => state with { ErrorMessage = exception.Message });
+            await RunOnUiThread(() => UpdateState(state => state with { ErrorMessage = exception.Message }));
         }
+    }
+
+    private static Task RunOnUiThread(Action action)
+    {
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        RxApp.MainThreadScheduler.Schedule(() =>
+        {
+            try
+            {
+                action();
+                completion.TrySetResult();
+            }
+            catch (Exception exception)
+            {
+                completion.TrySetException(exception);
+            }
+        });
+
+        return completion.Task;
+    }
+
+    private bool IsStale(CancellationToken cancellationToken, int version)
+    {
+        return cancellationToken.IsCancellationRequested || version != _previewVersion;
     }
 
     private static string BuildDocumentTitle(string? path, bool isDirty)

@@ -87,6 +87,9 @@
           <ScrollViewer x:Name="PreviewScroller">
             <ItemsControl x:Name="PreviewBlocksControl" HorizontalAlignment="Stretch" />
           </ScrollViewer>
+          <Border x:Name="PreviewUpdatingIndicator" Classes="previewUpdating" IsVisible="False">
+            <TextBlock Text="{x:Static res:EditorStrings.PreviewUpdating}" FontSize="12" />
+          </Border>
           <TextBlock x:Name="EmptyHint"
                      Text="{x:Static res:EditorStrings.StartTypingHint}"
                      Classes="emptyHint" />

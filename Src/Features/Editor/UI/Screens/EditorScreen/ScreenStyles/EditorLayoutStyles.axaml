@@ -84,6 +84,22 @@
     <Setter Property="Padding" Value="48,20,48,120" />
   </Style>
 
+  <Style Selector="Border.previewUpdating">
+    <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Margin" Value="0,10,0,0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <Style Selector="Border.previewUpdating TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+
   <Style Selector="TextBlock.emptyHint">
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="FontSize" Value="15" />

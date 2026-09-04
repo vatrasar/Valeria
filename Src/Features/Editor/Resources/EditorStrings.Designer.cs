@@ -76,6 +76,8 @@ public static class EditorStrings
 
     public static string ImagePlaceholder => ResourceManager.GetString("ImagePlaceholder", _resourceCulture)!;
 
+    public static string PreviewUpdating => ResourceManager.GetString("PreviewUpdating", _resourceCulture)!;
+
     public static string StatusCaret => ResourceManager.GetString("StatusCaret", _resourceCulture)!;
 
     public static string PlaceholderBoldText => ResourceManager.GetString("PlaceholderBoldText", _resourceCulture)!;
