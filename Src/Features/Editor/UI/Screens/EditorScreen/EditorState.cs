@@ -25,7 +25,7 @@ public record EditorState
 
     public string? ErrorMessage { get; init; }
 
-    public bool IsPreviewVisible { get; init; } = true;
+    public bool IsEditorVisible { get; init; } = false;
 
     public bool IsPreviewIdle { get; init; } = true;
 

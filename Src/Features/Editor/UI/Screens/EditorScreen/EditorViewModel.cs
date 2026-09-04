@@ -286,9 +286,9 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     }
 
     [ReactiveCommand]
-    private void TogglePreview()
+    private void ToggleEditor()
     {
-        UpdateState(state => state with { IsPreviewVisible = !state.IsPreviewVisible });
+        UpdateState(state => state with { IsEditorVisible = !state.IsEditorVisible });
     }
 
     private async Task WriteToPath(string path, CancellationToken cancellationToken)

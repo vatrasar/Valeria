@@ -24,9 +24,9 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// dark preview with highlighted code blocks on the right.
 /// Available functionalities: open/save/save-as files, inline formatting
 /// (bold, italic, strike, code, link), block formatting (headings, lists,
-/// quote, code fence, table), preview toggle, live word count and caret readout.
+/// quote, code fence, table), editor panel toggle, live word count and caret readout.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
-/// (ItemsControl), formatting toolbar, status bar.
+/// (ItemsControl), EditorToggleButton, formatting toolbar, status bar.
 /// Navigate From: application startup.
 /// Navigate To: none, single screen application.
 /// </summary>
@@ -35,7 +35,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private const string EmbeddedHighlightingResource =
         "Valeria.Src.Features.Editor.UI.Screens.EditorScreen.Markdown.xshd";
 
-    private const double PreviewColumnMinWidth = 250;
+    private const double EditorColumnMinWidth = 250;
 
     private bool _syncingEditor;
 
@@ -92,8 +92,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
                 ViewModel.SaveFileCommand.Execute().Subscribe();
                 keyEvent.Handled = true;
                 break;
+            case Key.E:
             case Key.P:
-                ViewModel.TogglePreviewCommand.Execute().Subscribe();
+                ViewModel.ToggleEditorCommand.Execute().Subscribe();
                 keyEvent.Handled = true;
                 break;
             case Key.B:
@@ -158,11 +159,11 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private void BindPreview(CompositeDisposable disposables)
     {
         this.OneWayBind(ViewModel, viewModel => viewModel.State.PreviewBlocks, view => view.PreviewBlocksControl.ItemsSource);
-        this.OneWayBind(ViewModel, viewModel => viewModel.State.IsPreviewVisible, view => view.PreviewToggleButton.IsChecked);
+        this.OneWayBind(ViewModel, viewModel => viewModel.State.IsEditorVisible, view => view.EditorToggleButton.IsChecked);
         this.OneWayBind(ViewModel, viewModel => viewModel.State.IsPreviewIdle, view => view.PreviewUpdatingIndicator.IsVisible, isIdle => !isIdle);
 
-        this.WhenAnyValue(view => view.ViewModel!.State.IsPreviewVisible)
-            .Subscribe(Observer.Create<bool>(SetPreviewVisibility))
+        this.WhenAnyValue(view => view.ViewModel!.State.IsEditorVisible)
+            .Subscribe(Observer.Create<bool>(SetEditorVisibility))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.MarkdownText)
@@ -170,12 +171,12 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             .DisposeWith(disposables);
     }
 
-    private void SetPreviewVisibility(bool visible)
+    private void SetEditorVisibility(bool visible)
     {
-        PreviewPane.IsVisible = visible;
+        EditorPane.IsVisible = visible;
         PaneSplitter.IsVisible = visible;
-        SplitGrid.ColumnDefinitions[2].Width = visible ? GridLength.Star : new GridLength(0);
-        SplitGrid.ColumnDefinitions[2].MinWidth = visible ? PreviewColumnMinWidth : 0;
+        SplitGrid.ColumnDefinitions[0].Width = visible ? GridLength.Star : new GridLength(0);
+        SplitGrid.ColumnDefinitions[0].MinWidth = visible ? EditorColumnMinWidth : 0;
     }
 
     private void SyncEditorText(string documentText)
@@ -205,7 +206,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         ErrorLabel.IsVisible = !string.IsNullOrEmpty(state.ErrorMessage);
         CaretLabel.Text = string.Format(EditorStrings.StatusCaret, state.CaretLine, state.CaretColumn);
         WordCountLabel.Text = $"{state.WordCount} {EditorStrings.Words}";
-        EmptyHint.IsVisible = state.IsEmpty && state.IsPreviewVisible;
+        EmptyHint.IsVisible = state.IsEmpty;
     }
 
     private void BindFileCommands(CompositeDisposable disposables)
@@ -213,7 +214,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         this.BindCommand(ViewModel, viewModel => viewModel.OpenFileCommand, view => view.OpenFileButton);
         this.BindCommand(ViewModel, viewModel => viewModel.SaveFileCommand, view => view.SaveFileButton);
         this.BindCommand(ViewModel, viewModel => viewModel.SaveFileAsCommand, view => view.SaveFileAsButton);
-        this.BindCommand(ViewModel, viewModel => viewModel.TogglePreviewCommand, view => view.PreviewToggleButton);
+        this.BindCommand(ViewModel, viewModel => viewModel.ToggleEditorCommand, view => view.EditorToggleButton);
     }
 
     private void TrackFormattingButtons(CompositeDisposable disposables)

@@ -66,8 +66,8 @@
           <material:MaterialIcon Kind="Table" Width="18" Height="18" />
         </Button>
         </StackPanel>
-        <ToggleButton Grid.Column="1" x:Name="PreviewToggleButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.TogglePreview}">
-          <material:MaterialIcon Kind="EyeOutline" Width="18" Height="18" />
+        <ToggleButton Grid.Column="1" x:Name="EditorToggleButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.ToggleEditor}">
+          <material:MaterialIcon Kind="SquareEditOutline" Width="18" Height="18" />
         </ToggleButton>
       </Grid>
     </Border>
@@ -78,7 +78,7 @@
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" MinWidth="250" />
       </Grid.ColumnDefinitions>
-      <Border Grid.Column="0" Classes="editorPane">
+      <Border Grid.Column="0" x:Name="EditorPane" Classes="editorPane">
         <edit:TextEditor x:Name="SourceEditor" />
       </Border>
       <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />

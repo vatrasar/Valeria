@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Valeria Icon Preview</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    h1 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      justify-content: center;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #8b949e;
+    }
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .transparent-bg {
+      background: repeating-conic-gradient(#21262d 0% 25%, #161b22 0% 50%) 50% / 16px 16px;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Valeria Icon Previews</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>App Icon Badge (Squircle)</h2>
+      <img src="valeria-icon.svg" width="256" height="256" alt="Valeria App Icon" />
+      <div class="preview-row">
+        <img src="valeria-icon.svg" width="64" height="64" alt="64px" />
+        <img src="valeria-icon.svg" width="48" height="48" alt="48px" />
+        <img src="valeria-icon.svg" width="32" height="32" alt="32px" />
+        <img src="valeria-icon.svg" width="16" height="16" alt="16px" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Standalone / Transparent Glyphs</h2>
+      <div class="transparent-bg">
+        <img src="valeria-icon-transparent.svg" width="256" height="256" alt="Transparent Icon" />
+      </div>
+      <div class="preview-row">
+        <div class="transparent-bg">
+          <img src="valeria-icon-transparent.svg" width="64" height="64" alt="64px" />
+        </div>
+        <div class="transparent-bg">
+          <img src="valeria-icon-transparent.svg" width="32" height="32" alt="32px" />
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

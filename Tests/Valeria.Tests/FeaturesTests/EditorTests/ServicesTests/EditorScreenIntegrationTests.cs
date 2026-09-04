@@ -36,7 +36,12 @@ public sealed class EditorScreenIntegrationTests
         {
             (window, EditorViewModel editor) = await SetupEditorAsync(session);
 
-            await session.Dispatch(() => editor.SetMarkdownText("# Hi\n\nHello **bold**"), CancellationToken.None);
+            await session.Dispatch(() =>
+            {
+                Assert.False(editor.State.IsEditorVisible);
+                editor.ToggleEditorCommand.Execute().Subscribe();
+                editor.SetMarkdownText("# Hi\n\nHello **bold**");
+            }, CancellationToken.None);
             await Task.Delay(PreviewWaitMilliseconds);
 
             (string viewModelText, string sourceText, int previewCount, string? error, double editorWidth, string titleLabel) =
@@ -96,6 +101,34 @@ public sealed class EditorScreenIntegrationTests
 
             Assert.Contains("typed", viewModelText);
             Assert.True(previewCount > 0);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() => window.Close(), CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task ToggleEditor_SwitchesVisibility()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+
+        try
+        {
+            (window, EditorViewModel editor) = await SetupEditorAsync(session);
+
+            bool initial = await session.Dispatch(() => editor.State.IsEditorVisible, CancellationToken.None);
+            Assert.False(initial);
+
+            await session.Dispatch(() => editor.ToggleEditorCommand.Execute().Subscribe(), CancellationToken.None);
+            bool afterFirstToggle = await session.Dispatch(() => editor.State.IsEditorVisible, CancellationToken.None);
+            Assert.True(afterFirstToggle);
+
+            await session.Dispatch(() => editor.ToggleEditorCommand.Execute().Subscribe(), CancellationToken.None);
+            bool afterSecondToggle = await session.Dispatch(() => editor.State.IsEditorVisible, CancellationToken.None);
+            Assert.False(afterSecondToggle);
         }
         finally
         {

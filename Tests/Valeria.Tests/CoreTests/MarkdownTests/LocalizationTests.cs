@@ -16,6 +16,7 @@ public sealed class LocalizationTests
                 EditorStrings.SaveFile,
                 EditorStrings.SaveFileAs,
                 EditorStrings.TogglePreview,
+                EditorStrings.ToggleEditor,
                 EditorStrings.Bold,
                 EditorStrings.Italic,
                 EditorStrings.Strikethrough,

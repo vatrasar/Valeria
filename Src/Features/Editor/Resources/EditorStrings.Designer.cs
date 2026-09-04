@@ -40,6 +40,8 @@ public static class EditorStrings
 
     public static string TogglePreview => ResourceManager.GetString("TogglePreview", _resourceCulture)!;
 
+    public static string ToggleEditor => ResourceManager.GetString("ToggleEditor", _resourceCulture)!;
+
     public static string Bold => ResourceManager.GetString("Bold", _resourceCulture)!;
 
     public static string Italic => ResourceManager.GetString("Italic", _resourceCulture)!;

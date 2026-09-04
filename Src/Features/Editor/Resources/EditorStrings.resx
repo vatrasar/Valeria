@@ -24,6 +24,9 @@
   <data name="TogglePreview" xml:space="preserve">
     <value>Toggle preview</value>
   </data>
+  <data name="ToggleEditor" xml:space="preserve">
+    <value>Toggle editor</value>
+  </data>
   <data name="Bold" xml:space="preserve">
     <value>Bold</value>
   </data>
