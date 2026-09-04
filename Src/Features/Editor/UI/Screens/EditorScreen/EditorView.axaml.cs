@@ -125,6 +125,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         SourceEditor.Foreground = FindBrush("PrimaryTextBrush");
         SourceEditor.LineNumbersForeground = FindBrush("EditorLineNumberBrush");
         SourceEditor.TextArea.SelectionBrush = FindBrush("EditorSelectionBrush");
+        SourceEditor.TextArea.TextView.LinkTextForegroundBrush = FindBrush("EditorLinkBrush");
         SourceEditor.ShowLineNumbers = true;
         SourceEditor.WordWrap = true;
         SourceEditor.Options.ConvertTabsToSpaces = true;

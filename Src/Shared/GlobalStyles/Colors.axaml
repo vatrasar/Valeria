@@ -23,6 +23,7 @@
   <Color x:Key="EditorSelectionColor">#264F78</Color>
   <Color x:Key="EditorLineNumberColor">#858585</Color>
   <Color x:Key="EditorCurrentLineColor">#2A2D2E</Color>
+  <Color x:Key="EditorLinkColor">#4EC9B0</Color>
   <Color x:Key="ErrorColor">#F14C4C</Color>
 
   <SolidColorBrush x:Key="PageBackgroundBrush" Color="{StaticResource PageBackgroundColor}" />
@@ -48,5 +49,6 @@
   <SolidColorBrush x:Key="EditorSelectionBrush" Color="{StaticResource EditorSelectionColor}" />
   <SolidColorBrush x:Key="EditorLineNumberBrush" Color="{StaticResource EditorLineNumberColor}" />
   <SolidColorBrush x:Key="EditorCurrentLineBrush" Color="{StaticResource EditorCurrentLineColor}" />
+  <SolidColorBrush x:Key="EditorLinkBrush" Color="{StaticResource EditorLinkColor}" />
   <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
 </ResourceDictionary>

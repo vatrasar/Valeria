@@ -52,6 +52,29 @@ public sealed class MarkdownHighlightingTests
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task HighlightLink_DistinguishesLinkTextAndUrlColors()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+
+        await session.Dispatch(() =>
+        {
+            IHighlightingDefinition? definition = LoadHighlighting();
+            Assert.NotNull(definition);
+
+            TextDocument document = new("![Sample image](https://example.com/sample.png)");
+            IHighlighter highlighter = new DocumentHighlighter(document, definition);
+            HighlightedLine line = highlighter.HighlightLine(1);
+
+            Assert.True(line.Sections.Count >= 2);
+            HighlightedSection bracketSection = line.Sections[0];
+            HighlightedSection urlSection = line.Sections[1];
+
+            Assert.Equal("Link", bracketSection.Color.Name);
+            Assert.Equal("Url", urlSection.Color.Name);
+        }, CancellationToken.None);
+    }
+
     private static IHighlightingDefinition? LoadHighlighting()
     {
         using Stream? stream = Assembly

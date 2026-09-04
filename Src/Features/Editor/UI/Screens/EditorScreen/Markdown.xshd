@@ -9,6 +9,7 @@
   <Color name="InlineCode" foreground="#CE9178" background="#2D2D2D" />
   <Color name="CodeFence" foreground="#CE9178" background="#1F1F1F" />
   <Color name="Link" foreground="#4FA3E0" />
+  <Color name="Url" foreground="#4EC9B0" />
   <Color name="List" foreground="#C586C0" />
   <Color name="Quote" foreground="#808080" fontStyle="italic" />
   <Color name="Rule" foreground="#6E7681" />
@@ -30,9 +31,10 @@
     <Span color="Italic" begin="(?&lt;=[ \t(\[{])_(?=[^_])" end="_(?=[ \t)\].,:;!?]|$)" />
 
     <Rule color="InlineCode">`[^`]+`</Rule>
-    <Rule color="Link">!?\[[^\]]*\]\([^)]*\)</Rule>
-    <Rule color="Link">!?\[[^\]]*\]\[[^\]]*\]</Rule>
-    <Rule color="Link">&lt;https?://[^&gt; \t]+&gt;</Rule>
+    <Rule color="Link">!?\[[^\]]*\](?=[\[\(])</Rule>
+    <Rule color="Url">(?&lt;=\])\([^)]*\)</Rule>
+    <Rule color="Url">(?&lt;=\])\[[^\]]*\]</Rule>
+    <Rule color="Url">&lt;https?://[^&gt; \t]+&gt;</Rule>
     <Rule color="Punctuation">^[ \t]*(\||:?-+:?\|)</Rule>
   </RuleSet>
 </SyntaxDefinition>
