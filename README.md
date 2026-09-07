@@ -4,19 +4,19 @@
 
   # Valeria
 
-  **A fast, distraction-free split-view Markdown editor for Linux and desktop.**  
+  **A fast, distraction-free split-view Markdown editor for modern desktops.**  
   *Write clean Markdown on the left — see it beautifully rendered in real time on the right.*
 
   <br />
 
-  [![Platform](https://img.shields.io/badge/Platform-Linux_%26_Cross--Platform-10B981?style=for-the-badge&logo=linux&logoColor=white)](#-built-for-linux--desktop)
+  [![Platform](https://img.shields.io/badge/Platform-Cross--Platform-10B981?style=for-the-badge)](#-native-desktop-experience)
   [![Performance](https://img.shields.io/badge/Performance-Lightning_Fast_%7E60MB_RAM-blue?style=for-the-badge&logo=speedtest&logoColor=white)](#-why-choose-valeria)
-  [![Packaging](https://img.shields.io/badge/Linux_Package-.deb_Available-A81D33?style=for-the-badge&logo=debian&logoColor=white)](#-installation)
+  [![Packaging](https://img.shields.io/badge/Package-.deb_Ready-A81D33?style=for-the-badge&logo=debian&logoColor=white)](#-installation)
   [![Privacy](https://img.shields.io/badge/Privacy-100%25_Offline_%26_Local-purple?style=for-the-badge)](#)
 
   <br />
 
-  [Why Valeria?](#-why-choose-valeria) • [Key Features](#-key-features) • [Linux Integration](#-built-for-linux--desktop) • [Shortcuts](#-handy-keyboard-shortcuts) • [Installation](#-installation) • [Customization](#-customization)
+  [Why Valeria?](#-why-choose-valeria) • [Key Features](#-key-features) • [Desktop Experience](#-native-desktop-experience) • [Shortcuts](#-handy-keyboard-shortcuts) • [Installation](#-installation) • [Customization](#-customization)
 
 </div>
 
@@ -53,23 +53,23 @@ Most modern desktop note apps and Markdown editors (such as Obsidian, MarkText, 
 | **Startup Time** | **Instant** (< 0.3s) | 2 – 5 seconds |
 | **Battery & CPU Impact** | **Minimal** (Direct hardware rendering) | Noticeable (Chromium background processes) |
 | **Typing Responsiveness** | **Immediate**, zero frame drops | Can stutter on large documents |
-| **Linux Integration** | **Native Wayland / X11**, `.deb` package | Bulky Electron wrapper |
+| **System Integration** | **Native desktop app** (Wayland / X11 / Windows), lightweight package | Bulky web runtime wrapper |
 | **Privacy & Storage** | **Local files only**, zero telemetry | Varies; often cloud-connected or telemetry-heavy |
 
 ---
 
-## 🐧 Built for Linux & Desktop
+## 🐧 Native Desktop Experience
 
-Valeria treats Linux as a first-class platform:
+Valeria is designed to feel right at home in your desktop environment:
 
-- **Native Linux Experience**: Runs smoothly on both **Wayland** and **X11** with sharp text rendering and automatic support for HiDPI fractional scaling.
-- **Ready-to-Install `.deb` Package**: Easy one-click or terminal installation for Ubuntu, Debian, Linux Mint, and Pop!_OS.
-- **Desktop Launcher Integration**: Appears in your application menu with a crisp vector icon and automatically associates with `.md` files, so you can double-click any Markdown file to open it.
-- **Quick Terminal Launch**: Open files directly from your terminal:
+- **First-Class Wayland & X11**: Runs smoothly across modern display servers with crisp rendering and automatic HiDPI fractional scaling.
+- **Ready-to-Install Package**: Quick installation via `.deb` package for Ubuntu, Debian, Linux Mint, and Pop!_OS.
+- **Launcher & File Associations**: Appears in your application menu with a crisp icon and automatically associates with `.md` files to open with a double-click.
+- **Terminal Friendly**: Launch documents directly from your shell:
   ```bash
   valeria my-notes.md
   ```
-- **Respects Linux Standards**: Stores your preferences cleanly in standard user folders (`~/.local/share/valeria`), keeping your system tidy.
+- **Clean Storage**: Respects user directory standards (`~/.local/share/valeria`), keeping your home folder clean.
 
 ---
 
@@ -190,5 +190,5 @@ You can personalize your writing environment by editing `project/appsettings.jso
 ---
 
 <div align="center">
-  <sub>Fast, focused, and distraction-free Markdown writing on Linux and desktop.</sub>
+  <sub>Fast, focused, and distraction-free Markdown writing.</sub>
 </div>
