@@ -143,10 +143,11 @@ public sealed class MarkdownPreviewBuilderTests
                 toggledState = isChecked;
             }).SelectMany(Descendants<CheckBox>).ToList();
 
+            List<bool?> initialStates = checkBoxes.Select(box => box.IsChecked).ToList();
             checkBoxes[1].IsChecked = true;
 
             return (
-                checkBoxes.Select(box => box.IsChecked).ToList(),
+                initialStates,
                 checkBoxes.All(box => box.IsEnabled),
                 toggledIndex,
                 toggledState);
