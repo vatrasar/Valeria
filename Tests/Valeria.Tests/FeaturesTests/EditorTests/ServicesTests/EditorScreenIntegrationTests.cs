@@ -49,9 +49,9 @@ public sealed class EditorScreenIntegrationTests
                 editor.ToggleEditorCommand.Execute().Subscribe();
                 editor.SetMarkdownText("# Hi\n\nHello **bold**");
             }, CancellationToken.None);
-            await Task.Delay(PreviewWaitMilliseconds);
+            await WaitForPreviewAsync(session, editor);
 
-            (string viewModelText, string sourceText, int previewCount, string? error, double editorWidth, string titleLabel) =
+            (string viewModelText, string sourceText, int previewCount, bool hasItemsSource, string? error, double editorWidth, string titleLabel) =
                 await session.Dispatch(() =>
                 {
                     EditorView view = RequireView(window);
@@ -64,7 +64,8 @@ public sealed class EditorScreenIntegrationTests
                     return (
                         editor.State.MarkdownText,
                         source.Text,
-                        preview.ItemCount,
+                        editor.State.PreviewBlocks.Count,
+                        preview.ItemsSource is not null,
                         editor.State.ErrorMessage,
                         source.Bounds.Width,
                         title.Text ?? string.Empty);
@@ -75,12 +76,17 @@ public sealed class EditorScreenIntegrationTests
             Assert.True(viewModelText.Contains("# Hi"), $"viewModelText was '{viewModelText}'");
             Assert.True(sourceText.Contains("# Hi"), $"sourceText was '{sourceText}'");
             Assert.True(previewCount > 0);
+            Assert.True(hasItemsSource);
             Assert.True(editorWidth > 100);
         }
         finally
         {
             if (window is not null)
-                await session.Dispatch(() => window.Close(), CancellationToken.None);
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
         }
     }
 
@@ -101,18 +107,26 @@ public sealed class EditorScreenIntegrationTests
                 source.Text = "# typed\n\nsome text";
             }, CancellationToken.None);
 
-            await Task.Delay(PreviewWaitMilliseconds);
+            await WaitForPreviewAsync(session, editor);
 
-            (string viewModelText, int previewCount) = await session.Dispatch(() =>
-                (editor.State.MarkdownText, editor.State.PreviewBlocks.Count), CancellationToken.None);
+            (string viewModelText, int previewCount, string? error) = await session.Dispatch(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                return (editor.State.MarkdownText, editor.State.PreviewBlocks.Count, editor.State.ErrorMessage);
+            }, CancellationToken.None);
 
+            Assert.True(string.IsNullOrEmpty(error), $"Error: {error}");
             Assert.Contains("typed", viewModelText);
             Assert.True(previewCount > 0);
         }
         finally
         {
             if (window is not null)
-                await session.Dispatch(() => window.Close(), CancellationToken.None);
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
         }
     }
 
@@ -140,33 +154,30 @@ public sealed class EditorScreenIntegrationTests
         finally
         {
             if (window is not null)
-                await session.Dispatch(() => window.Close(), CancellationToken.None);
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
         }
     }
 
     [Fact]
     public async Task InitializeAsync_ForCommandLineFilePath_LoadsFileContent()
     {
-        IScheduler originalScheduler = RxApp.MainThreadScheduler;
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
         string filePath = Path.Combine(Path.GetTempPath(), "valeria-command-line-test.md");
         const string expectedContent = "# Z pliku\n\nWczytane z argumentu.";
 
-        try
+        await session.Dispatch(async () =>
         {
-            RxApp.MainThreadScheduler = CurrentThreadScheduler.Instance;
-
             EditorViewModel editor = CreateEditorWithFile(filePath, expectedContent);
-
             await editor.InitializeAsync(CancellationToken.None);
 
             Assert.True(string.IsNullOrEmpty(editor.State.ErrorMessage), $"ErrorMessage: {editor.State.ErrorMessage}");
             Assert.Equal(expectedContent, editor.State.MarkdownText);
             Assert.Equal(filePath, editor.State.FilePath);
-        }
-        finally
-        {
-            RxApp.MainThreadScheduler = originalScheduler;
-        }
+        }, CancellationToken.None);
     }
 
     private static EditorViewModel CreateEditorWithFile(string filePath, string content)
@@ -190,7 +201,7 @@ public sealed class EditorScreenIntegrationTests
 
     private static async Task<(Window Window, EditorViewModel Editor)> SetupEditorAsync(HeadlessUnitTestSession session)
     {
-        return await session.Dispatch(() =>
+        (Window window, EditorViewModel editor) = await session.Dispatch(() =>
         {
             RxApp.MainThreadScheduler = AvaloniaScheduler.Instance;
             Locator.CurrentMutable.Register(() => new AvaloniaActivationForViewFetcher(), typeof(IActivationForViewFetcher));
@@ -208,6 +219,14 @@ public sealed class EditorScreenIntegrationTests
 
             return (window, editor);
         }, CancellationToken.None);
+
+        await session.Dispatch(async () =>
+        {
+            await editor.InitializeAsync(CancellationToken.None);
+            Dispatcher.UIThread.RunJobs();
+        }, CancellationToken.None);
+
+        return (window, editor);
     }
 
     private static EditorView RequireView(Window? window)
@@ -293,5 +312,26 @@ public sealed class EditorScreenIntegrationTests
         {
             return Task.CompletedTask;
         }
+    }
+
+    private static async Task WaitForPreviewAsync(HeadlessUnitTestSession session, EditorViewModel editor, int timeoutMilliseconds = 4000)
+    {
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(timeoutMilliseconds);
+
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+
+            bool isReady = await session.Dispatch(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                return editor.State.PreviewBlocks.Count > 0 && editor.State.IsPreviewIdle;
+            }, CancellationToken.None);
+
+            if (isReady)
+                return;
+        }
+
+        await session.Dispatch(() => Dispatcher.UIThread.RunJobs(), CancellationToken.None);
     }
 }

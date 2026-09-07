@@ -7,9 +7,11 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.Options;
 using Valeria.Src.Core.Config;
@@ -24,6 +26,105 @@ public sealed class MarkdownPreviewBuilderTests
 {
     private readonly MarkdownPreviewBuilder _builder =
         new(new CodeSyntaxService(), Options.Create(new AppConfig()));
+
+
+
+    [Fact]
+    public async Task BuildBlocks_Link_RendersAsNativeSpanWithUrl()
+    {
+        (string? url, string textContent, bool hasUnderline) = await EvaluateAsync(() =>
+        {
+            SelectableTextBlock textBlock = Build("[example link](https://example.com)")
+                .SelectMany(Descendants<SelectableTextBlock>)
+                .First();
+
+            Span linkSpan = textBlock.Inlines!.OfType<Span>().First();
+            string? targetUrl = MarkdownLink.GetUrl(linkSpan);
+            string inlineText = string.Concat(linkSpan.Inlines.OfType<Run>().Select(run => run.Text));
+            bool isUnderlined = linkSpan.TextDecorations is not null && linkSpan.TextDecorations.Count > 0;
+
+            return (targetUrl, inlineText, isUnderlined);
+        });
+
+        Assert.Equal("https://example.com", url);
+        Assert.Equal("example link", textContent);
+        Assert.False(hasUnderline);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ParagraphWithLink_HasUniformBaseline()
+    {
+        (double baseline, int lineCount) = await EvaluateAsync(() =>
+        {
+            SelectableTextBlock textBlock = Build("This is [example link](https://example.com) inside.")
+                .SelectMany(Descendants<SelectableTextBlock>)
+                .First();
+
+            textBlock.Measure(new Avalonia.Size(800, 600));
+            textBlock.Arrange(new Avalonia.Rect(0, 0, 800, 600));
+
+            return (textBlock.TextLayout.TextLines[0].Baseline, textBlock.TextLayout.TextLines.Count);
+        });
+
+        Assert.Equal(1, lineCount);
+        Assert.NotEqual(0.0, baseline);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ParagraphWithLink_HoverOverLinkSetsHandCursorAndToolTip()
+    {
+        (object? tipOnLink, object? tipOutside, IBrush? normalBrush, IBrush? hoverBrush, IBrush? currentHoverBrush, IBrush? restoredBrush) = await EvaluateAsync(() =>
+        {
+            SelectableTextBlock textBlock = Build("Before [link text](https://test.org) after.")
+                .SelectMany(Descendants<SelectableTextBlock>)
+                .First();
+
+            Span linkSpan = textBlock.Inlines!.OfType<Span>().First();
+            IBrush? normal = linkSpan.Foreground;
+            IBrush? expectedHover = MarkdownLink.GetHoverForeground(linkSpan);
+
+            textBlock.Measure(new Avalonia.Size(800, 600));
+            textBlock.Arrange(new Avalonia.Rect(0, 0, 800, 600));
+
+            var linkHit = textBlock.TextLayout.HitTestTextPosition(9);
+            Avalonia.Input.Pointer mousePointer = new(0, PointerType.Mouse, true);
+            PointerPointProperties properties = new(RawInputModifiers.None, PointerUpdateKind.Other);
+
+            textBlock.RaiseEvent(new PointerEventArgs(
+                InputElement.PointerMovedEvent,
+                textBlock,
+                mousePointer,
+                textBlock,
+                new Avalonia.Point(linkHit.Left + 2, linkHit.Top + 2),
+                0,
+                properties,
+                KeyModifiers.None));
+
+            object? tipWhenOverLink = ToolTip.GetTip(textBlock);
+            IBrush? brushWhenHovered = linkSpan.Foreground;
+
+            textBlock.RaiseEvent(new PointerEventArgs(
+                InputElement.PointerMovedEvent,
+                textBlock,
+                mousePointer,
+                textBlock,
+                new Avalonia.Point(0, 0),
+                0,
+                properties,
+                KeyModifiers.None));
+
+            object? tipWhenOutside = ToolTip.GetTip(textBlock);
+            IBrush? brushWhenRestored = linkSpan.Foreground;
+
+            return (tipWhenOverLink, tipWhenOutside, normal, expectedHover, brushWhenHovered, brushWhenRestored);
+        });
+
+        Assert.Equal("https://test.org", tipOnLink);
+        Assert.Null(tipOutside);
+        Assert.NotNull(hoverBrush);
+        Assert.Equal(hoverBrush, currentHoverBrush);
+        Assert.Equal(normalBrush, restoredBrush);
+    }
 
     [Fact]
     public async Task BuildBlocks_HeadingsAndParagraph_ReturnsSelectableTexts()

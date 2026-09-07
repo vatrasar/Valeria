@@ -8,6 +8,7 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Microsoft.Extensions.Options;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
@@ -434,28 +435,19 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            await RunOnUiThread(() => UpdateState(state => state with { ErrorMessage = exception.Message }));
+            await RunOnUiThread(() => UpdateState(state => state with { ErrorMessage = exception.ToString() }));
         }
     }
 
-    private static Task RunOnUiThread(Action action)
+    private static async Task RunOnUiThread(Action action)
     {
-        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        RxApp.MainThreadScheduler.Schedule(() =>
+        if (Dispatcher.UIThread.CheckAccess())
         {
-            try
-            {
-                action();
-                completion.TrySetResult();
-            }
-            catch (Exception exception)
-            {
-                completion.TrySetException(exception);
-            }
-        });
+            action();
+            return;
+        }
 
-        return completion.Task;
+        await Dispatcher.UIThread.InvokeAsync(action);
     }
 
     private bool IsStale(CancellationToken cancellationToken, int version)

@@ -79,7 +79,7 @@
         <ColumnDefinition Width="*" MinWidth="250" />
       </Grid.ColumnDefinitions>
       <Border Grid.Column="0" x:Name="EditorPane" Classes="editorPane">
-        <edit:TextEditor x:Name="SourceEditor" />
+        <edit:TextEditor x:Name="SourceEditor" FontFamily="{StaticResource MonoFontFamily}" />
       </Border>
       <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />
       <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane">

@@ -9,6 +9,7 @@
   <Color x:Key="MutedTextColor">#9D9D9D</Color>
   <Color x:Key="HeadingColor">#E8E8E8</Color>
   <Color x:Key="AccentColor">#4FA3E0</Color>
+  <Color x:Key="AccentHoverColor">#72B7E8</Color>
   <Color x:Key="CodeInlineBackgroundColor">#2D2D2D</Color>
   <Color x:Key="CodeInlineForegroundColor">#CE9178</Color>
   <Color x:Key="CodeBlockBackgroundColor">#161616</Color>
@@ -35,6 +36,7 @@
   <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource MutedTextColor}" />
   <SolidColorBrush x:Key="HeadingBrush" Color="{StaticResource HeadingColor}" />
   <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
   <SolidColorBrush x:Key="CodeInlineBackgroundBrush" Color="{StaticResource CodeInlineBackgroundColor}" />
   <SolidColorBrush x:Key="CodeInlineForegroundBrush" Color="{StaticResource CodeInlineForegroundColor}" />
   <SolidColorBrush x:Key="CodeBlockBackgroundBrush" Color="{StaticResource CodeBlockBackgroundColor}" />

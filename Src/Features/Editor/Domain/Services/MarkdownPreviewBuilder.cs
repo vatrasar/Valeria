@@ -31,6 +31,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     private const string MutedTextBrushKey = "MutedTextBrush";
     private const string HeadingBrushKey = "HeadingBrush";
     private const string AccentBrushKey = "AccentBrush";
+    private const string AccentHoverBrushKey = "AccentHoverBrush";
     private const string CodeInlineBackgroundKey = "CodeInlineBackgroundBrush";
     private const string CodeInlineForegroundKey = "CodeInlineForegroundBrush";
     private const string CodeBlockBackgroundKey = "CodeBlockBackgroundBrush";
@@ -167,6 +168,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         text.Margin = new Thickness(0, 12, 0, 6);
 
         AppendInlines(heading.Inlines, text.Inlines, theme, brushes, fontSize);
+        MarkdownLinkHandler.Attach(text);
 
         return text;
     }
@@ -177,6 +179,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         text.Margin = new Thickness(0, 8, 0, 8);
 
         AppendInlines(paragraph.Inlines, text.Inlines, theme, brushes, fontSize);
+        MarkdownLinkHandler.Attach(text);
 
         return text;
     }
@@ -489,6 +492,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         SelectableTextBlock text = CreateBodyText(theme, brushes.Body, theme.BodyFontSize);
         text.HorizontalAlignment = MapColumnAlignment(alignment);
         AppendInlines(cell.Inlines, text.Inlines, theme, brushes, theme.BodyFontSize);
+        MarkdownLinkHandler.Attach(text);
 
         if (isHeader)
             text.FontWeight = FontWeight.Bold;
@@ -616,49 +620,18 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         };
     }
 
-    private InlineUIContainer CreateLink(LinkSpan link, ThemeResources theme, BrushSet brushes, double fontSize)
+    private Span CreateLink(LinkSpan link, ThemeResources theme, BrushSet brushes, double fontSize)
     {
-        TextBlock label = new()
+        Span linkSpan = new()
         {
-            FontFamily = theme.ProseFont,
-            FontSize = fontSize,
-            Foreground = theme.Accent,
-            TextDecorations = TextDecorations.Underline,
-            TextWrapping = TextWrapping.Wrap
+            Foreground = theme.Accent
         };
 
-        AppendInlines(link.Children, label.Inlines, theme, brushes, fontSize);
+        MarkdownLink.SetUrl(linkSpan, link.Url);
+        MarkdownLink.SetHoverForeground(linkSpan, theme.AccentHover);
+        AppendInlines(link.Children, linkSpan.Inlines, theme, brushes, fontSize);
 
-        HyperlinkButton button = new()
-        {
-            Content = label,
-            Padding = new Thickness(0),
-            FontSize = fontSize
-        };
-
-        string url = link.Url;
-        button.Click += (_, _) => OpenUrl(button, url);
-
-        return new InlineUIContainer(button);
-    }
-
-    private static void OpenUrl(Control anchor, string url)
-    {
-        try
-        {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
-                return;
-
-            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-                return;
-
-            TopLevel? topLevel = TopLevel.GetTopLevel(anchor);
-            _ = topLevel?.Launcher.LaunchUriAsync(uri);
-        }
-        catch (Exception exception)
-        {
-            Debug.WriteLine($"Open url failed: {exception.Message}");
-        }
+        return linkSpan;
     }
 
     private static Control CreateImagePlaceholder(ImageSpan image, ThemeResources theme)
@@ -712,6 +685,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         public IBrush Muted { get; private set; } = Brushes.Gray;
         public IBrush Heading { get; private set; } = Brushes.White;
         public IBrush Accent { get; private set; } = Brushes.SkyBlue;
+        public IBrush AccentHover { get; private set; } = new SolidColorBrush(Color.Parse("#72B7E8"));
         public IBrush CodeInlineBackground { get; private set; } = Brushes.DimGray;
         public IBrush CodeInlineForeground { get; private set; } = Brushes.White;
         public IBrush CodeBlockBackground { get; private set; } = Brushes.Black;
@@ -746,6 +720,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
                 Muted = FindBrush(MutedTextBrushKey, Brushes.Gray),
                 Heading = FindBrush(HeadingBrushKey, Brushes.White),
                 Accent = FindBrush(AccentBrushKey, Brushes.SkyBlue),
+                AccentHover = FindBrush(AccentHoverBrushKey, new SolidColorBrush(Color.Parse("#72B7E8"))),
                 CodeInlineBackground = FindBrush(CodeInlineBackgroundKey, Brushes.DimGray),
                 CodeInlineForeground = FindBrush(CodeInlineForegroundKey, Brushes.White),
                 CodeBlockBackground = FindBrush(CodeBlockBackgroundKey, Brushes.Black),

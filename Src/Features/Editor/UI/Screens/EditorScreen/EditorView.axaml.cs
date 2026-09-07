@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Reflection;
 using System.Xml;
 using Avalonia;
@@ -386,10 +387,12 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         this.OneWayBind(ViewModel, viewModel => viewModel.State.IsPreviewIdle, view => view.PreviewUpdatingIndicator.IsVisible, isIdle => !isIdle);
 
         this.WhenAnyValue(view => view.ViewModel!.State.IsEditorVisible)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<bool>(SetEditorVisibility))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.MarkdownText)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<string>(SyncEditorText))
             .DisposeWith(disposables);
     }
@@ -418,6 +421,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private void BindStatusBar(CompositeDisposable disposables)
     {
         this.WhenAnyValue(view => view.ViewModel!.State)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<EditorState>(RenderStatus))
             .DisposeWith(disposables);
     }
