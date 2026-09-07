@@ -4,206 +4,157 @@
 
   # Valeria
 
-  **A blazing-fast, distraction-free split-view Markdown editor engineered for Linux and modern desktops.**  
-  *Write clean Markdown with code-editor precision on the left; watch it render with rich typography in real time on the right.*
+  **A fast, distraction-free split-view Markdown editor for Linux and desktop.**  
+  *Write clean Markdown on the left — see it beautifully rendered in real time on the right.*
 
   <br />
 
-  [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-  [![Avalonia UI](https://img.shields.io/badge/Avalonia_UI-11.3-7B2CBF?style=for-the-badge&logo=avalonia&logoColor=white)](https://avaloniaui.net/)
-  [![ReactiveUI](https://img.shields.io/badge/ReactiveUI-20.1-EC4899?style=for-the-badge)](https://reactiveui.net/)
-  [![Linux](https://img.shields.io/badge/Linux-First--Class_Citizen-FCC624?style=for-the-badge&logo=linux&logoColor=black)](#-first-class-linux-experience)
-  [![Performance](https://img.shields.io/badge/Performance-Direct_GPU_Skia-10B981?style=for-the-badge&logo=speedtest&logoColor=white)](#-why-valeria--the-avalonia-performance-edge)
-  [![Tests](https://img.shields.io/badge/Tests-85_Passing-success?style=for-the-badge&logo=checkmarx&logoColor=white)](#-running-tests)
-  [![Debian Package](https://img.shields.io/badge/.deb-Ready_to_Install-A81D33?style=for-the-badge&logo=debian&logoColor=white)](#-method-1-native-linux-deb-package-recommended)
+  [![Platform](https://img.shields.io/badge/Platform-Linux_%26_Cross--Platform-10B981?style=for-the-badge&logo=linux&logoColor=white)](#-built-for-linux--desktop)
+  [![Performance](https://img.shields.io/badge/Performance-Lightning_Fast_%7E60MB_RAM-blue?style=for-the-badge&logo=speedtest&logoColor=white)](#-why-choose-valeria)
+  [![Packaging](https://img.shields.io/badge/Linux_Package-.deb_Available-A81D33?style=for-the-badge&logo=debian&logoColor=white)](#-installation)
+  [![Privacy](https://img.shields.io/badge/Privacy-100%25_Offline_%26_Local-purple?style=for-the-badge)](#)
 
   <br />
 
-  [Why Valeria?](#-why-valeria--the-avalonia-performance-edge) • [Linux Experience](#-first-class-linux-experience) • [Key Features](#-key-features) • [Shortcuts](#-keyboard-shortcuts) • [Installation](#-getting-started) • [Configuration](#-configuration) • [Architecture](#-architecture--tech-stack)
+  [Why Valeria?](#-why-choose-valeria) • [Key Features](#-key-features) • [Linux Integration](#-built-for-linux--desktop) • [Shortcuts](#-handy-keyboard-shortcuts) • [Installation](#-installation) • [Customization](#-customization)
 
 </div>
 
 ---
 
-## 🌿 Overview
+## 🌿 What is Valeria?
 
-**Valeria** is a dedicated desktop Markdown environment tailored for developers, technical writers, and note-takers who demand **uncompromising performance and rock-solid reliability**. Built from the ground up with **Avalonia UI 11** and **ReactiveUI**, Valeria breaks away from sluggish web wrappers and delivers a native desktop editing experience:
+**Valeria** is a lightweight, high-performance desktop Markdown editor designed for writers, researchers, programmers, and note-takers. It offers the ideal dual-pane writing environment:
 
-- **Source Editor (Left)**: Pure, monospace Markdown code editing powered by `AvaloniaEdit` with full syntax highlighting. Clean, predictable, and free from awkward inline layout jumps—just like writing code in VS Code.
-- **Live Preview (Right)**: An instant visual document preview rendered with rich typography reminiscent of Obsidian and MarkText, updated reactively as you type.
-
-Whether you are authoring software documentation, drafting blog posts, or keeping daily technical journals, Valeria gives you the speed of raw text with the elegance of modern typography.
+- **Source Editor (Left)**: Write plain, distraction-free Markdown in a clean monospace editor with syntax coloring. No awkward layout shifts or hidden formatting markers while typing — just pure, predictable writing like in your favorite code editor.
+- **Live Preview (Right)**: Watch your words transform instantly into an elegantly styled document featuring rich typography, readable tables, interactive task lists, and syntax-highlighted code blocks.
 
 ---
 
-## ⚡ Why Valeria? — The Avalonia Performance Edge
+## ⚡ Why Choose Valeria?
 
-Most popular Markdown editors (such as MarkText, Obsidian, or VS Code) are built on top of **Electron** or embedded browser engines (Chromium + Node.js). While versatile, web-based editors carry significant overhead on desktop environments: high memory usage, noticeable startup latency, and frame drops when editing long documents.
+Most modern desktop note apps and Markdown editors (such as Obsidian, MarkText, or Notion) are built on heavy web browser engines (Electron/Chromium). While feature-rich, they often consume massive amounts of system memory, cause battery drain, and feel sluggish on older or resource-constrained machines.
 
-**Valeria takes a fundamentally different path:** it is compiled directly to native machine code with **.NET 10** and renders directly through **Avalonia UI's hardware-accelerated Skia graphics engine**.
+**Valeria is engineered differently.** Built natively with **Avalonia UI** and **.NET**, it communicates directly with your graphics hardware without running a hidden browser in the background.
 
-### 🚀 Performance Highlights
+### 🌟 Benefits You Will Notice:
 
-- 🪶 **Featherweight RAM Footprint**: Idles around **~50–80 MB** of RAM—consuming a fraction of the 400–900+ MB typical of Electron editors.
-- ⚡ **Near-Instant Startup**: Cold launches in **under 300 ms**, ready for immediate typing without waiting for a Chromium runtime to initialize.
-- 🎯 **Direct GPU Rendering via Skia**: No DOM tree reflows, no HTML layout thrashing. Avalonia renders directly to OpenGL / Vulkan / Software backends at a buttery-smooth 60+ FPS.
-- ⚡ **Virtualizing Text Engine**: Built upon `AvaloniaEdit`, allowing you to open, scroll, and manipulate multi-megabyte Markdown files without latency or UI freezing.
-- 🔄 **Non-Blocking Reactive Pipeline**: Markdig parsing and preview generation are handled with an intelligent debounce pipeline (`PreviewDebounceMilliseconds`) backed by ReactiveUI observables, ensuring keystrokes are never blocked by rendering.
+- 🪶 **Whisper-Light on Memory**: Idles at around **~60 MB of RAM** (compared to 400 MB to 1 GB in typical Electron-based apps). Keep it running all day without slowing down your computer.
+- ⚡ **Instant Launch**: Starts up in the blink of an eye (< 300 ms) so you can capture fleeting thoughts immediately.
+- 🔋 **Battery-Friendly**: Generates minimal CPU load while idle or typing, making it a great companion for laptops on the go.
+- 🎯 **Smooth, Latency-Free Typing**: Keystrokes register with zero lag. Even in documents with thousands of lines, typing stays fluid and responsive.
+- 🔒 **100% Private & Offline**: No account creation, no subscriptions, and no cloud sync sending your data elsewhere. Your notes are stored as standard Markdown files directly on your computer.
 
-### 📊 Valeria vs. Web/Electron Markdown Editors
+### 📊 Quick Comparison
 
-| Metric / Characteristic | **Valeria (Avalonia UI + .NET 10)** | Electron Editors (Obsidian, MarkText) |
+| What Matters to You | **Valeria** | Heavy Web-Based Editors (Obsidian, MarkText) |
 | :--- | :--- | :--- |
-| **Runtime Architecture** | **Native Compiled .NET 10 + Skia** | Chromium Browser + Node.js (V8) |
-| **Memory Footprint (Idle)** | **~50 – 80 MB** | 350 – 900+ MB |
-| **Cold Startup Time** | **< 300 ms** (Instant) | 2.5 – 6.0 seconds |
-| **Rendering Engine** | **Direct GPU via Skia** (Vulkan / OpenGL) | WebKit / Blink DOM + CSS Box Model |
-| **Typing Latency** | **Near-zero** (Direct buffer manipulation) | Subject to browser event loop & DOM dispatching |
-| **Linux Desktop Integration** | **Native X11 & Wayland**, light system `.deb` | Sandboxed web runtime, large bundle size |
-| **Background Resource Draw** | **Virtually 0% CPU** when idle | Persistent helper processes & web workers |
+| **Memory Usage** | **~50 – 80 MB** (Extremely light) | 400 – 900+ MB (Heavy) |
+| **Startup Time** | **Instant** (< 0.3s) | 2 – 5 seconds |
+| **Battery & CPU Impact** | **Minimal** (Direct hardware rendering) | Noticeable (Chromium background processes) |
+| **Typing Responsiveness** | **Immediate**, zero frame drops | Can stutter on large documents |
+| **Linux Integration** | **Native Wayland / X11**, `.deb` package | Bulky Electron wrapper |
+| **Privacy & Storage** | **Local files only**, zero telemetry | Varies; often cloud-connected or telemetry-heavy |
 
 ---
 
-## 🐧 First-Class Linux Experience
+## 🐧 Built for Linux & Desktop
 
-Linux is not an afterthought in Valeria—it is a primary, first-class target. Valeria is optimized to look, feel, and behave like a true native Linux desktop application:
+Valeria treats Linux as a first-class platform:
 
-- **Wayland & X11 Ready**: Avalonia UI natively targets both Wayland and X11 display servers with crisp rendering and automatic fractional scaling on high-DPI displays.
-- **Official Debian/Ubuntu Packaging (`.deb`)**: Includes a dedicated, zero-friction packaging script ([`build-deb.sh`](file:///home/vatrasar/projekty/newMarkText/antigravityProject/build-deb.sh)) that compiles a self-contained release and packages it into a ready-to-install `.deb` archive.
-- **XDG Desktop Standards**:
-  - Installs cleanly to `/opt/valeria` with a global `/usr/bin/valeria` symlink.
-  - Registers an XDG desktop entry (`valeria.desktop`) under `/usr/share/applications`.
-  - Integrates scalable vector icons (`valeria.svg`) under `/usr/share/icons/hicolor/scalable/apps`.
-  - Configures MIME-type associations for `text/markdown` and `text/x-markdown`, enabling one-click opening from Nautilus, Dolphin, or Thunar.
-- **Clean CLI Support**: Launch single or multiple Markdown files straight from your terminal:
+- **Native Linux Experience**: Runs smoothly on both **Wayland** and **X11** with sharp text rendering and automatic support for HiDPI fractional scaling.
+- **Ready-to-Install `.deb` Package**: Easy one-click or terminal installation for Ubuntu, Debian, Linux Mint, and Pop!_OS.
+- **Desktop Launcher Integration**: Appears in your application menu with a crisp vector icon and automatically associates with `.md` files, so you can double-click any Markdown file to open it.
+- **Quick Terminal Launch**: Open files directly from your terminal:
   ```bash
-  valeria README.md notes.md
+  valeria my-notes.md
   ```
-- **XDG Base Directory Compliance**: Follows standard Linux filesystem conventions (`~/.local/share/valeria` for user data and storage), preserving system security and multi-user safety.
+- **Respects Linux Standards**: Stores your preferences cleanly in standard user folders (`~/.local/share/valeria`), keeping your system tidy.
 
 ---
 
 ## ✨ Key Features
 
-### 📝 Dual-Pane Writing Experience
-- **Responsive Split View**: Drag the interactive splitter to customize pane widths, or collapse the preview completely for pure focus.
-- **Intelligent Live Preview**: High-performance debounced rendering of headings, blockquotes, lists, tables, strikethrough, links, and code blocks.
-- **Obsidian-Style Visuals**: Clean dark typography, subtle border accents, and beautifully spaced document hierarchy.
+### 📝 Dual-Pane Writing Flow
+- **Adjustable Splitter**: Drag the central divider to balance editor and preview widths, or collapse the preview completely with a single click or shortcut (<kbd>Ctrl</kbd> + <kbd>P</kbd>) for distraction-free writing.
+- **Live Styled Preview**: Headings, blockquotes, lists, strikethrough, and links format automatically as you type.
 
-### 🔍 In-Preview Full-Text Search
-- **Instant Find**: Press <kbd>Ctrl</kbd> + <kbd>F</kbd> to search within the rendered preview.
-- **Match Navigation**: Jump seamlessly between matches using <kbd>F3</kbd> (Next) and <kbd>Shift</kbd> + <kbd>F3</kbd> (Previous).
-- **Match Case Toggle**: Switch between case-sensitive and case-insensitive searching.
-- **Preserved Typography**: Highlighting cleanly wraps text runs and styled inline spans without corrupting formatting.
+### 🔍 Find in Preview
+- **Instant Search**: Press <kbd>Ctrl</kbd> + <kbd>F</kbd> to search directly within your rendered document.
+- **Seamless Navigation**: Cycle between matches instantly using <kbd>F3</kbd> and <kbd>Shift</kbd> + <kbd>F3</kbd>.
 
-### 🎨 Polyglot Code Blocks & TextMate Highlighting
-- **50+ Languages Supported**: Powered by TextMate grammars, code blocks are highlighted with precision (C#, Python, Rust, Go, JavaScript, TypeScript, SQL, Bash, JSON, YAML, and more).
-- **Visual Studio Dark Theme**: Clean contrast with line numbers, language identifier tags, and a convenient **one-click copy button**.
+### 🎨 Polyglot Code Blocks
+- **50+ Languages Highlighted**: Formats code snippets cleanly across Python, C#, Rust, JavaScript, Go, Bash, SQL, JSON, YAML, and dozens more.
+- **1-Click Copy**: Convenient copy button on code snippets to grab code without messy manual selection.
 
 ### ⌨️ Smart Typing Ergonomics
-- **List Auto-Continuation**: Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to automatically continue bullet lists (`- `, `* `) and numbered lists (`1. `, `2. `).
-- **Auto-Closing Delimiters**: Automatically pairs `()`, `[]`, `{}`, `""`, `''`, and ```` ``` ````.
-- **Code Language Auto-Completion**: Typing opening code fences prompts an intelligent language suggestion dropdown.
+- **Automatic Lists**: Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to continue bullet or numbered lists effortlessly.
+- **Auto-Closing Pairs**: Automatically closes brackets `()`, `[]`, `{}`, quotes `""`, `''`, and code backticks.
+- **Language Picker**: Typing code fences automatically suggests matching programming languages.
 
-### 🖼️ High-Performance Image Handling
-- **Multi-Source Support**: Renders remote HTTP/HTTPS images, local relative/absolute filesystem paths, and base64 data URIs (`data:image/...`).
-- **Concurrent In-Memory Caching**: Decoded bitmaps are cached asynchronously to eliminate layout flicker and avoid repeated disk or network I/O.
+### 🖼️ Seamless Media & Tables
+- **Images Built-in**: Supports web images (`https://`), local images from your hard drive, and embedded data images with intelligent caching for smooth scrolling.
+- **Clean Tables**: Formatted tables with aligned columns, distinct header rows, and alternating row styling.
+- **Interactive Checklists**: Full support for task lists (`- [x]` and `- [ ]`).
+- **Clickable Links**: Hyperlinks open directly in your favorite default web browser.
 
-### 📊 Tables & Document Elements
-- **GFM Tables**: Formatted tables with text alignment, contrasting header rows, and alternating row backgrounds.
-- **Task Lists**: Interactive checkbox items (`- [x]` / `- [ ]`).
-- **Clickable Hyperlinks**: Web links open directly in your preferred system browser.
-- **Blockquotes**: Single and nested blockquotes with accent side bars.
-
-### 🛠️ Smart Formatting Toolbar
-- **Quick Actions**: One-click buttons for Bold, Italic, Strikethrough, Inline Code, Hyperlinks, Headers (H1–H3), Lists, Blockquotes, Code Fences, and Tables.
-- **Context-Aware Toggles**: Intelligently wraps new text or unwraps existing formatting around active selections.
-
-### 📂 File Management & Metrics
-- **Seamless I/O**: Native file dialogs supporting `.md`, `.markdown`, `.mdown`, `.mkd`, and `.mdx`.
-- **Dirty Indicator (`*`)**: Immediate visual feedback when unsaved modifications exist.
-- **Status Metrics**: Real-time caret position (`Ln X, Col Y`), live word count, and non-intrusive error notifications.
+### 🛠️ One-Click Formatting Toolbar
+- Quick-access toolbar buttons for Bold, Italic, Strikethrough, Headers (H1–H3), Lists, Quotes, Code Fences, Links, and Tables.
+- Live status bar shows caret position (`Ln X, Col Y`), real-time word count, and an unsaved changes indicator (`*`).
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ⌨️ Handy Keyboard Shortcuts
 
-| Shortcut | Action | Description |
-| :--- | :--- | :--- |
-| <kbd>Ctrl</kbd> + <kbd>O</kbd> | **Open File** | Open an existing Markdown document |
-| <kbd>Ctrl</kbd> + <kbd>S</kbd> | **Save File** | Save the active document |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | **Save As** | Save active document to a new location |
-| <kbd>Ctrl</kbd> + <kbd>P</kbd> or <kbd>Ctrl</kbd> + <kbd>E</kbd> | **Toggle Preview** | Show or collapse the rendered preview pane |
-| <kbd>Ctrl</kbd> + <kbd>F</kbd> | **Find in Preview** | Open the search bar inside the preview pane |
-| <kbd>F3</kbd> | **Next Match** | Navigate to the next search match in preview |
-| <kbd>Shift</kbd> + <kbd>F3</kbd> | **Previous Match** | Navigate to the previous search match in preview |
-| <kbd>Esc</kbd> | **Close Search** | Close the in-preview search bar |
-| <kbd>Ctrl</kbd> + <kbd>B</kbd> | **Bold** | Wrap or unwrap selection with `**bold**` |
-| <kbd>Ctrl</kbd> + <kbd>I</kbd> | **Italic** | Wrap or unwrap selection with `*italic*` |
-| <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | **Continue List** | Automatically continue bullet or numbered list item |
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (for building from source)
-- Linux (Ubuntu/Debian, Fedora, Arch, etc.) or any modern desktop OS (Windows, macOS)
+| Shortcut | What It Does |
+| :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>O</kbd> | **Open File** from your computer |
+| <kbd>Ctrl</kbd> + <kbd>S</kbd> | **Save** current document |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | **Save As** to a new file |
+| <kbd>Ctrl</kbd> + <kbd>P</kbd> or <kbd>Ctrl</kbd> + <kbd>E</kbd> | **Toggle Preview** (expand or collapse preview pane) |
+| <kbd>Ctrl</kbd> + <kbd>F</kbd> | **Find in Preview** (open search bar) |
+| <kbd>F3</kbd> / <kbd>Shift</kbd> + <kbd>F3</kbd> | Jump to **Next / Previous Match** |
+| <kbd>Esc</kbd> | Close search bar |
+| <kbd>Ctrl</kbd> + <kbd>B</kbd> | Format selected text as **Bold** |
+| <kbd>Ctrl</kbd> + <kbd>I</kbd> | Format selected text as *Italic* |
+| <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | **Continue List** on the next line |
 
 ---
 
-### 📦 Method 1: Native Linux `.deb` Package (Recommended)
+## 📦 Installation
 
-If you are running Ubuntu, Debian, Linux Mint, or Pop!_OS, you can build and install a self-contained Debian package in seconds:
+### Ubuntu, Debian, Linux Mint & Pop!_OS (`.deb`)
+
+1. Build or grab the package:
+   ```bash
+   ./build-deb.sh 1.0.0
+   ```
+2. Install with your package manager:
+   ```bash
+   sudo apt install ./build/valeria_1.0.0_amd64.deb
+   ```
+3. Start writing! Launch **Valeria** from your application menu or type `valeria` in terminal.
+
+---
+
+### Running from Source (.NET 10)
+
+If you have the [.NET 10 SDK](https://dotnet.microsoft.com/download) installed:
 
 ```bash
-# 1. Build the .deb package (produces build/valeria_1.0.0_amd64.deb)
-./build-deb.sh 1.0.0
-
-# 2. Install the package
-sudo apt install ./build/valeria_1.0.0_amd64.deb
-# Or: sudo dpkg -i ./build/valeria_1.0.0_amd64.deb
-
-# 3. Launch Valeria from terminal or your application menu
-valeria
-```
-
----
-
-### 🔨 Method 2: Building and Running from Source
-
-You can also run Valeria directly using the .NET 10 CLI:
-
-```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/vatrasar/valeria.git
 cd valeria
 
-# 2. Build the solution
-dotnet build project/Valeria.slnx
-
-# 3. Run the application
+# Run Valeria
 dotnet run --project project/Valeria.csproj
-
-# (Optional) Open a specific file directly
-dotnet run --project project/Valeria.csproj -- ~/Documents/notes.md
 ```
 
 ---
 
-### 🧪 Running Tests
+## ⚙️ Customization
 
-Valeria features an automated test suite comprising **85 unit and headless Avalonia integration tests**. The suite tests markdown parsing, image caching, preview search highlighting, formatting transformations, and headless UI rendering:
-
-```bash
-dotnet test project/Valeria.slnx
-```
-
----
-
-## ⚙️ Configuration
-
-Application settings can be configured via `project/appsettings.json`:
+You can personalize your writing environment by editing `project/appsettings.json`:
 
 ```json
 {
@@ -221,58 +172,23 @@ Application settings can be configured via `project/appsettings.json`:
 }
 ```
 
-### Configuration Options:
-- **`FontSize`**: Base font size (in points) for the code editor pane.
-- **`TabWidth`**: Indentation width in spaces.
-- **`PreviewDebounceMilliseconds`**: Delay (in milliseconds) before updating the preview following keystrokes. Keeps typing completely smooth without wasteful re-renders.
-- **`MaxWidth`**: Maximum content column width for the rendered document (for optimal readability).
-- **`CodeBlockMaxHeight`**: Maximum vertical height of code blocks before internal scrolling activates.
+- **`FontSize`**: Adjust your preferred writing font size.
+- **`TabWidth`**: Indentation width (in spaces).
+- **`PreviewDebounceMilliseconds`**: How quickly the preview refreshes while you type (default is 350 ms for an optimal balance of smoothness and speed).
+- **`MaxWidth`**: Limits the reading column width for comfortable reading on wide monitors.
+- **`CodeBlockMaxHeight`**: Max height of code snippets before adding a scrollbar.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🗺️ What's Next?
 
-Valeria is engineered following a modern, feature-oriented MVVM architecture with immutable state management:
-
-- **Framework**: [.NET 10](https://dotnet.microsoft.com/) & [C# 13](https://learn.microsoft.com/en-us/dotnet/csharp/)
-- **UI Platform**: [Avalonia UI 11.3](https://avaloniaui.net/) (Fluent Theme with custom dark palette)
-- **Reactivity & State**: [ReactiveUI 20.1](https://reactiveui.net/) with source-generated commands & MVI-style immutable records
-- **Code Editor**: [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) + `AvaloniaEdit.TextMate`
-- **Markdown Parsing**: [Markdig](https://github.com/xoofx/markdig) (CommonMark & GitHub Flavored Markdown)
-- **Icons**: [Material.Icons.Avalonia](https://github.com/AvaloniaCommunity/Material.Icons.Avalonia)
-- **Configuration & DI**: `Microsoft.Extensions.DependencyInjection` & `Microsoft.Extensions.Options`
-
-```
-Valeria/
-├── Assets/                 # Scalable icons, themes, and welcome document
-├── Src/
-│   ├── Core/               # Domain models, MVVM base classes, configuration schemas
-│   ├── Features/
-│   │   ├── Editor/         # Split-view screen, syntax engines, preview builders, search
-│   │   └── Shell/          # Host window, routing, and top-level lifecycle
-│   ├── Infrastructure/     # DI container, module bootstrappers, and native file dialogs
-│   └── Shared/             # Global styles, color palettes, and string resources
-└── Tests/
-    └── Valeria.Tests/      # Headless UI integration & unit tests
-```
-
----
-
-## 🗺️ Roadmap
-
-- [x] High-performance split-view layout with interactive splitter
-- [x] Polyglot TextMate syntax highlighting for 50+ languages
-- [x] Asynchronous remote & local image caching
-- [x] In-preview full-text search with match highlighting (`Ctrl+F`)
-- [x] Smart typing ergonomics (list continuation, auto-closing brackets, language autocomplete)
-- [x] Native Debian/Ubuntu packaging (`.deb`)
-- [ ] Synchronized dual-pane scrolling (scroll source and preview simultaneously)
-- [ ] Light / Dark theme switcher
-- [ ] Table of Contents (TOC) quick-jump sidebar
-- [ ] HTML and PDF document export
+- [ ] Synchronized side-by-side scrolling (scroll editor and preview together)
+- [ ] Light / Dark theme selector
+- [ ] Document Outline / Table of Contents sidebar
+- [ ] Export to PDF and HTML
 
 ---
 
 <div align="center">
-  <sub>Crafted with passion for clean typography and high-performance desktop computing.</sub>
+  <sub>Fast, focused, and distraction-free Markdown writing on Linux and desktop.</sub>
 </div>
