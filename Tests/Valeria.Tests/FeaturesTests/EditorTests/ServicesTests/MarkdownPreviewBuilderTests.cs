@@ -240,6 +240,93 @@ public sealed class MarkdownPreviewBuilderTests
     }
 
     [Fact]
+    public async Task BuildBlocks_TableWithLongText_WrapsCellContent()
+    {
+        (int cellCount, int lineCount, TextWrapping wrapping, TextAlignment alignment) = await EvaluateAsync(() =>
+        {
+            string markdown = "| Short | Long Content Header |\n| :--- | :---: |\n| 1 | This is a very long text inside the table cell that should definitely wrap across multiple lines rather than remaining on a single line. |";
+            IReadOnlyList<Control> blocks = Build(markdown);
+            Control tableControl = blocks.First();
+
+            Window window = new() { Width = 400, Height = 600, Content = tableControl };
+            try
+            {
+                window.Show();
+                tableControl.Measure(new Avalonia.Size(400, 600));
+                tableControl.Arrange(new Avalonia.Rect(0, 0, 400, 600));
+                Dispatcher.UIThread.RunJobs();
+
+                List<SelectableTextBlock> cells = Descendants<SelectableTextBlock>(tableControl).ToList();
+                if (cells.Count == 0 && tableControl is ContentControl contentControl && contentControl.Content is Control contentChild)
+                    cells = Descendants<SelectableTextBlock>(contentChild).ToList();
+
+                SelectableTextBlock? longCell = cells.LastOrDefault();
+
+                return (
+                    cells.Count,
+                    longCell?.TextLayout?.TextLines?.Count ?? 0,
+                    longCell?.TextWrapping ?? TextWrapping.NoWrap,
+                    longCell?.TextAlignment ?? TextAlignment.Left);
+            }
+            finally
+            {
+                window.Close();
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+
+        Assert.True(cellCount >= 4);
+        Assert.True(lineCount > 1);
+        Assert.Equal(TextWrapping.Wrap, wrapping);
+        Assert.Equal(TextAlignment.Center, alignment);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_Table_IndexColumnIsCompactAndTableFillsFullWidth()
+    {
+        (double tableWidth, double col0Width, double col1Width, bool col0IsAuto, bool col1IsStar) = await EvaluateAsync(() =>
+        {
+            string markdown = "| # | Description |\n| - | --- |\n| 1 | This is a detailed description that takes more space than a single digit index column. |";
+            IReadOnlyList<Control> blocks = Build(markdown);
+            Control tableControl = blocks.First();
+
+            Window window = new() { Width = 500, Height = 600, Content = tableControl };
+            try
+            {
+                window.Show();
+                tableControl.Measure(new Avalonia.Size(500, 600));
+                tableControl.Arrange(new Avalonia.Rect(0, 0, 500, 600));
+                Dispatcher.UIThread.RunJobs();
+
+                Grid grid = Descendants<Grid>(tableControl).First();
+                Border cell0 = Descendants<Border>(grid).First();
+                Border cell1 = Descendants<Border>(grid).Skip(1).First();
+
+                bool isAuto = grid.ColumnDefinitions[0].Width.IsAuto;
+                bool isStar = grid.ColumnDefinitions[1].Width.IsStar;
+
+                return (
+                    grid.Bounds.Width,
+                    cell0.Bounds.Width,
+                    cell1.Bounds.Width,
+                    isAuto,
+                    isStar);
+            }
+            finally
+            {
+                window.Close();
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+
+        Assert.True(tableWidth >= 499 && tableWidth <= 500);
+        Assert.True(col0IsAuto);
+        Assert.True(col1IsStar);
+        Assert.True(col0Width < 80);
+        Assert.True(col1Width > 400);
+    }
+
+    [Fact]
     public async Task BuildBlocks_TaskList_ReturnsInteractiveCheckBoxes()
     {
         (IReadOnlyList<bool?> states, bool allEnabled, int toggledIndex, bool toggledState) = await EvaluateAsync(() =>

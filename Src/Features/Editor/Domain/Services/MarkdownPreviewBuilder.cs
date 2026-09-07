@@ -438,10 +438,16 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         if (columnCount == 0)
             return CreateBodyText(theme, brushes.Body, theme.BodyFontSize);
 
+        List<int> columnLengths = GetColumnLengths(table, columnCount);
+        int maxColumnLength = columnLengths.Count > 0 ? columnLengths.Max() : 0;
+
         Grid grid = new();
 
         for (int column = 0; column < columnCount; column++)
-            grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        {
+            int length = column < columnLengths.Count ? columnLengths[column] : 0;
+            grid.ColumnDefinitions.Add(CreateTableColumnDefinition(length, maxColumnLength));
+        }
 
         int rowIndex = 0;
 
@@ -467,11 +473,98 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
             Child = grid
         };
 
-        return new ScrollViewer
+        return new MarkdownTableScrollViewer
         {
+            ColumnCount = columnCount,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
             Content = frame
+        };
+    }
+
+    private static ColumnDefinition CreateTableColumnDefinition(int columnLength, int maxColumnLength)
+    {
+        if (ShouldBeCompactColumn(columnLength, maxColumnLength))
+            return new ColumnDefinition(GridLength.Auto);
+
+        double weight = CalculateStarWeight(columnLength);
+
+        return new ColumnDefinition(new GridLength(weight, GridUnitType.Star));
+    }
+
+    private static bool ShouldBeCompactColumn(int columnLength, int maxColumnLength)
+    {
+        if (columnLength > 16)
+            return false;
+
+        if (columnLength == maxColumnLength)
+            return false;
+
+        return columnLength <= 8 || columnLength * 2 <= maxColumnLength;
+    }
+
+    private static double CalculateStarWeight(int columnLength)
+    {
+        if (columnLength <= 25)
+            return 1.0;
+
+        if (columnLength <= 60)
+            return 1.5;
+
+        if (columnLength <= 120)
+            return 2.0;
+
+        return 3.0;
+    }
+
+    private static List<int> GetColumnLengths(TableBlock table, int columnCount)
+    {
+        List<int> lengths = new(columnCount);
+
+        for (int column = 0; column < columnCount; column++)
+            lengths.Add(GetColumnMaxTextLength(table, column));
+
+        return lengths;
+    }
+
+    private static int GetColumnMaxTextLength(TableBlock table, int column)
+    {
+        int maxLength = 0;
+
+        if (table.Header is not null && column < table.Header.Cells.Count)
+            maxLength = Math.Max(maxLength, GetCellTextLength(table.Header.Cells[column]));
+
+        foreach (TableRow row in table.Rows)
+        {
+            if (column < row.Cells.Count)
+                maxLength = Math.Max(maxLength, GetCellTextLength(row.Cells[column]));
+        }
+
+        return maxLength;
+    }
+
+    private static int GetCellTextLength(TableCell cell)
+    {
+        int length = 0;
+
+        foreach (MarkdownInline inline in cell.Inlines)
+            length += GetInlineTextLength(inline);
+
+        return length;
+    }
+
+    private static int GetInlineTextLength(MarkdownInline inline)
+    {
+        return inline switch
+        {
+            TextRun text => text.Text.Length,
+            CodeSpan code => code.Code.Length,
+            LinkSpan link => link.Children.Sum(GetInlineTextLength),
+            BoldSpan bold => bold.Children.Sum(GetInlineTextLength),
+            ItalicSpan italic => italic.Children.Sum(GetInlineTextLength),
+            StrikethroughSpan strike => strike.Children.Sum(GetInlineTextLength),
+            GroupSpan group => group.Children.Sum(GetInlineTextLength),
+            _ => 0
         };
     }
 
@@ -503,7 +596,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     private Border CreateTableCell(TableCell cell, TableColumnAlignment alignment, ThemeResources theme, BrushSet brushes, bool isHeader)
     {
         SelectableTextBlock text = CreateBodyText(theme, brushes.Body, theme.BodyFontSize);
-        text.HorizontalAlignment = MapColumnAlignment(alignment);
+        text.TextAlignment = MapTextAlignment(alignment);
         AppendInlines(cell.Inlines, text.Inlines, theme, brushes, theme.BodyFontSize);
         MarkdownLinkHandler.Attach(text);
 
@@ -528,13 +621,13 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         return TableColumnAlignment.None;
     }
 
-    private static HorizontalAlignment MapColumnAlignment(TableColumnAlignment alignment)
+    private static TextAlignment MapTextAlignment(TableColumnAlignment alignment)
     {
         return alignment switch
         {
-            TableColumnAlignment.Center => HorizontalAlignment.Center,
-            TableColumnAlignment.Right => HorizontalAlignment.Right,
-            _ => HorizontalAlignment.Left
+            TableColumnAlignment.Center => TextAlignment.Center,
+            TableColumnAlignment.Right => TextAlignment.Right,
+            _ => TextAlignment.Left
         };
     }
 
@@ -785,6 +878,43 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
             return image.Url;
 
         return $"{image.AlternativeText} ({image.Url})";
+    }
+
+    private sealed class MarkdownTableScrollViewer : ScrollViewer
+    {
+        private const double DefaultMinColumnWidth = 60;
+        private const double FallbackWidth = 800;
+
+        public int ColumnCount { get; init; } = 1;
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            if (Content is Control child)
+                AdjustChildWidth(child, availableSize.Width);
+
+            return base.MeasureOverride(availableSize);
+        }
+
+        private void AdjustChildWidth(Control child, double availableWidth)
+        {
+            double minTableWidth = ColumnCount * DefaultMinColumnWidth;
+            double viewportWidth = ResolveViewportWidth(availableWidth, minTableWidth);
+            double targetWidth = Math.Max(minTableWidth, viewportWidth);
+
+            if (double.IsNaN(child.Width) || Math.Abs(child.Width - targetWidth) > 0.5)
+                child.Width = targetWidth;
+        }
+
+        private double ResolveViewportWidth(double availableWidth, double minTableWidth)
+        {
+            if (!double.IsInfinity(availableWidth))
+                return availableWidth;
+
+            if (Bounds.Width > 0)
+                return Bounds.Width;
+
+            return minTableWidth > 0 ? minTableWidth : FallbackWidth;
+        }
     }
 
     private sealed record BrushSet(IBrush Body, IBrush Heading)
