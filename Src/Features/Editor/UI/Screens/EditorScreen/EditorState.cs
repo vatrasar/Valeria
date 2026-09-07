@@ -31,5 +31,15 @@ public record EditorState
 
     public ImmutableList<Control> PreviewBlocks { get; init; } = ImmutableList<Control>.Empty;
 
+    public bool IsPreviewSearchOpen { get; init; }
+
+    public string PreviewSearchQuery { get; init; } = string.Empty;
+
+    public bool PreviewSearchMatchCase { get; init; }
+
+    public int PreviewSearchMatchIndex { get; init; }
+
+    public int PreviewSearchMatchCount { get; init; }
+
     public bool IsEmpty => string.IsNullOrWhiteSpace(MarkdownText);
 }

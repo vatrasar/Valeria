@@ -26,6 +26,10 @@
   <Color x:Key="EditorCurrentLineColor">#2A2D2E</Color>
   <Color x:Key="EditorLinkColor">#4EC9B0</Color>
   <Color x:Key="ErrorColor">#F14C4C</Color>
+  <Color x:Key="SearchHighlightColor">#614D00</Color>
+  <Color x:Key="SearchHighlightTextColor">#FFE885</Color>
+  <Color x:Key="SearchActiveHighlightColor">#9E5600</Color>
+  <Color x:Key="SearchActiveHighlightTextColor">#FFFFFF</Color>
 
   <SolidColorBrush x:Key="PageBackgroundBrush" Color="{StaticResource PageBackgroundColor}" />
   <SolidColorBrush x:Key="ChromeBackgroundBrush" Color="{StaticResource ChromeBackgroundColor}" />
@@ -53,4 +57,8 @@
   <SolidColorBrush x:Key="EditorCurrentLineBrush" Color="{StaticResource EditorCurrentLineColor}" />
   <SolidColorBrush x:Key="EditorLinkBrush" Color="{StaticResource EditorLinkColor}" />
   <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+  <SolidColorBrush x:Key="SearchHighlightBrush" Color="{StaticResource SearchHighlightColor}" />
+  <SolidColorBrush x:Key="SearchHighlightTextBrush" Color="{StaticResource SearchHighlightTextColor}" />
+  <SolidColorBrush x:Key="SearchActiveHighlightBrush" Color="{StaticResource SearchActiveHighlightColor}" />
+  <SolidColorBrush x:Key="SearchActiveHighlightTextBrush" Color="{StaticResource SearchActiveHighlightTextColor}" />
 </ResourceDictionary>

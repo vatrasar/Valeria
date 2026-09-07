@@ -34,11 +34,15 @@ public sealed class MarkdownImageLoaderTests : IDisposable
     [Fact]
     public async Task LoadImageAsync_ValidDataUri_ReturnsDecodedBitmap()
     {
-        Bitmap? bitmap = await _loader.LoadImageAsync(TinyPngBase64);
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        await session.Dispatch(async () =>
+        {
+            Bitmap? bitmap = await _loader.LoadImageAsync(TinyPngBase64);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(1, bitmap.PixelSize.Width);
-        Assert.Equal(1, bitmap.PixelSize.Height);
+            Assert.NotNull(bitmap);
+            Assert.Equal(1, bitmap.PixelSize.Width);
+            Assert.Equal(1, bitmap.PixelSize.Height);
+        }, CancellationToken.None);
     }
 
     [Fact]
@@ -62,51 +66,69 @@ public sealed class MarkdownImageLoaderTests : IDisposable
     [Fact]
     public async Task LoadImageAsync_LocalFileAbsolutePath_ReturnsBitmap()
     {
-        string filePath = Path.Combine(_tempDirectory, "test.png");
-        byte[] rawBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
-        await File.WriteAllBytesAsync(filePath, rawBytes);
+        await EvaluateAsync(async () =>
+        {
+            string filePath = Path.Combine(_tempDirectory, "test.png");
+            byte[] rawBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+            await File.WriteAllBytesAsync(filePath, rawBytes);
 
-        Bitmap? bitmap = await _loader.LoadImageAsync(filePath);
+            Bitmap? bitmap = await _loader.LoadImageAsync(filePath);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(1, bitmap.PixelSize.Width);
+            Assert.NotNull(bitmap);
+            Assert.Equal(1, bitmap.PixelSize.Width);
+        });
     }
 
     [Fact]
     public async Task LoadImageAsync_LocalFileRelativePath_WithBaseDirectory_ResolvesAndReturnsBitmap()
     {
-        string fileName = "photo.png";
-        string filePath = Path.Combine(_tempDirectory, fileName);
-        byte[] rawBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
-        await File.WriteAllBytesAsync(filePath, rawBytes);
+        await EvaluateAsync(async () =>
+        {
+            string fileName = "photo.png";
+            string filePath = Path.Combine(_tempDirectory, fileName);
+            byte[] rawBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+            await File.WriteAllBytesAsync(filePath, rawBytes);
 
-        Bitmap? bitmap = await _loader.LoadImageAsync(fileName, _tempDirectory);
+            Bitmap? bitmap = await _loader.LoadImageAsync(fileName, _tempDirectory);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(1, bitmap.PixelSize.Width);
+            Assert.NotNull(bitmap);
+            Assert.Equal(1, bitmap.PixelSize.Width);
+        });
     }
 
     [Fact]
     public async Task TryGetCached_ReturnsTrue_AfterSuccessfulLoad()
     {
-        Bitmap? loaded = await _loader.LoadImageAsync(TinyPngBase64);
-        Assert.NotNull(loaded);
+        await EvaluateAsync(async () =>
+        {
+            Bitmap? loaded = await _loader.LoadImageAsync(TinyPngBase64);
+            Assert.NotNull(loaded);
 
-        bool found = _loader.TryGetCached(TinyPngBase64, null, out Bitmap? cached);
+            bool found = _loader.TryGetCached(TinyPngBase64, null, out Bitmap? cached);
 
-        Assert.True(found);
-        Assert.Same(loaded, cached);
+            Assert.True(found);
+            Assert.Same(loaded, cached);
+        });
     }
 
     [Fact]
     public async Task ClearCache_ClearsStoredEntries()
     {
-        await _loader.LoadImageAsync(TinyPngBase64);
-        _loader.ClearCache();
+        await EvaluateAsync(async () =>
+        {
+            await _loader.LoadImageAsync(TinyPngBase64);
+            _loader.ClearCache();
 
-        bool found = _loader.TryGetCached(TinyPngBase64, null, out Bitmap? cached);
+            bool found = _loader.TryGetCached(TinyPngBase64, null, out Bitmap? cached);
 
-        Assert.False(found);
-        Assert.Null(cached);
+            Assert.False(found);
+            Assert.Null(cached);
+        });
+    }
+
+    private static Task EvaluateAsync(Func<Task> evaluate)
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        return session.Dispatch(evaluate, CancellationToken.None);
     }
 }

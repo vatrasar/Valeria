@@ -91,4 +91,20 @@ public static class EditorStrings
     public static string PlaceholderCodeText => ResourceManager.GetString("PlaceholderCodeText", _resourceCulture)!;
 
     public static string PlaceholderLinkText => ResourceManager.GetString("PlaceholderLinkText", _resourceCulture)!;
+ 
+    public static string FindInPreview => ResourceManager.GetString("FindInPreview", _resourceCulture)!;
+
+    public static string FindPlaceholder => ResourceManager.GetString("FindPlaceholder", _resourceCulture)!;
+
+    public static string PreviousMatch => ResourceManager.GetString("PreviousMatch", _resourceCulture)!;
+
+    public static string NextMatch => ResourceManager.GetString("NextMatch", _resourceCulture)!;
+
+    public static string CloseSearch => ResourceManager.GetString("CloseSearch", _resourceCulture)!;
+
+    public static string MatchCase => ResourceManager.GetString("MatchCase", _resourceCulture)!;
+
+    public static string NoMatches => ResourceManager.GetString("NoMatches", _resourceCulture)!;
+
+    public static string MatchCountFormat => ResourceManager.GetString("MatchCountFormat", _resourceCulture)!;
 }

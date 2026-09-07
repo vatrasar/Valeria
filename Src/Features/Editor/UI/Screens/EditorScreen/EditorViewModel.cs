@@ -341,6 +341,55 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         UpdateState(state => state with { IsEditorVisible = !state.IsEditorVisible });
     }
 
+    [ReactiveCommand]
+    private void OpenPreviewSearch()
+    {
+        UpdateState(state => state with { IsPreviewSearchOpen = true });
+    }
+
+    [ReactiveCommand]
+    private void ClosePreviewSearch()
+    {
+        UpdateState(state => state with
+        {
+            IsPreviewSearchOpen = false,
+            PreviewSearchQuery = string.Empty,
+            PreviewSearchMatchIndex = 0,
+            PreviewSearchMatchCount = 0
+        });
+    }
+
+    [ReactiveCommand]
+    private void TogglePreviewSearchMatchCase()
+    {
+        UpdateState(state => state with { PreviewSearchMatchCase = !state.PreviewSearchMatchCase });
+    }
+
+    /// <summary>
+    /// Updates the preview search query and resets match indices.
+    /// Invoked by EditorView when the search text box input changes.
+    /// </summary>
+    public void SetPreviewSearchQuery(string query)
+    {
+        UpdateState(state => state with
+        {
+            PreviewSearchQuery = query ?? string.Empty
+        });
+    }
+
+    /// <summary>
+    /// Updates the match counter state based on active search results.
+    /// Invoked by EditorView after search or navigation completes.
+    /// </summary>
+    public void UpdatePreviewSearchResults(int currentIndex, int totalMatches)
+    {
+        UpdateState(state => state with
+        {
+            PreviewSearchMatchIndex = currentIndex,
+            PreviewSearchMatchCount = totalMatches
+        });
+    }
+
     private async Task WriteToPath(string path, CancellationToken cancellationToken)
     {
         try

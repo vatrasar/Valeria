@@ -82,7 +82,7 @@
         <edit:TextEditor x:Name="SourceEditor" FontFamily="{StaticResource MonoFontFamily}" />
       </Border>
       <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />
-      <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane">
+      <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane" Focusable="True">
         <Grid>
           <ScrollViewer x:Name="PreviewScroller">
             <ItemsControl x:Name="PreviewBlocksControl" HorizontalAlignment="Stretch" />
@@ -93,6 +93,36 @@
           <TextBlock x:Name="EmptyHint"
                      Text="{x:Static res:EditorStrings.StartTypingHint}"
                      Classes="emptyHint" />
+          <Border x:Name="PreviewSearchBar" Classes="previewSearchBar" IsVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBox x:Name="PreviewSearchTextBox"
+                       Classes="previewSearchInput"
+                       Watermark="{x:Static res:EditorStrings.FindPlaceholder}" />
+              <ToggleButton x:Name="SearchMatchCaseToggleButton"
+                            Classes="icon"
+                            ToolTip.Tip="{x:Static res:EditorStrings.MatchCase}">
+                <TextBlock Text="Aa" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Center" />
+              </ToggleButton>
+              <TextBlock x:Name="SearchMatchCountLabel"
+                         Classes="searchMatchCount"
+                         Text="" />
+              <Button x:Name="SearchPreviousButton"
+                      Classes="icon"
+                      ToolTip.Tip="{x:Static res:EditorStrings.PreviousMatch}">
+                <material:MaterialIcon Kind="ChevronUp" Width="18" Height="18" />
+              </Button>
+              <Button x:Name="SearchNextButton"
+                      Classes="icon"
+                      ToolTip.Tip="{x:Static res:EditorStrings.NextMatch}">
+                <material:MaterialIcon Kind="ChevronDown" Width="18" Height="18" />
+              </Button>
+              <Button x:Name="CloseSearchButton"
+                      Classes="icon"
+                      ToolTip.Tip="{x:Static res:EditorStrings.CloseSearch}">
+                <material:MaterialIcon Kind="Close" Width="18" Height="18" />
+              </Button>
+            </StackPanel>
+          </Border>
         </Grid>
       </Border>
     </Grid>

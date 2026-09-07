@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -16,8 +18,10 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
+using Splat;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Features.Editor.Domain.Models;
+using Valeria.Src.Features.Editor.Domain.Services;
 using Valeria.Src.Features.Editor.Resources;
 using ReactiveUI;
 
@@ -31,10 +35,13 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// (bold, italic, strike, code, link), block formatting (headings, lists,
 /// quote, code fence, table), Ctrl+Enter list continuation, editor panel
 /// toggle, automatic closing of markdown code fences, language suggestions
-/// after opening a fenced code block, live word count and caret readout.
+/// after opening a fenced code block, live word count and caret readout,
+/// preview panel text search with Ctrl+F, match navigation with Enter/Shift+Enter/F3,
+/// case sensitivity toggle, and live match highlighting with automatic scrolling.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
-/// (ItemsControl), code language completion window, EditorToggleButton,
-/// formatting toolbar, status bar.
+/// (ItemsControl), PreviewSearchBar, PreviewSearchTextBox, SearchMatchCaseToggleButton,
+/// SearchMatchCountLabel, SearchPreviousButton, SearchNextButton, CloseSearchButton,
+/// code language completion window, EditorToggleButton, formatting toolbar, status bar.
 /// Navigate From: application startup.
 /// Navigate To: none, single screen application.
 /// </summary>
@@ -45,21 +52,30 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     private const double EditorColumnMinWidth = 250;
 
+    private readonly IPreviewSearchService _searchService;
     private bool _syncingEditor;
     private CompletionWindow? _codeLanguageCompletionWindow;
 
     public EditorView()
+        : this(Locator.Current.GetService<IPreviewSearchService>() ?? new PreviewSearchService())
     {
+    }
+
+    public EditorView(IPreviewSearchService searchService)
+    {
+        _searchService = searchService;
         InitializeComponent();
 
         this.WhenActivated(disposables =>
         {
             RegisterDialogAnchor();
+            RegisterWindowShortcuts(disposables);
             ConfigureSourceEditor();
             InterceptListContinuation(disposables);
             InterceptAutoClosingCharacters(disposables);
             InterceptCodeLanguageCompletion(disposables);
             BindPreview(disposables);
+            BindPreviewSearch(disposables);
             BindStatusBar(disposables);
             BindFileCommands(disposables);
             TrackFormattingButtons(disposables);
@@ -67,6 +83,42 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
             _ = ViewModel?.InitializeAsync(default);
         });
+    }
+
+    private void RegisterWindowShortcuts(CompositeDisposable disposables)
+    {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+
+        if (topLevel is not null)
+        {
+            AttachTopLevelShortcuts(topLevel, disposables);
+            return;
+        }
+
+        void OnAttached(object? sender, VisualTreeAttachmentEventArgs args)
+        {
+            AttachedToVisualTree -= OnAttached;
+            TopLevel? attached = TopLevel.GetTopLevel(this);
+            if (attached is not null)
+                AttachTopLevelShortcuts(attached, disposables);
+        }
+
+        AttachedToVisualTree += OnAttached;
+        Disposable.Create(() => AttachedToVisualTree -= OnAttached).DisposeWith(disposables);
+    }
+
+    private void AttachTopLevelShortcuts(TopLevel topLevel, CompositeDisposable disposables)
+    {
+        topLevel.AddHandler(InputElement.KeyDownEvent, OnTopLevelKeyDown, RoutingStrategies.Tunnel);
+        Disposable.Create(() => topLevel.RemoveHandler(InputElement.KeyDownEvent, OnTopLevelKeyDown)).DisposeWith(disposables);
+    }
+
+    private void OnTopLevelKeyDown(object? sender, KeyEventArgs keyEvent)
+    {
+        if (ViewModel is null || keyEvent.Handled)
+            return;
+
+        ProcessShortcutKeyEvent(keyEvent);
     }
 
     protected override void OnKeyDown(KeyEventArgs keyEvent)
@@ -77,16 +129,57 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             return;
         }
 
+        ProcessShortcutKeyEvent(keyEvent);
+
+        if (!keyEvent.Handled)
+            base.OnKeyDown(keyEvent);
+    }
+
+    private void ProcessShortcutKeyEvent(KeyEventArgs keyEvent)
+    {
+        if (keyEvent.Handled || ViewModel is null)
+            return;
+
         bool control = keyEvent.KeyModifiers.HasFlag(KeyModifiers.Control);
         bool shift = keyEvent.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
         if (control && shift && keyEvent.Key == Key.S)
+        {
             ExecuteSaveAs();
-        else if (control)
-            HandleControlShortcut(keyEvent);
+            keyEvent.Handled = true;
+            return;
+        }
 
-        if (!keyEvent.Handled)
-            base.OnKeyDown(keyEvent);
+        if (control && keyEvent.Key == Key.F)
+        {
+            if (CanOpenPreviewSearch())
+            {
+                OpenOrFocusPreviewSearch();
+                keyEvent.Handled = true;
+            }
+            return;
+        }
+
+        if (keyEvent.Key == Key.Escape && ViewModel.State.IsPreviewSearchOpen)
+        {
+            ViewModel.ClosePreviewSearchCommand.Execute().Subscribe();
+            keyEvent.Handled = true;
+            return;
+        }
+
+        if (keyEvent.Key == Key.F3 && ViewModel.State.IsPreviewSearchOpen)
+        {
+            if (shift)
+                ExecutePreviousSearchMatch();
+            else
+                ExecuteNextSearchMatch();
+
+            keyEvent.Handled = true;
+            return;
+        }
+
+        if (control)
+            HandleControlShortcut(keyEvent);
     }
 
     private void HandleControlShortcut(KeyEventArgs keyEvent)
@@ -397,9 +490,206 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             .DisposeWith(disposables);
     }
 
+    private void BindPreviewSearch(CompositeDisposable disposables)
+    {
+        this.BindCommand(ViewModel, vm => vm.ClosePreviewSearchCommand, v => v.CloseSearchButton);
+        this.BindCommand(ViewModel, vm => vm.TogglePreviewSearchMatchCaseCommand, v => v.SearchMatchCaseToggleButton);
+
+        TrackClick(SearchNextButton, (_, _) => ExecuteNextSearchMatch(), disposables);
+        TrackClick(SearchPreviousButton, (_, _) => ExecutePreviousSearchMatch(), disposables);
+
+        PreviewSearchTextBox.KeyDown += OnPreviewSearchKeyDown;
+        Disposable.Create(() => PreviewSearchTextBox.KeyDown -= OnPreviewSearchKeyDown).DisposeWith(disposables);
+
+        PreviewSearchTextBox.GetObservable(TextBox.TextProperty)
+            .Skip(1)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<string?>(OnPreviewSearchTextChanged))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(view => view.ViewModel!.State.IsPreviewSearchOpen)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<bool>(OnPreviewSearchOpenChanged))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(view => view.ViewModel!.State.PreviewSearchQuery)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<string>(OnPreviewSearchQueryChanged))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(view => view.ViewModel!.State.PreviewSearchMatchCase)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<bool>(OnPreviewSearchMatchCaseChanged))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(view => view.ViewModel!.State.PreviewBlocks)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<ImmutableList<Control>>(OnPreviewBlocksChangedForSearch))
+            .DisposeWith(disposables);
+    }
+
+    private void OnPreviewSearchKeyDown(object? sender, KeyEventArgs keyEvent)
+    {
+        if (ViewModel is null)
+            return;
+
+        if (keyEvent.Key is Key.Return or Key.Enter)
+        {
+            if (keyEvent.KeyModifiers.HasFlag(KeyModifiers.Shift))
+                ExecutePreviousSearchMatch();
+            else
+                ExecuteNextSearchMatch();
+
+            keyEvent.Handled = true;
+        }
+        else if (keyEvent.Key == Key.Escape)
+        {
+            ViewModel.ClosePreviewSearchCommand.Execute().Subscribe();
+            keyEvent.Handled = true;
+        }
+    }
+
+    private void OnPreviewSearchTextChanged(string? text)
+    {
+        if (ViewModel is null)
+            return;
+
+        string currentText = text ?? string.Empty;
+
+        if (ViewModel.State.PreviewSearchQuery != currentText)
+        {
+            ViewModel.SetPreviewSearchQuery(currentText);
+            PerformPreviewSearch();
+        }
+    }
+
+    private void OnPreviewSearchOpenChanged(bool isOpen)
+    {
+        PreviewSearchBar.IsVisible = isOpen;
+
+        if (isOpen)
+        {
+            PreviewSearchTextBox.Focus();
+            PreviewSearchTextBox.SelectAll();
+            PerformPreviewSearch();
+            return;
+        }
+
+        _searchService.Clear();
+        UpdateSearchMatchCountLabel(string.Empty, 0, 0);
+    }
+
+    private void OnPreviewSearchQueryChanged(string query)
+    {
+        if (PreviewSearchTextBox.Text != query)
+            PreviewSearchTextBox.Text = query;
+
+        PerformPreviewSearch();
+    }
+
+    private void OnPreviewSearchMatchCaseChanged(bool matchCase)
+    {
+        SearchMatchCaseToggleButton.IsChecked = matchCase;
+        PerformPreviewSearch();
+    }
+
+    private void OnPreviewBlocksChangedForSearch(ImmutableList<Control> blocks)
+    {
+        if (ViewModel?.State.IsPreviewSearchOpen == true)
+            PerformPreviewSearch();
+    }
+
+    private void PerformPreviewSearch()
+    {
+        if (ViewModel is null)
+            return;
+
+        if (!ViewModel.State.IsPreviewSearchOpen)
+        {
+            _searchService.Clear();
+            return;
+        }
+
+        string query = ViewModel.State.PreviewSearchQuery;
+        bool matchCase = ViewModel.State.PreviewSearchMatchCase;
+        IEnumerable<Control> blocks = ViewModel.State.PreviewBlocks;
+
+        PreviewSearchResult result = _searchService.Search(blocks, query, matchCase);
+        ViewModel.UpdatePreviewSearchResults(result.CurrentMatchIndex, result.TotalMatches);
+        UpdateSearchMatchCountLabel(query, result.CurrentMatchIndex, result.TotalMatches);
+    }
+
+    private void ExecuteNextSearchMatch()
+    {
+        if (ViewModel is null)
+            return;
+
+        PreviewSearchResult result = _searchService.NavigateNext();
+        ViewModel.UpdatePreviewSearchResults(result.CurrentMatchIndex, result.TotalMatches);
+        UpdateSearchMatchCountLabel(ViewModel.State.PreviewSearchQuery, result.CurrentMatchIndex, result.TotalMatches);
+    }
+
+    private void ExecutePreviousSearchMatch()
+    {
+        if (ViewModel is null)
+            return;
+
+        PreviewSearchResult result = _searchService.NavigatePrevious();
+        ViewModel.UpdatePreviewSearchResults(result.CurrentMatchIndex, result.TotalMatches);
+        UpdateSearchMatchCountLabel(ViewModel.State.PreviewSearchQuery, result.CurrentMatchIndex, result.TotalMatches);
+    }
+
+    private void UpdateSearchMatchCountLabel(string query, int currentIndex, int totalMatches)
+    {
+        if (string.IsNullOrEmpty(query))
+        {
+            SearchMatchCountLabel.Text = string.Empty;
+            return;
+        }
+
+        if (totalMatches == 0)
+        {
+            SearchMatchCountLabel.Text = EditorStrings.NoMatches;
+            return;
+        }
+
+        SearchMatchCountLabel.Text = string.Format(EditorStrings.MatchCountFormat, currentIndex, totalMatches);
+    }
+
+    private void OpenOrFocusPreviewSearch()
+    {
+        if (ViewModel is null)
+            return;
+
+        if (!ViewModel.State.IsPreviewSearchOpen)
+        {
+            ViewModel.OpenPreviewSearchCommand.Execute().Subscribe();
+            return;
+        }
+
+        PreviewSearchTextBox.Focus();
+        PreviewSearchTextBox.SelectAll();
+    }
+
+    private bool CanOpenPreviewSearch()
+    {
+        bool isEditorVisible = EditorPane.IsVisible && SourceEditor.IsVisible;
+        bool isEditorFocused = isEditorVisible && (SourceEditor.IsFocused || SourceEditor.TextArea.IsFocused);
+
+        return !isEditorFocused;
+    }
+
+    private bool IsEditorAreaFocused()
+    {
+        bool isEditorVisible = EditorPane.IsVisible && SourceEditor.IsVisible;
+
+        return isEditorVisible && (SourceEditor.IsFocused || SourceEditor.TextArea.IsFocused);
+    }
+
     private void SetEditorVisibility(bool visible)
     {
         EditorPane.IsVisible = visible;
+        SourceEditor.IsVisible = visible;
         PaneSplitter.IsVisible = visible;
         SplitGrid.ColumnDefinitions[0].Width = visible ? GridLength.Star : new GridLength(0);
         SplitGrid.ColumnDefinitions[0].MinWidth = visible ? EditorColumnMinWidth : 0;

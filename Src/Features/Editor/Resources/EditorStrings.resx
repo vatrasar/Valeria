@@ -105,4 +105,29 @@
   <data name="PlaceholderLinkText" xml:space="preserve">
     <value>link text</value>
   </data>
+  <data name="FindInPreview" xml:space="preserve">
+    <value>Find in preview</value>
+  </data>
+  <data name="FindPlaceholder" xml:space="preserve">
+    <value>Find…</value>
+  </data>
+  <data name="PreviousMatch" xml:space="preserve">
+    <value>Previous match (Shift+Enter)</value>
+  </data>
+  <data name="NextMatch" xml:space="preserve">
+    <value>Next match (Enter)</value>
+  </data>
+  <data name="CloseSearch" xml:space="preserve">
+    <value>Close (Escape)</value>
+  </data>
+  <data name="MatchCase" xml:space="preserve">
+    <value>Match case</value>
+  </data>
+  <data name="NoMatches" xml:space="preserve">
+    <value>No results</value>
+  </data>
+  <data name="MatchCountFormat" xml:space="preserve">
+    <value>{0} of {1}</value>
+    <comment>Search matches counter: 0 is current match index, 1 is total matches</comment>
+  </data>
 </root>
