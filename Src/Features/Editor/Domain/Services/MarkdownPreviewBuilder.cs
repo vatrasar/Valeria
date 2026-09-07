@@ -4,12 +4,15 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using Microsoft.Extensions.Options;
@@ -54,13 +57,19 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     private const string BulletMarker = "•";
 
     private readonly ICodeSyntaxService _syntax;
+    private readonly IMarkdownImageLoader _imageLoader;
     private readonly PreviewOptions _options;
     private List<CodeHighlightTarget> _pendingTargets = [];
+    private string? _currentBaseDirectory;
 
-    public MarkdownPreviewBuilder(ICodeSyntaxService syntax, IOptions<AppConfig> config)
+    public MarkdownPreviewBuilder(
+        ICodeSyntaxService syntax,
+        IOptions<AppConfig> config,
+        IMarkdownImageLoader? imageLoader = null)
     {
         _syntax = syntax;
         _options = config.Value.Preview;
+        _imageLoader = imageLoader ?? new MarkdownImageLoader();
     }
 
     /// <summary>
@@ -69,11 +78,15 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     /// list checkboxes use the callback to update the source document.
     /// Used by EditorViewModel preview refresh.
     /// </summary>
-    public PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null)
+    public PreviewBuildResult BuildBlocks(
+        MarkdownContent content,
+        Action<int, bool>? onTaskToggled = null,
+        string? baseDirectory = null)
     {
         ThemeResources theme = ThemeResources.Resolve();
         BrushSet brushes = BrushSet.Default(theme);
         _pendingTargets = [];
+        _currentBaseDirectory = baseDirectory;
 
         IReadOnlyList<Control> blocks = content.Blocks.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
 
@@ -581,7 +594,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
                 target.Add(CreateLink(link, theme, brushes, fontSize));
                 break;
             case ImageSpan image:
-                target.Add(new InlineUIContainer(CreateImagePlaceholder(image, theme)));
+                target.Add(new InlineUIContainer(CreateImageControl(image, theme)));
                 break;
             case GroupSpan group:
                 AppendInlines(group.Children, target, theme, brushes, fontSize);
@@ -634,11 +647,73 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         return linkSpan;
     }
 
-    private static Control CreateImagePlaceholder(ImageSpan image, ThemeResources theme)
+    private Control CreateImageControl(ImageSpan image, ThemeResources theme)
+    {
+        string? baseDirectory = _currentBaseDirectory;
+        Border container = new()
+        {
+            CornerRadius = new CornerRadius(4),
+            ClipToBounds = true,
+            Margin = new Thickness(0, 4),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+
+        ToolTip.SetTip(container, FormatImageTooltip(image));
+
+        if (_imageLoader.TryGetCached(image.Url, baseDirectory, out Bitmap? cachedBitmap))
+        {
+            if (cachedBitmap is not null)
+            {
+                container.Child = CreateImageView(cachedBitmap);
+                return container;
+            }
+
+            container.Child = CreateBrokenImagePlaceholder(image, theme);
+            return container;
+        }
+
+        container.Child = CreateLoadingPlaceholder(image, theme);
+        InitiateAsyncImageLoad(image, baseDirectory, container, theme);
+
+        return container;
+    }
+
+    private void InitiateAsyncImageLoad(
+        ImageSpan image,
+        string? baseDirectory,
+        Border container,
+        ThemeResources theme)
+    {
+        _ = _imageLoader.LoadImageAsync(image.Url, baseDirectory)
+            .ContinueWith(task =>
+            {
+                Bitmap? bitmap = task.IsCompletedSuccessfully ? task.Result : null;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (bitmap is not null)
+                        container.Child = CreateImageView(bitmap);
+                    else
+                        container.Child = CreateBrokenImagePlaceholder(image, theme);
+                });
+            }, TaskScheduler.Default);
+    }
+
+    private Image CreateImageView(Bitmap bitmap)
+    {
+        return new Image
+        {
+            Source = bitmap,
+            Stretch = Stretch.Uniform,
+            MaxWidth = _options.MaxWidth,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+    }
+
+    private static Control CreateLoadingPlaceholder(ImageSpan image, ThemeResources theme)
     {
         TextBlock caption = new()
         {
-            Text = $"{Resources.EditorStrings.ImagePlaceholder}: {image.AlternativeText} ({image.Url})",
+            Text = FormatImageLabel(image),
             FontFamily = theme.ProseFont,
             FontSize = theme.CodeFontSize,
             Foreground = theme.Muted,
@@ -661,9 +736,55 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(10, 6),
-            Margin = new Thickness(0, 4),
             Child = panel
         };
+    }
+
+    private static Control CreateBrokenImagePlaceholder(ImageSpan image, ThemeResources theme)
+    {
+        TextBlock caption = new()
+        {
+            Text = FormatImageLabel(image),
+            FontFamily = theme.ProseFont,
+            FontSize = theme.CodeFontSize,
+            Foreground = theme.Muted,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        StackPanel panel = new()
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8
+        };
+
+        panel.Children.Add(new MaterialIcon { Kind = MaterialIconKind.ImageBrokenVariant, Width = 16, Height = 16 });
+        panel.Children.Add(caption);
+
+        return new Border
+        {
+            BorderBrush = theme.CellBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(10, 6),
+            Child = panel
+        };
+    }
+
+    private static string FormatImageLabel(ImageSpan image)
+    {
+        if (string.IsNullOrWhiteSpace(image.AlternativeText))
+            return $"{Resources.EditorStrings.ImagePlaceholder} ({image.Url})";
+
+        return $"{Resources.EditorStrings.ImagePlaceholder}: {image.AlternativeText} ({image.Url})";
+    }
+
+    private static string FormatImageTooltip(ImageSpan image)
+    {
+        if (string.IsNullOrWhiteSpace(image.AlternativeText))
+            return image.Url;
+
+        return $"{image.AlternativeText} ({image.Url})";
     }
 
     private sealed record BrushSet(IBrush Body, IBrush Heading)

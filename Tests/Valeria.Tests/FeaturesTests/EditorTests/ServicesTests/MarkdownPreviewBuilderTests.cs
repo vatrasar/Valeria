@@ -24,8 +24,16 @@ namespace Valeria.Tests.FeaturesTests.EditorTests.ServicesTests;
 
 public sealed class MarkdownPreviewBuilderTests
 {
-    private readonly MarkdownPreviewBuilder _builder =
-        new(new CodeSyntaxService(), Options.Create(new AppConfig()));
+    private readonly MarkdownImageLoader _imageLoader = new();
+    private readonly MarkdownPreviewBuilder _builder;
+
+    public MarkdownPreviewBuilderTests()
+    {
+        _builder = new MarkdownPreviewBuilder(
+            new CodeSyntaxService(),
+            Options.Create(new AppConfig()),
+            _imageLoader);
+    }
 
 
 
@@ -271,9 +279,94 @@ public sealed class MarkdownPreviewBuilderTests
         Assert.Equal(1, accentBorders);
     }
 
-    private IReadOnlyList<Control> Build(string markdown, Action<int, bool>? onTaskToggled = null)
+    [Fact]
+    public async Task BuildBlocks_ImageCached_RendersImageControlWithBitmap()
     {
-        return _builder.BuildBlocks(MarkdownParser.Parse(markdown), onTaskToggled).Blocks;
+        const string tinyPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        await _imageLoader.LoadImageAsync(tinyPng);
+
+        (bool hasImage, bool hasSource, object? tip) = await EvaluateAsync(() =>
+        {
+            SelectableTextBlock textBlock = Build($"![Sample Image]({tinyPng})")
+                .SelectMany(Descendants<SelectableTextBlock>)
+                .First();
+
+            InlineUIContainer container = textBlock.Inlines!.OfType<InlineUIContainer>().First();
+            Border border = Assert.IsType<Border>(container.Child);
+            Image? img = border.Child as Image;
+            object? tooltip = ToolTip.GetTip(border);
+
+            return (img is not null, img?.Source is not null, tooltip);
+        });
+
+        Assert.True(hasImage);
+        Assert.True(hasSource);
+        Assert.Equal($"Sample Image ({tinyPng})", tip);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ImageUncached_RendersContainerWithToolTip()
+    {
+        const string url = "https://example.com/photo.png";
+
+        (Border border, object? tip) = await EvaluateAsync(() =>
+        {
+            SelectableTextBlock textBlock = Build($"![Sample Image]({url})")
+                .SelectMany(Descendants<SelectableTextBlock>)
+                .First();
+
+            InlineUIContainer container = textBlock.Inlines!.OfType<InlineUIContainer>().First();
+            Border b = Assert.IsType<Border>(container.Child);
+            object? tooltip = ToolTip.GetTip(b);
+
+            return (b, tooltip);
+        });
+
+        Assert.NotNull(border);
+        Assert.Equal($"Sample Image ({url})", tip);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ImageRelativePath_WithBaseDirectory_RendersImageControlWhenCached()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "ValeriaPreviewImageTests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            string fileName = "preview-pic.png";
+            string filePath = Path.Combine(tempDir, fileName);
+            byte[] rawBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+            await File.WriteAllBytesAsync(filePath, rawBytes);
+
+            await _imageLoader.LoadImageAsync(fileName, tempDir);
+
+            (bool hasImage, bool hasSource) = await EvaluateAsync(() =>
+            {
+                SelectableTextBlock textBlock = Build($"![Photo]({fileName})", null, tempDir)
+                    .SelectMany(Descendants<SelectableTextBlock>)
+                    .First();
+
+                InlineUIContainer container = textBlock.Inlines!.OfType<InlineUIContainer>().First();
+                Border border = Assert.IsType<Border>(container.Child);
+                Image? img = border.Child as Image;
+
+                return (img is not null, img?.Source is not null);
+            });
+
+            Assert.True(hasImage);
+            Assert.True(hasSource);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    private IReadOnlyList<Control> Build(string markdown, Action<int, bool>? onTaskToggled = null, string? baseDirectory = null)
+    {
+        return _builder.BuildBlocks(MarkdownParser.Parse(markdown), onTaskToggled, baseDirectory).Blocks;
     }
 
     private static Task<T> EvaluateAsync<T>(Func<T> evaluate)

@@ -19,7 +19,7 @@ public interface IMarkdownPreviewBuilder
     /// plain selectable text and collected as <see cref="CodeHighlightTarget"/>
     /// for asynchronous highlighting.
     /// </summary>
-    PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null);
+    PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null, string? baseDirectory = null);
 
     /// <summary>
     /// Applies pre-tokenized spans onto a previously built code target.

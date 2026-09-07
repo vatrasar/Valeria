@@ -391,13 +391,17 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             if (IsStale(cancellationToken, version))
                 return;
 
+            string? baseDirectory = string.IsNullOrEmpty(State.FilePath)
+                ? null
+                : Path.GetDirectoryName(State.FilePath);
+
             PreviewBuildResult? built = null;
             await RunOnUiThread(() =>
             {
                 if (IsStale(cancellationToken, version))
                     return;
 
-                built = _previewBuilder.BuildBlocks(content, ToggleTask);
+                built = _previewBuilder.BuildBlocks(content, ToggleTask, baseDirectory);
 
                 UpdateState(state => state with
                 {
