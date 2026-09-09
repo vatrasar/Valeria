@@ -22,8 +22,10 @@ using Valeria.Src.Core.Markdown;
 using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
 using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
+using Valeria.Src.Features.Settings.UI.Screens.SettingsScreen;
 using Valeria.Src.Features.Shell.UI.Screens.Main;
 using Valeria.Src.Infrastructure;
+using Valeria.Src.Infrastructure.Navigation;
 using ReactiveUI;
 using Splat;
 using Xunit;
@@ -364,6 +366,82 @@ public sealed class EditorScreenIntegrationTests
 
                 Assert.False(editor.State.IsPreviewSearchOpen);
                 Assert.False(searchBar.IsVisible);
+            }, CancellationToken.None);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task Navigation_ToSettingsAndBack_PreservesPreview()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+
+        try
+        {
+            (window, EditorViewModel editor) = await session.Dispatch(() =>
+            {
+                RxApp.MainThreadScheduler = AvaloniaScheduler.Instance;
+                Locator.CurrentMutable.Register(() => new AvaloniaActivationForViewFetcher(), typeof(IActivationForViewFetcher));
+
+                IConfiguration configuration = new ConfigurationBuilder().Build();
+                ServiceProvider provider = new ServiceCollection().AddValeria(configuration).BuildServiceProvider();
+
+                AppBootstrapper.RegisterFeatureModules();
+
+                MainWindowViewModel shell = provider.GetRequiredService<MainWindowViewModel>();
+                MainWindow mainWindow = new() { ViewModel = shell, Width = 1280, Height = 800 };
+                mainWindow.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                EditorViewModel? editorVm = shell.Router.GetCurrentViewModel() as EditorViewModel;
+                return (mainWindow, editorVm!);
+            }, CancellationToken.None);
+
+            await session.Dispatch(async () =>
+            {
+                await editor.InitializeAsync(CancellationToken.None);
+                editor.SetMarkdownText("# Title\n\nSome preview content");
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            await WaitForPreviewAsync(session, editor);
+
+            await session.Dispatch(() =>
+            {
+                EditorView view1 = RequireView(window);
+                ItemsControl preview1 = view1.FindControl<ItemsControl>("PreviewBlocksControl")!;
+                int preview1VisualCount = preview1.GetVisualDescendants().Count();
+                Assert.True(preview1VisualCount > 5);
+
+                editor.NavigateToSettingsCommand.Execute().Subscribe();
+                Dispatcher.UIThread.RunJobs();
+
+                MainWindowViewModel shell = ((MainWindow)window).ViewModel!;
+                SettingsViewModel settings = (SettingsViewModel)shell.Router.GetCurrentViewModel()!;
+                settings.SetFontSize(18);
+                settings.SaveSettingsCommand.Execute().Subscribe();
+                Dispatcher.UIThread.RunJobs();
+
+                settings.NavigateBackCommand.Execute().Subscribe();
+                Dispatcher.UIThread.RunJobs();
+
+                EditorView view2 = RequireView(window);
+                ItemsControl preview2 = view2.FindControl<ItemsControl>("PreviewBlocksControl")!;
+                TextEditor source2 = RequireSourceEditor(view2);
+
+                Assert.Same(view1, view2);
+                Assert.True(preview2.GetVisualDescendants().Count() > 5);
+                Assert.Equal(18, source2.FontSize);
+                Assert.Equal("# Title\n\nSome preview content", source2.Text);
             }, CancellationToken.None);
         }
         finally

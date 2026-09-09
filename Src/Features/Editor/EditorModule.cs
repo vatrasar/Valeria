@@ -13,6 +13,6 @@ public sealed class EditorModule : IFeatureModule
 {
     public void Register(IMutableDependencyResolver services)
     {
-        services.Register(() => new EditorView(), typeof(IViewFor<EditorViewModel>));
+        services.RegisterLazySingleton(() => new EditorView(), typeof(IViewFor<EditorViewModel>));
     }
 }

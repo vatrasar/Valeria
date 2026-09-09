@@ -36,4 +36,25 @@
   <data name="AutoSaveStatusOff" xml:space="preserve">
     <value>Off</value>
   </data>
+  <data name="AutoSaveDelayTitle" xml:space="preserve">
+    <value>Auto save delay</value>
+  </data>
+  <data name="AutoSaveDelayDescription" xml:space="preserve">
+    <value>Delay in seconds after typing stops before saving (1 - 60 s)</value>
+  </data>
+  <data name="FontSizeTitle" xml:space="preserve">
+    <value>Font size</value>
+  </data>
+  <data name="FontSizeDescription" xml:space="preserve">
+    <value>Font size of the Markdown source editor in points (10 - 32 pt)</value>
+  </data>
+  <data name="TabWidthTitle" xml:space="preserve">
+    <value>Tab width</value>
+  </data>
+  <data name="TabWidthDescription" xml:space="preserve">
+    <value>Number of spaces for indentation (2 - 8)</value>
+  </data>
+  <data name="SavedStatus" xml:space="preserve">
+    <value>Settings saved</value>
+  </data>
 </root>

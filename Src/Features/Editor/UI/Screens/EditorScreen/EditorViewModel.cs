@@ -38,7 +38,6 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     private readonly ISettingsService _settings;
     private readonly string _initialFilePath;
     private readonly int _previewDebounceMilliseconds;
-    private readonly int _autoSaveDelayMilliseconds;
     private readonly SemaphoreSlim _saveGate = new(1, 1);
     private string _savedSnapshot = string.Empty;
     private bool _isInitialized;
@@ -49,9 +48,9 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
 
     public IScreen HostScreen { get; }
 
-    public double EditorFontSize { get; }
+    public double EditorFontSize => State.EditorFontSize;
 
-    public int EditorTabWidth { get; }
+    public int EditorTabWidth => State.EditorTabWidth;
 
     public int PreviewMaxWidth { get; }
 
@@ -66,7 +65,11 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         ISettingsService settings,
         IOptions<AppConfig> config,
         string initialFilePath)
-        : base(new EditorState())
+        : base(new EditorState
+        {
+            EditorFontSize = settings.EditorFontSize,
+            EditorTabWidth = settings.EditorTabWidth
+        })
     {
         HostScreen = hostScreen;
         _files = files;
@@ -76,10 +79,17 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         _settings = settings;
         _initialFilePath = initialFilePath;
         _previewDebounceMilliseconds = config.Value.Editor.PreviewDebounceMilliseconds;
-        _autoSaveDelayMilliseconds = config.Value.Editor.AutoSaveDelayMilliseconds;
-        EditorFontSize = config.Value.Editor.FontSize;
-        EditorTabWidth = config.Value.Editor.TabWidth;
         PreviewMaxWidth = config.Value.Preview.MaxWidth;
+
+        _settings.EditorFontSizeObservable
+            .DistinctUntilChanged()
+            .Subscribe(fontSize => UpdateState(state => state with { EditorFontSize = fontSize }))
+            .DisposeWith(Disposables);
+
+        _settings.EditorTabWidthObservable
+            .DistinctUntilChanged()
+            .Subscribe(tabWidth => UpdateState(state => state with { EditorTabWidth = tabWidth }))
+            .DisposeWith(Disposables);
 
         this.WhenAnyValue(viewModel => viewModel.State.MarkdownText)
             .Throttle(TimeSpan.FromMilliseconds(_previewDebounceMilliseconds), RxApp.TaskpoolScheduler)
@@ -89,7 +99,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             .DisposeWith(Disposables);
 
         this.WhenAnyValue(viewModel => viewModel.State.MarkdownText)
-            .Throttle(TimeSpan.FromMilliseconds(_autoSaveDelayMilliseconds), RxApp.TaskpoolScheduler)
+            .Select(_ => Observable.Timer(TimeSpan.FromSeconds(_settings.AutoSaveDelaySeconds), RxApp.TaskpoolScheduler))
+            .Switch()
             .Select(_ => Observable.FromAsync(ProcessAutoSaveAsync))
             .Switch()
             .Subscribe()

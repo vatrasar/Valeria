@@ -74,4 +74,73 @@ public sealed class SettingsServiceTests : IDisposable
         using SettingsService reloadedService = new(config, _tempSettingsPath);
         Assert.True(reloadedService.IsAutoSaveEnabled);
     }
+
+    [Fact]
+    public async Task SetAutoSaveDelaySeconds_WhenUpdated_PersistsAndEmitsNewValue()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig
+        {
+            Editor = new EditorOptions { AutoSaveDelayMilliseconds = 10000 }
+        });
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        int latestValue = 10;
+        using var subscription = service.AutoSaveDelaySecondsObservable.Subscribe(value => latestValue = value);
+
+        service.SetAutoSaveDelaySeconds(15);
+
+        Assert.Equal(15, service.AutoSaveDelaySeconds);
+        Assert.Equal(15, latestValue);
+
+        await Task.Delay(100);
+
+        using SettingsService reloadedService = new(config, _tempSettingsPath);
+        Assert.Equal(15, reloadedService.AutoSaveDelaySeconds);
+    }
+
+    [Fact]
+    public async Task SetEditorFontSize_WhenUpdated_PersistsAndEmitsNewValue()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig
+        {
+            Editor = new EditorOptions { FontSize = 14 }
+        });
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        double latestValue = 14;
+        using var subscription = service.EditorFontSizeObservable.Subscribe(value => latestValue = value);
+
+        service.SetEditorFontSize(18);
+
+        Assert.Equal(18, service.EditorFontSize);
+        Assert.Equal(18, latestValue);
+
+        await Task.Delay(100);
+
+        using SettingsService reloadedService = new(config, _tempSettingsPath);
+        Assert.Equal(18, reloadedService.EditorFontSize);
+    }
+
+    [Fact]
+    public async Task SetEditorTabWidth_WhenUpdated_PersistsAndEmitsNewValue()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig
+        {
+            Editor = new EditorOptions { TabWidth = 4 }
+        });
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        int latestValue = 4;
+        using var subscription = service.EditorTabWidthObservable.Subscribe(value => latestValue = value);
+
+        service.SetEditorTabWidth(2);
+
+        Assert.Equal(2, service.EditorTabWidth);
+        Assert.Equal(2, latestValue);
+
+        await Task.Delay(100);
+
+        using SettingsService reloadedService = new(config, _tempSettingsPath);
+        Assert.Equal(2, reloadedService.EditorTabWidth);
+    }
 }

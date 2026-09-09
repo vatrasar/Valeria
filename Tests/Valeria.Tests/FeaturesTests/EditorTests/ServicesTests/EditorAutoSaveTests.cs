@@ -207,20 +207,37 @@ public sealed class EditorAutoSaveTests
     private sealed class FakeSettingsService : ISettingsService
     {
         private readonly BehaviorSubject<bool> _subject;
+        private readonly BehaviorSubject<int> _delaySubject;
+        private readonly BehaviorSubject<double> _fontSubject;
+        private readonly BehaviorSubject<int> _tabSubject;
 
         public bool IsAutoSaveEnabled => _subject.Value;
-
         public IObservable<bool> AutoSaveEnabledObservable => _subject;
 
-        public FakeSettingsService(bool initialAutoSave)
+        public int AutoSaveDelaySeconds => _delaySubject.Value;
+        public IObservable<int> AutoSaveDelaySecondsObservable => _delaySubject;
+
+        public double EditorFontSize => _fontSubject.Value;
+        public IObservable<double> EditorFontSizeObservable => _fontSubject;
+
+        public int EditorTabWidth => _tabSubject.Value;
+        public IObservable<int> EditorTabWidthObservable => _tabSubject;
+
+        public FakeSettingsService(bool initialAutoSave, int initialDelay = 0, double initialFont = 14, int initialTab = 4)
         {
             _subject = new BehaviorSubject<bool>(initialAutoSave);
+            _delaySubject = new BehaviorSubject<int>(initialDelay);
+            _fontSubject = new BehaviorSubject<double>(initialFont);
+            _tabSubject = new BehaviorSubject<int>(initialTab);
         }
 
-        public void SetAutoSaveEnabled(bool enabled)
-        {
-            _subject.OnNext(enabled);
-        }
+        public void SetAutoSaveEnabled(bool enabled) => _subject.OnNext(enabled);
+
+        public void SetAutoSaveDelaySeconds(int delaySeconds) => _delaySubject.OnNext(delaySeconds);
+
+        public void SetEditorFontSize(double fontSize) => _fontSubject.OnNext(fontSize);
+
+        public void SetEditorTabWidth(int tabWidth) => _tabSubject.OnNext(tabWidth);
     }
 
     private sealed class FakePreviewBuilder : IMarkdownPreviewBuilder

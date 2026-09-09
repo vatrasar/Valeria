@@ -71,7 +71,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         {
             RegisterDialogAnchor();
             RegisterWindowShortcuts(disposables);
-            ConfigureSourceEditor();
+            ConfigureSourceEditor(disposables);
             InterceptListContinuation(disposables);
             InterceptAutoClosingCharacters(disposables);
             InterceptCodeLanguageCompletion(disposables);
@@ -440,7 +440,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         return character is ')' or ']' or '}' or '"' or '\'';
     }
 
-    private void ConfigureSourceEditor()
+    private void ConfigureSourceEditor(CompositeDisposable disposables)
     {
         SourceEditor.FontFamily = FindFont("MonoFontFamily");
         SourceEditor.FontSize = ViewModel?.EditorFontSize ?? 14;
@@ -455,6 +455,16 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         SourceEditor.Options.IndentationSize = ViewModel?.EditorTabWidth ?? 4;
         SourceEditor.SyntaxHighlighting = LoadMarkdownHighlighting();
         PreviewBlocksControl.MaxWidth = ViewModel?.PreviewMaxWidth ?? 860;
+
+        this.WhenAnyValue(view => view.ViewModel!.State.EditorFontSize)
+            .Where(fontSize => fontSize > 0)
+            .Subscribe(Observer.Create<double>(fontSize => SourceEditor.FontSize = fontSize))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(view => view.ViewModel!.State.EditorTabWidth)
+            .Where(tabWidth => tabWidth > 0)
+            .Subscribe(Observer.Create<int>(tabWidth => SourceEditor.Options.IndentationSize = tabWidth))
+            .DisposeWith(disposables);
     }
 
     private static IHighlightingDefinition? LoadMarkdownHighlighting()

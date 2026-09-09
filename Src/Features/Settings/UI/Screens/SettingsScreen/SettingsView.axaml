@@ -3,6 +3,7 @@
                           xmlns:rxui="http://reactiveui.net"
                           xmlns:material="using:Material.Icons.Avalonia"
                           xmlns:res="using:Valeria.Src.Features.Settings.Resources"
+                          xmlns:sharedRes="using:Valeria.Src.Shared.Resources"
                           xmlns:vm="using:Valeria.Src.Features.Settings.UI.Screens.SettingsScreen"
                           x:TypeArguments="vm:SettingsViewModel"
                           x:Class="Valeria.Src.Features.Settings.UI.Screens.SettingsScreen.SettingsView">
@@ -12,12 +13,23 @@
 
   <Grid RowDefinitions="Auto,*">
     <Border Grid.Row="0" Classes="settingsHeader">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button x:Name="BackButton" Classes="settingsBackButton" ToolTip.Tip="{x:Static res:SettingsStrings.BackTooltip}">
-          <material:MaterialIcon Kind="ArrowLeft" Width="20" Height="20" />
-        </Button>
-        <TextBlock Classes="settingsTitle" Text="{x:Static res:SettingsStrings.SettingsTitle}" />
-      </StackPanel>
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+          <Button x:Name="BackButton" Classes="settingsBackButton" ToolTip.Tip="{x:Static res:SettingsStrings.BackTooltip}">
+            <material:MaterialIcon Kind="ArrowLeft" Width="20" Height="20" />
+          </Button>
+          <TextBlock Classes="settingsTitle" Text="{x:Static res:SettingsStrings.SettingsTitle}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock x:Name="SavedNotificationLabel"
+                     Classes="settingsSavedLabel"
+                     Text="{x:Static res:SettingsStrings.SavedStatus}"
+                     IsVisible="False" />
+          <Button x:Name="SaveSettingsButton"
+                  Classes="settingsSaveButton"
+                  Content="{x:Static sharedRes:GlobalStrings.Save}" />
+        </StackPanel>
+      </Grid>
     </Border>
 
     <ScrollViewer Grid.Row="1" Classes="settingsContent">
@@ -35,6 +47,57 @@
                           OnContent="{x:Static res:SettingsStrings.AutoSaveStatusOn}"
                           OffContent="{x:Static res:SettingsStrings.AutoSaveStatusOff}"
                           VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <Border Classes="settingsCard">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="settingItemTitle" Text="{x:Static res:SettingsStrings.AutoSaveDelayTitle}" />
+              <TextBlock Classes="settingItemDescription" Text="{x:Static res:SettingsStrings.AutoSaveDelayDescription}" />
+            </StackPanel>
+            <NumericUpDown Grid.Column="1"
+                           x:Name="AutoSaveDelayNumericUpDown"
+                           Minimum="1"
+                           Maximum="60"
+                           Increment="1"
+                           FormatString="0"
+                           Width="120"
+                           VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <Border Classes="settingsCard">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="settingItemTitle" Text="{x:Static res:SettingsStrings.FontSizeTitle}" />
+              <TextBlock Classes="settingItemDescription" Text="{x:Static res:SettingsStrings.FontSizeDescription}" />
+            </StackPanel>
+            <NumericUpDown Grid.Column="1"
+                           x:Name="FontSizeNumericUpDown"
+                           Minimum="10"
+                           Maximum="32"
+                           Increment="1"
+                           FormatString="0"
+                           Width="120"
+                           VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <Border Classes="settingsCard">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="settingItemTitle" Text="{x:Static res:SettingsStrings.TabWidthTitle}" />
+              <TextBlock Classes="settingItemDescription" Text="{x:Static res:SettingsStrings.TabWidthDescription}" />
+            </StackPanel>
+            <NumericUpDown Grid.Column="1"
+                           x:Name="TabWidthNumericUpDown"
+                           Minimum="2"
+                           Maximum="8"
+                           Increment="2"
+                           FormatString="0"
+                           Width="120"
+                           VerticalAlignment="Center" />
           </Grid>
         </Border>
       </StackPanel>

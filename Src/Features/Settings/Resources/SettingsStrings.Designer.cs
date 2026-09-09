@@ -47,4 +47,18 @@ public static class SettingsStrings
     public static string AutoSaveStatusOn => ResourceManager.GetString("AutoSaveStatusOn", _resourceCulture)!;
 
     public static string AutoSaveStatusOff => ResourceManager.GetString("AutoSaveStatusOff", _resourceCulture)!;
+
+    public static string AutoSaveDelayTitle => ResourceManager.GetString("AutoSaveDelayTitle", _resourceCulture)!;
+
+    public static string AutoSaveDelayDescription => ResourceManager.GetString("AutoSaveDelayDescription", _resourceCulture)!;
+
+    public static string FontSizeTitle => ResourceManager.GetString("FontSizeTitle", _resourceCulture)!;
+
+    public static string FontSizeDescription => ResourceManager.GetString("FontSizeDescription", _resourceCulture)!;
+
+    public static string TabWidthTitle => ResourceManager.GetString("TabWidthTitle", _resourceCulture)!;
+
+    public static string TabWidthDescription => ResourceManager.GetString("TabWidthDescription", _resourceCulture)!;
+
+    public static string SavedStatus => ResourceManager.GetString("SavedStatus", _resourceCulture)!;
 }

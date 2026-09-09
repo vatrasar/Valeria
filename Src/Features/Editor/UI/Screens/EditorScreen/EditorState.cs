@@ -41,5 +41,9 @@ public record EditorState
 
     public int PreviewSearchMatchCount { get; init; }
 
+    public double EditorFontSize { get; init; } = 14;
+
+    public int EditorTabWidth { get; init; } = 4;
+
     public bool IsEmpty => string.IsNullOrWhiteSpace(MarkdownText);
 }
