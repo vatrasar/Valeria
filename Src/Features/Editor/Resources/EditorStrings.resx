@@ -130,4 +130,7 @@
     <value>{0} of {1}</value>
     <comment>Search matches counter: 0 is current match index, 1 is total matches</comment>
   </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings (Ctrl+,)</value>
+  </data>
 </root>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="BackButton" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="BackTooltip" xml:space="preserve">
+    <value>Back to editor</value>
+  </data>
+  <data name="EditorSection" xml:space="preserve">
+    <value>Editor</value>
+  </data>
+  <data name="AutoSaveTitle" xml:space="preserve">
+    <value>Auto Save</value>
+  </data>
+  <data name="AutoSaveDescription" xml:space="preserve">
+    <value>Automatically save changes to open files while typing</value>
+  </data>
+  <data name="AutoSaveStatusOn" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="AutoSaveStatusOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+</root>

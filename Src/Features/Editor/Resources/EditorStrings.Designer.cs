@@ -107,4 +107,6 @@ public static class EditorStrings
     public static string NoMatches => ResourceManager.GetString("NoMatches", _resourceCulture)!;
 
     public static string MatchCountFormat => ResourceManager.GetString("MatchCountFormat", _resourceCulture)!;
+
+    public static string Settings => ResourceManager.GetString("Settings", _resourceCulture)!;
 }

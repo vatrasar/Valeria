@@ -24,6 +24,9 @@
         <Button x:Name="SaveFileAsButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.SaveFileAs}">
           <material:MaterialIcon Kind="ContentSaveAll" Width="18" Height="18" />
         </Button>
+        <Button x:Name="SettingsButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Settings}">
+          <material:MaterialIcon Kind="Cog" Width="18" Height="18" />
+        </Button>
         <Border Classes="toolbarSeparator" />
         <Button x:Name="BoldButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.Bold}">
           <material:MaterialIcon Kind="FormatBold" Width="18" Height="18" />

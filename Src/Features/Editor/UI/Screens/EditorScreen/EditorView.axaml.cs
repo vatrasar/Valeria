@@ -37,13 +37,14 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// toggle, automatic closing of markdown code fences, language suggestions
 /// after opening a fenced code block, live word count and caret readout,
 /// preview panel text search with Ctrl+F, match navigation with Enter/Shift+Enter/F3,
-/// case sensitivity toggle, and live match highlighting with automatic scrolling.
+/// case sensitivity toggle, live match highlighting with automatic scrolling,
+/// debounced background AutoSave, and navigation to application settings.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
 /// (ItemsControl), PreviewSearchBar, PreviewSearchTextBox, SearchMatchCaseToggleButton,
 /// SearchMatchCountLabel, SearchPreviousButton, SearchNextButton, CloseSearchButton,
-/// code language completion window, EditorToggleButton, formatting toolbar, status bar.
-/// Navigate From: application startup.
-/// Navigate To: none, single screen application.
+/// code language completion window, EditorToggleButton, SettingsButton, formatting toolbar, status bar.
+/// Navigate From: application startup, settings screen (back navigation).
+/// Navigate To: settings screen.
 /// </summary>
 public partial class EditorView : ReactiveUserControl<EditorViewModel>
 {
@@ -208,6 +209,10 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
                 break;
             case Key.I:
                 ApplyInlineWrap("*", EditorStrings.PlaceholderItalicText);
+                keyEvent.Handled = true;
+                break;
+            case Key.OemComma:
+                ViewModel.NavigateToSettingsCommand.Execute().Subscribe();
                 keyEvent.Handled = true;
                 break;
         }
@@ -732,6 +737,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         this.BindCommand(ViewModel, viewModel => viewModel.SaveFileCommand, view => view.SaveFileButton);
         this.BindCommand(ViewModel, viewModel => viewModel.SaveFileAsCommand, view => view.SaveFileAsButton);
         this.BindCommand(ViewModel, viewModel => viewModel.ToggleEditorCommand, view => view.EditorToggleButton);
+        this.BindCommand(ViewModel, viewModel => viewModel.NavigateToSettingsCommand, view => view.SettingsButton);
     }
 
     private void TrackFormattingButtons(CompositeDisposable disposables)

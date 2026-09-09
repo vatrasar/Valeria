@@ -4,6 +4,8 @@ using System.Reactive.Disposables;
 using Avalonia.Controls;
 using Avalonia.ReactiveUI;
 using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
+using Valeria.Src.Features.Settings.Resources;
+using Valeria.Src.Features.Settings.UI.Screens.SettingsScreen;
 using Valeria.Src.Shared.Resources;
 using ReactiveUI;
 
@@ -15,7 +17,7 @@ namespace Valeria.Src.Features.Shell.UI.Screens.Main;
 /// Available functionalities: routing outlet, window title tracking.
 /// Key UI elements: MainRouter (RoutedViewHost).
 /// Navigate From: application startup.
-/// Navigate To: editor screen.
+/// Navigate To: editor screen, settings screen.
 /// </summary>
 public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
@@ -48,6 +50,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             _titleSubscription = editor
                 .WhenAnyValue(viewModel => viewModel.State.DocumentTitle)
                 .Subscribe(Observer.Create<string>(RenderTitle));
+        }
+        else if (ViewModel?.Router.GetCurrentViewModel() is SettingsViewModel)
+        {
+            RenderTitle(SettingsStrings.SettingsTitle);
         }
         else
         {

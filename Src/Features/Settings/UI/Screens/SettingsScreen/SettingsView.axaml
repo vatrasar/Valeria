@@ -1,0 +1,43 @@
+<rxui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:material="using:Material.Icons.Avalonia"
+                          xmlns:res="using:Valeria.Src.Features.Settings.Resources"
+                          xmlns:vm="using:Valeria.Src.Features.Settings.UI.Screens.SettingsScreen"
+                          x:TypeArguments="vm:SettingsViewModel"
+                          x:Class="Valeria.Src.Features.Settings.UI.Screens.SettingsScreen.SettingsView">
+  <rxui:ReactiveUserControl.Styles>
+    <StyleInclude Source="ScreenStyles/SettingsLayoutStyles.axaml" />
+  </rxui:ReactiveUserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0" Classes="settingsHeader">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button x:Name="BackButton" Classes="settingsBackButton" ToolTip.Tip="{x:Static res:SettingsStrings.BackTooltip}">
+          <material:MaterialIcon Kind="ArrowLeft" Width="20" Height="20" />
+        </Button>
+        <TextBlock Classes="settingsTitle" Text="{x:Static res:SettingsStrings.SettingsTitle}" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="1" Classes="settingsContent">
+      <StackPanel Classes="settingsContainer" Spacing="16">
+        <TextBlock Classes="settingsSectionHeader" Text="{x:Static res:SettingsStrings.EditorSection}" />
+
+        <Border Classes="settingsCard">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="settingItemTitle" Text="{x:Static res:SettingsStrings.AutoSaveTitle}" />
+              <TextBlock Classes="settingItemDescription" Text="{x:Static res:SettingsStrings.AutoSaveDescription}" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1"
+                          x:Name="AutoSaveToggleSwitch"
+                          OnContent="{x:Static res:SettingsStrings.AutoSaveStatusOn}"
+                          OffContent="{x:Static res:SettingsStrings.AutoSaveStatusOff}"
+                          VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</rxui:ReactiveUserControl>

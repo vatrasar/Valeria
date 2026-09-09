@@ -22,6 +22,10 @@ public sealed class EditorOptions
     public int TabWidth { get; set; } = 4;
 
     public int PreviewDebounceMilliseconds { get; set; } = 350;
+
+    public bool AutoSave { get; set; } = true;
+
+    public int AutoSaveDelayMilliseconds { get; set; } = 10000;
 }
 
 /// <summary>

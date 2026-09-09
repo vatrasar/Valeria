@@ -15,8 +15,10 @@ using ReactiveUI.SourceGenerators;
 using Valeria.Src.Core.Config;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Core.Mvvm;
+using Valeria.Src.Core.Services;
 using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Features.Settings.UI.Screens.SettingsScreen;
 using Valeria.Src.Infrastructure.Services;
 using Valeria.Src.Shared.Resources;
 
@@ -33,8 +35,11 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     private readonly IMarkdownPreviewBuilder _previewBuilder;
     private readonly ICodeSyntaxService _syntax;
     private readonly IFileDialogService _dialogs;
+    private readonly ISettingsService _settings;
     private readonly string _initialFilePath;
     private readonly int _previewDebounceMilliseconds;
+    private readonly int _autoSaveDelayMilliseconds;
+    private readonly SemaphoreSlim _saveGate = new(1, 1);
     private string _savedSnapshot = string.Empty;
     private bool _isInitialized;
     private bool _isPrewarmed;
@@ -58,6 +63,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         IMarkdownPreviewBuilder previewBuilder,
         ICodeSyntaxService syntax,
         IFileDialogService dialogs,
+        ISettingsService settings,
         IOptions<AppConfig> config,
         string initialFilePath)
         : base(new EditorState())
@@ -67,8 +73,10 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         _previewBuilder = previewBuilder;
         _syntax = syntax;
         _dialogs = dialogs;
+        _settings = settings;
         _initialFilePath = initialFilePath;
         _previewDebounceMilliseconds = config.Value.Editor.PreviewDebounceMilliseconds;
+        _autoSaveDelayMilliseconds = config.Value.Editor.AutoSaveDelayMilliseconds;
         EditorFontSize = config.Value.Editor.FontSize;
         EditorTabWidth = config.Value.Editor.TabWidth;
         PreviewMaxWidth = config.Value.Preview.MaxWidth;
@@ -76,6 +84,13 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         this.WhenAnyValue(viewModel => viewModel.State.MarkdownText)
             .Throttle(TimeSpan.FromMilliseconds(_previewDebounceMilliseconds), RxApp.TaskpoolScheduler)
             .Select(_ => Observable.FromAsync(ProcessPreviewAsync))
+            .Switch()
+            .Subscribe()
+            .DisposeWith(Disposables);
+
+        this.WhenAnyValue(viewModel => viewModel.State.MarkdownText)
+            .Throttle(TimeSpan.FromMilliseconds(_autoSaveDelayMilliseconds), RxApp.TaskpoolScheduler)
+            .Select(_ => Observable.FromAsync(ProcessAutoSaveAsync))
             .Switch()
             .Subscribe()
             .DisposeWith(Disposables);
@@ -342,6 +357,13 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     }
 
     [ReactiveCommand]
+    private void NavigateToSettings()
+    {
+        SettingsViewModel settings = new(HostScreen, _settings);
+        HostScreen.Router.Navigate.Execute(settings).Subscribe();
+    }
+
+    [ReactiveCommand]
     private void OpenPreviewSearch()
     {
         UpdateState(state => state with { IsPreviewSearchOpen = true });
@@ -390,24 +412,50 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         });
     }
 
+    private async Task ProcessAutoSaveAsync(CancellationToken cancellationToken)
+    {
+        if (!_settings.IsAutoSaveEnabled)
+            return;
+
+        if (!State.IsDirty || string.IsNullOrEmpty(State.FilePath))
+            return;
+
+        if (cancellationToken.IsCancellationRequested)
+            return;
+
+        await WriteToPath(State.FilePath, cancellationToken);
+    }
+
     private async Task WriteToPath(string path, CancellationToken cancellationToken)
     {
+        await _saveGate.WaitAsync(cancellationToken);
+
         try
         {
-            await _files.WriteTextAsync(path, State.MarkdownText, cancellationToken);
-            _savedSnapshot = State.MarkdownText;
+            string contentToSave = State.MarkdownText;
+            await _files.WriteTextAsync(path, contentToSave, cancellationToken);
+            _savedSnapshot = contentToSave;
 
-            UpdateState(state => state with
+            bool isStillDirty = !string.Equals(State.MarkdownText, contentToSave, StringComparison.Ordinal);
+
+            await RunOnUiThread(() =>
             {
-                FilePath = path,
-                IsDirty = false,
-                DocumentTitle = BuildDocumentTitle(path, false),
-                ErrorMessage = null
+                UpdateState(state => state with
+                {
+                    FilePath = path,
+                    IsDirty = isStillDirty,
+                    DocumentTitle = BuildDocumentTitle(path, isStillDirty),
+                    ErrorMessage = null
+                });
             });
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            UpdateState(state => state with { ErrorMessage = exception.Message });
+            await RunOnUiThread(() => UpdateState(state => state with { ErrorMessage = exception.Message }));
+        }
+        finally
+        {
+            _saveGate.Release();
         }
     }
 
