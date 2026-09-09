@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Headless;
@@ -48,6 +49,52 @@ public sealed class EditorFileServiceTests
             await _files.WriteTextAsync(path, "# hello", CancellationToken.None);
 
             Assert.Equal("# hello", await _files.ReadTextAsync(path, CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ReadTextAsync_FallsBackToWindows1250_WhenBytesAreNotValidUtf8()
+    {
+        string path = Path.GetTempFileName();
+        string expectedText = "najlepiej używać właściwie";
+        Encoding windows1250 = Encoding.GetEncoding("windows-1250");
+        byte[] bytes = windows1250.GetBytes(expectedText);
+
+        try
+        {
+            await File.WriteAllBytesAsync(path, bytes, CancellationToken.None);
+
+            string actual = await _files.ReadTextAsync(path, CancellationToken.None);
+
+            Assert.Equal(expectedText, actual);
+            Assert.DoesNotContain("\uFFFD", actual);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ReadTextAsync_StripsUtf8Bom_WhenPresent()
+    {
+        string path = Path.GetTempFileName();
+        string expectedText = "# Nagłówek z polskimi znakami: ążśźćółęń";
+        byte[] contentBytes = Encoding.UTF8.GetBytes(expectedText);
+        byte[] fileBytes = [0xEF, 0xBB, 0xBF, .. contentBytes];
+
+        try
+        {
+            await File.WriteAllBytesAsync(path, fileBytes, CancellationToken.None);
+
+            string actual = await _files.ReadTextAsync(path, CancellationToken.None);
+
+            Assert.Equal(expectedText, actual);
+            Assert.False(actual.StartsWith('\uFEFF'));
         }
         finally
         {
