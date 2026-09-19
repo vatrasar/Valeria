@@ -5,8 +5,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
+using Avalonia.Platform.Storage;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
@@ -82,14 +84,17 @@ public sealed class MarkdownLinkHandler
     private Inline? _activeHoverInline;
     private IBrush? _savedForeground;
 
+    internal static Action<string>? UrlOpenerOverride { get; set; }
+
     private MarkdownLinkHandler(SelectableTextBlock textBlock, IReadOnlyList<MarkdownLinkRange> linkRanges)
     {
         _textBlock = textBlock;
         _linkRanges = linkRanges;
 
+        _textBlock.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        _textBlock.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
+        _textBlock.AddHandler(InputElement.PointerCaptureLostEvent, OnPointerCaptureLost, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
         _textBlock.PointerMoved += OnPointerMoved;
-        _textBlock.PointerPressed += OnPointerPressed;
-        _textBlock.PointerReleased += OnPointerReleased;
         _textBlock.PointerExited += OnPointerExited;
         _textBlock.DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
@@ -249,8 +254,14 @@ public sealed class MarkdownLinkHandler
         if (delta.Length > ClickTolerance)
             return;
 
+        _textBlock.ClearSelection();
         OpenUrl(linkToOpen.Url);
         args.Handled = true;
+    }
+
+    private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs args)
+    {
+        _pressedLink = null;
     }
 
     private void OnPointerExited(object? sender, PointerEventArgs args)
@@ -264,6 +275,13 @@ public sealed class MarkdownLinkHandler
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs args)
     {
         ClearHoverState();
+        _pressedLink = null;
+        _textBlock.RemoveHandler(InputElement.PointerPressedEvent, OnPointerPressed);
+        _textBlock.RemoveHandler(InputElement.PointerReleasedEvent, OnPointerReleased);
+        _textBlock.RemoveHandler(InputElement.PointerCaptureLostEvent, OnPointerCaptureLost);
+        _textBlock.PointerMoved -= OnPointerMoved;
+        _textBlock.PointerExited -= OnPointerExited;
+        _textBlock.DetachedFromVisualTree -= OnDetachedFromVisualTree;
     }
 
     private void UpdateHoverState(MarkdownLinkRange link)
@@ -324,18 +342,108 @@ public sealed class MarkdownLinkHandler
     {
         try
         {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
-                return;
-
-            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-                return;
-
-            TopLevel? topLevel = TopLevel.GetTopLevel(_textBlock);
-            _ = topLevel?.Launcher.LaunchUriAsync(uri);
+            TryOpenUrl(url);
         }
         catch (Exception exception)
         {
             Debug.WriteLine($"Open url failed: {exception.Message}");
         }
+    }
+
+    private void TryOpenUrl(string url)
+    {
+        string normalizedUrl = NormalizeUrl(url);
+        if (!Uri.TryCreate(normalizedUrl, UriKind.Absolute, out Uri? uri))
+            return;
+
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != "mailto")
+            return;
+
+        if (UrlOpenerOverride is not null)
+        {
+            UrlOpenerOverride(normalizedUrl);
+            return;
+        }
+
+        TopLevel? topLevel = TopLevel.GetTopLevel(_textBlock);
+        if (topLevel?.Launcher is not null)
+        {
+            LaunchWithLauncher(topLevel.Launcher, uri, normalizedUrl);
+            return;
+        }
+
+        OpenWithSystemDefault(normalizedUrl);
+    }
+
+    private static async void LaunchWithLauncher(ILauncher launcher, Uri uri, string fallbackUrl)
+    {
+        try
+        {
+            bool success = await launcher.LaunchUriAsync(uri);
+            if (!success)
+                OpenWithSystemDefault(fallbackUrl);
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"Launcher failed, falling back to system default: {exception.Message}");
+            OpenWithSystemDefault(fallbackUrl);
+        }
+    }
+
+    private static void OpenWithSystemDefault(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"Process.Start with UseShellExecute failed: {exception.Message}");
+            OpenWithFallbackCommand(url);
+        }
+    }
+
+    private static void OpenWithFallbackCommand(string url)
+    {
+        try
+        {
+            TryLaunchPlatformFallback(url);
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"Fallback open url failed: {exception.Message}");
+        }
+    }
+
+    private static void TryLaunchPlatformFallback(string url)
+    {
+        if (OperatingSystem.IsLinux())
+            StartProcess("xdg-open", url);
+        else if (OperatingSystem.IsMacOS())
+            StartProcess("open", url);
+    }
+
+    private static void StartProcess(string binary, string argument)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = binary,
+            ArgumentList = { argument },
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+    }
+
+    private static string NormalizeUrl(string url)
+    {
+        string trimmed = url.Trim();
+        if (trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            return "https://" + trimmed;
+
+        return trimmed;
     }
 }

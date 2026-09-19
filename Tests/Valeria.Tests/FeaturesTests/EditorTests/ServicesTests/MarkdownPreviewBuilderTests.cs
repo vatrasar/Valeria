@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -132,6 +133,176 @@ public sealed class MarkdownPreviewBuilderTests
         Assert.NotNull(hoverBrush);
         Assert.Equal(hoverBrush, currentHoverBrush);
         Assert.Equal(normalBrush, restoredBrush);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ParagraphWithLink_ClickOpensUrl()
+    {
+        (string? openedUrl, bool releaseHandled) = await EvaluateAsync(() =>
+        {
+            string? capturedUrl = null;
+            MarkdownLinkHandler.UrlOpenerOverride = url => capturedUrl = url;
+
+            try
+            {
+                SelectableTextBlock textBlock = Build("Before [link text](https://test.org) after.")
+                    .SelectMany(Descendants<SelectableTextBlock>)
+                    .First();
+
+                textBlock.Measure(new Avalonia.Size(800, 600));
+                textBlock.Arrange(new Avalonia.Rect(0, 0, 800, 600));
+
+                var linkHit = textBlock.TextLayout.HitTestTextPosition(9);
+                Avalonia.Input.Pointer mousePointer = new(0, PointerType.Mouse, true);
+                PointerPointProperties pressProperties = new(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed);
+
+                var pressedArgs = new PointerPressedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Avalonia.Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    pressProperties,
+                    KeyModifiers.None);
+
+                textBlock.RaiseEvent(pressedArgs);
+
+                PointerPointProperties releaseProperties = new(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased);
+                var releasedArgs = new PointerReleasedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Avalonia.Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    releaseProperties,
+                    KeyModifiers.None,
+                    MouseButton.Left);
+
+                textBlock.RaiseEvent(releasedArgs);
+
+                return (capturedUrl, releasedArgs.Handled);
+            }
+            finally
+            {
+                MarkdownLinkHandler.UrlOpenerOverride = null;
+            }
+        });
+
+        Assert.Equal("https://test.org", openedUrl);
+        Assert.True(releaseHandled);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ParagraphWithLink_DragSelectionDoesNotOpenUrl()
+    {
+        (string? openedUrl, bool releaseHandled) = await EvaluateAsync(() =>
+        {
+            string? capturedUrl = null;
+            MarkdownLinkHandler.UrlOpenerOverride = url => capturedUrl = url;
+
+            try
+            {
+                SelectableTextBlock textBlock = Build("Before [link text](https://test.org) after.")
+                    .SelectMany(Descendants<SelectableTextBlock>)
+                    .First();
+
+                textBlock.Measure(new Avalonia.Size(800, 600));
+                textBlock.Arrange(new Avalonia.Rect(0, 0, 800, 600));
+
+                var linkHit = textBlock.TextLayout.HitTestTextPosition(9);
+                Avalonia.Input.Pointer mousePointer = new(0, PointerType.Mouse, true);
+                PointerPointProperties pressProperties = new(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed);
+
+                var pressedArgs = new PointerPressedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Avalonia.Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    pressProperties,
+                    KeyModifiers.None);
+
+                textBlock.RaiseEvent(pressedArgs);
+
+                PointerPointProperties releaseProperties = new(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased);
+                var releasedArgs = new PointerReleasedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Avalonia.Point(linkHit.Left + 50, linkHit.Top + 2),
+                    0,
+                    releaseProperties,
+                    KeyModifiers.None,
+                    MouseButton.Left);
+
+                textBlock.RaiseEvent(releasedArgs);
+
+                return (capturedUrl, releasedArgs.Handled);
+            }
+            finally
+            {
+                MarkdownLinkHandler.UrlOpenerOverride = null;
+            }
+        });
+
+        Assert.Null(openedUrl);
+        Assert.False(releaseHandled);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_ParagraphWithLink_WwwLinkNormalizedToHttps()
+    {
+        string? openedUrl = await EvaluateAsync(() =>
+        {
+            string? capturedUrl = null;
+            MarkdownLinkHandler.UrlOpenerOverride = url => capturedUrl = url;
+
+            try
+            {
+                SelectableTextBlock textBlock = Build("[example link](www.example.com)")
+                    .SelectMany(Descendants<SelectableTextBlock>)
+                    .First();
+
+                textBlock.Measure(new Avalonia.Size(800, 600));
+                textBlock.Arrange(new Avalonia.Rect(0, 0, 800, 600));
+
+                var linkHit = textBlock.TextLayout.HitTestTextPosition(2);
+                Avalonia.Input.Pointer mousePointer = new(0, PointerType.Mouse, true);
+                PointerPointProperties pressProperties = new(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed);
+
+                var pressedArgs = new PointerPressedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Avalonia.Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    pressProperties,
+                    KeyModifiers.None);
+
+                textBlock.RaiseEvent(pressedArgs);
+
+                PointerPointProperties releaseProperties = new(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased);
+                var releasedArgs = new PointerReleasedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Avalonia.Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    releaseProperties,
+                    KeyModifiers.None,
+                    MouseButton.Left);
+
+                textBlock.RaiseEvent(releasedArgs);
+
+                return capturedUrl;
+            }
+            finally
+            {
+                MarkdownLinkHandler.UrlOpenerOverride = null;
+            }
+        });
+
+        Assert.Equal("https://www.example.com", openedUrl);
     }
 
     [Fact]

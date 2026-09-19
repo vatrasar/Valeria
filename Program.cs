@@ -1,6 +1,9 @@
-﻿using Avalonia;
+using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.ReactiveUI;
 using System;
+
+[assembly: InternalsVisibleTo("Valeria.Tests")]
 
 namespace Valeria;
 
