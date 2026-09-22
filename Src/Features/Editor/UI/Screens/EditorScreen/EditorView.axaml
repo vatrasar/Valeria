@@ -132,7 +132,7 @@
 
     <Border Grid.Row="2" Classes="statusbar">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-        <TextBlock x:Name="DocumentTitleLabel" Grid.Column="0" Classes="statusItem" />
+        <TextBlock x:Name="DocumentTitleLabel" Grid.Column="0" Classes="statusItem statusDocumentPath" />
         <TextBlock x:Name="ErrorLabel" Grid.Column="1" Classes="statusItem error" />
         <TextBlock x:Name="CaretLabel" Grid.Column="2" Classes="statusItem" />
         <TextBlock x:Name="WordCountLabel" Grid.Column="3" Classes="statusItem" />

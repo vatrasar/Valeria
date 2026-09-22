@@ -23,6 +23,8 @@ public record EditorState
 
     public string DocumentTitle { get; init; } = GlobalStrings.UntitledDocument;
 
+    public string DocumentPath { get; init; } = GlobalStrings.UntitledDocument;
+
     public string? ErrorMessage { get; init; }
 
     public bool IsEditorVisible { get; init; } = false;

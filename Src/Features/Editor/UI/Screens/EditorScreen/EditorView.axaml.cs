@@ -733,7 +733,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     private void RenderStatus(EditorState state)
     {
-        DocumentTitleLabel.Text = state.DocumentTitle;
+        DocumentTitleLabel.Text = state.DocumentPath;
         ErrorLabel.Text = state.ErrorMessage ?? string.Empty;
         ErrorLabel.IsVisible = !string.IsNullOrEmpty(state.ErrorMessage);
         CaretLabel.Text = string.Format(EditorStrings.StatusCaret, state.CaretLine, state.CaretColumn);

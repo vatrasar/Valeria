@@ -455,6 +455,72 @@ public sealed class EditorScreenIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task StatusBar_DisplaysFullPathAndWrapsWhenTooLong()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+        string tempFilePath = Path.GetFullPath("test-sample-document.md");
+
+        try
+        {
+            (window, EditorViewModel editor) = await session.Dispatch(() =>
+            {
+                RxApp.MainThreadScheduler = AvaloniaScheduler.Instance;
+                Locator.CurrentMutable.Register(() => new AvaloniaActivationForViewFetcher(), typeof(IActivationForViewFetcher));
+
+                IConfiguration configuration = new ConfigurationBuilder().Build();
+                ServiceCollection services = new();
+                services.AddValeria(configuration);
+                services.RemoveAll<IEditorFileService>();
+                services.AddSingleton<IEditorFileService>(new FakeEditorFileService("# Test file"));
+                ServiceProvider provider = services.BuildServiceProvider();
+
+                MainWindowViewModel shell = provider.GetRequiredService<MainWindowViewModel>();
+                EditorViewModel editor = ActivatorUtilities.CreateInstance<EditorViewModel>(provider, shell, tempFilePath);
+                EditorView view = new() { ViewModel = editor };
+
+                Window window = new() { Content = view, Width = 1280, Height = 800 };
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                return (window, editor);
+            }, CancellationToken.None);
+
+            await session.Dispatch(async () =>
+            {
+                await editor.InitializeAsync(CancellationToken.None);
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            await session.Dispatch(() =>
+            {
+                EditorView view = RequireView(window);
+                TextBlock title = view.FindControl<TextBlock>("DocumentTitleLabel")
+                    ?? throw new InvalidOperationException("DocumentTitleLabel not found.");
+
+                Assert.Equal(tempFilePath, editor.State.DocumentPath);
+                Assert.Equal(tempFilePath, title.Text);
+                Assert.Equal(Avalonia.Media.TextWrapping.Wrap, title.TextWrapping);
+
+                editor.SetMarkdownText("# Modified");
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(tempFilePath + "*", editor.State.DocumentPath);
+                Assert.Equal(tempFilePath + "*", title.Text);
+            }, CancellationToken.None);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
+        }
+    }
+
     private static EditorViewModel CreateEditorWithFile(string filePath, string content)
     {
         IConfiguration configuration = new ConfigurationBuilder().Build();

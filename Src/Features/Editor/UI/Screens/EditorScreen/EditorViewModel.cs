@@ -179,6 +179,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             IsDirty = !string.Equals(safeText, _savedSnapshot, StringComparison.Ordinal),
             WordCount = MarkdownStats.CountWords(safeText),
             DocumentTitle = BuildDocumentTitle(state.FilePath, !string.Equals(safeText, _savedSnapshot, StringComparison.Ordinal)),
+            DocumentPath = BuildDocumentPath(state.FilePath, !string.Equals(safeText, _savedSnapshot, StringComparison.Ordinal)),
             ErrorMessage = null
         });
     }
@@ -456,6 +457,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                     FilePath = path,
                     IsDirty = isStillDirty,
                     DocumentTitle = BuildDocumentTitle(path, isStillDirty),
+                    DocumentPath = BuildDocumentPath(path, isStillDirty),
                     ErrorMessage = null
                 });
             });
@@ -481,6 +483,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             IsDirty = false,
             WordCount = MarkdownStats.CountWords(_savedSnapshot),
             DocumentTitle = BuildDocumentTitle(path, false),
+            DocumentPath = BuildDocumentPath(path, false),
             ErrorMessage = null
         });
 
@@ -575,6 +578,24 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             name = GlobalStrings.UntitledDocument;
 
         return isDirty ? name + "*" : name;
+    }
+
+    private static string BuildDocumentPath(string? path, bool isDirty)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return isDirty ? GlobalStrings.UntitledDocument + "*" : GlobalStrings.UntitledDocument;
+
+        string fullPath;
+        try
+        {
+            fullPath = Path.GetFullPath(path);
+        }
+        catch
+        {
+            fullPath = path;
+        }
+
+        return isDirty ? fullPath + "*" : fullPath;
     }
 
     private string SuggestFileName()
