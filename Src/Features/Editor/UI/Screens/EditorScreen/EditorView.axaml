@@ -1,12 +1,13 @@
 <rxui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
-                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                         xmlns:rxui="http://reactiveui.net"
-                         xmlns:edit="using:AvaloniaEdit"
-                         xmlns:material="using:Material.Icons.Avalonia"
-                         xmlns:res="using:Valeria.Src.Features.Editor.Resources"
-                         xmlns:vm="using:Valeria.Src.Features.Editor.UI.Screens.EditorScreen"
-                         x:TypeArguments="vm:EditorViewModel"
-                         x:Class="Valeria.Src.Features.Editor.UI.Screens.EditorScreen.EditorView">
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:edit="using:AvaloniaEdit"
+                          xmlns:material="using:Material.Icons.Avalonia"
+                          xmlns:res="using:Valeria.Src.Features.Editor.Resources"
+                          xmlns:dock="using:Valeria.Src.Features.Editor.UI.Screens.EditorScreen.ScreenComponents.FilesDock"
+                          xmlns:vm="using:Valeria.Src.Features.Editor.UI.Screens.EditorScreen"
+                          x:TypeArguments="vm:EditorViewModel"
+                          x:Class="Valeria.Src.Features.Editor.UI.Screens.EditorScreen.EditorView">
   <rxui:ReactiveUserControl.Styles>
     <StyleInclude Source="ScreenStyles/EditorLayoutStyles.axaml" />
   </rxui:ReactiveUserControl.Styles>
@@ -15,6 +16,10 @@
     <Border Grid.Row="0" Classes="toolbar">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
+        <Button x:Name="ToggleDockButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.ToggleDock}">
+          <material:MaterialIcon Kind="Star" Width="18" Height="18" />
+        </Button>
+        <Border Classes="toolbarSeparator" />
         <Button x:Name="OpenFileButton" Classes="icon" ToolTip.Tip="{x:Static res:EditorStrings.OpenFile}">
           <material:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
         </Button>
@@ -75,59 +80,68 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" x:Name="SplitGrid">
+    <Grid Grid.Row="1" x:Name="MainContentGrid">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" MinWidth="250" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="*" MinWidth="250" />
+        <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
-      <Border Grid.Column="0" x:Name="EditorPane" Classes="editorPane">
-        <edit:TextEditor x:Name="SourceEditor" FontFamily="{StaticResource MonoFontFamily}" />
-      </Border>
-      <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />
-      <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane" Focusable="True">
-        <Grid>
-          <ScrollViewer x:Name="PreviewScroller">
-            <ItemsControl x:Name="PreviewBlocksControl" HorizontalAlignment="Stretch" />
-          </ScrollViewer>
-          <Border x:Name="PreviewUpdatingIndicator" Classes="previewUpdating" IsVisible="False">
-            <TextBlock Text="{x:Static res:EditorStrings.PreviewUpdating}" FontSize="12" />
-          </Border>
-          <TextBlock x:Name="EmptyHint"
-                     Text="{x:Static res:EditorStrings.StartTypingHint}"
-                     Classes="emptyHint" />
-          <Border x:Name="PreviewSearchBar" Classes="previewSearchBar" IsVisible="False">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <TextBox x:Name="PreviewSearchTextBox"
-                       Classes="previewSearchInput"
-                       Watermark="{x:Static res:EditorStrings.FindPlaceholder}" />
-              <ToggleButton x:Name="SearchMatchCaseToggleButton"
-                            Classes="icon"
-                            ToolTip.Tip="{x:Static res:EditorStrings.MatchCase}">
-                <TextBlock Text="Aa" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Center" />
-              </ToggleButton>
-              <TextBlock x:Name="SearchMatchCountLabel"
-                         Classes="searchMatchCount"
-                         Text="" />
-              <Button x:Name="SearchPreviousButton"
-                      Classes="icon"
-                      ToolTip.Tip="{x:Static res:EditorStrings.PreviousMatch}">
-                <material:MaterialIcon Kind="ChevronUp" Width="18" Height="18" />
-              </Button>
-              <Button x:Name="SearchNextButton"
-                      Classes="icon"
-                      ToolTip.Tip="{x:Static res:EditorStrings.NextMatch}">
-                <material:MaterialIcon Kind="ChevronDown" Width="18" Height="18" />
-              </Button>
-              <Button x:Name="CloseSearchButton"
-                      Classes="icon"
-                      ToolTip.Tip="{x:Static res:EditorStrings.CloseSearch}">
-                <material:MaterialIcon Kind="Close" Width="18" Height="18" />
-              </Button>
-            </StackPanel>
-          </Border>
-        </Grid>
-      </Border>
+
+      <dock:FilesDockView Grid.Column="0" x:Name="FilesDockControl" />
+
+      <Grid Grid.Column="1" x:Name="SplitGrid">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MinWidth="250" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" MinWidth="250" />
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" x:Name="EditorPane" Classes="editorPane">
+          <edit:TextEditor x:Name="SourceEditor" FontFamily="{StaticResource MonoFontFamily}" />
+        </Border>
+        <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />
+        <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane" Focusable="True">
+          <Grid>
+            <ScrollViewer x:Name="PreviewScroller">
+              <ItemsControl x:Name="PreviewBlocksControl" HorizontalAlignment="Stretch" />
+            </ScrollViewer>
+            <Border x:Name="PreviewUpdatingIndicator" Classes="previewUpdating" IsVisible="False">
+              <TextBlock Text="{x:Static res:EditorStrings.PreviewUpdating}" FontSize="12" />
+            </Border>
+            <TextBlock x:Name="EmptyHint"
+                       Text="{x:Static res:EditorStrings.StartTypingHint}"
+                       Classes="emptyHint" />
+            <Border x:Name="PreviewSearchBar" Classes="previewSearchBar" IsVisible="False">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBox x:Name="PreviewSearchTextBox"
+                         Classes="previewSearchInput"
+                         Watermark="{x:Static res:EditorStrings.FindPlaceholder}" />
+                <ToggleButton x:Name="SearchMatchCaseToggleButton"
+                              Classes="icon"
+                              ToolTip.Tip="{x:Static res:EditorStrings.MatchCase}">
+                  <TextBlock Text="Aa" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                </ToggleButton>
+                <TextBlock x:Name="SearchMatchCountLabel"
+                           Classes="searchMatchCount"
+                           Text="" />
+                <Button x:Name="SearchPreviousButton"
+                        Classes="icon"
+                        ToolTip.Tip="{x:Static res:EditorStrings.PreviousMatch}">
+                  <material:MaterialIcon Kind="ChevronUp" Width="18" Height="18" />
+                </Button>
+                <Button x:Name="SearchNextButton"
+                        Classes="icon"
+                        ToolTip.Tip="{x:Static res:EditorStrings.NextMatch}">
+                  <material:MaterialIcon Kind="ChevronDown" Width="18" Height="18" />
+                </Button>
+                <Button x:Name="CloseSearchButton"
+                        Classes="icon"
+                        ToolTip.Tip="{x:Static res:EditorStrings.CloseSearch}">
+                  <material:MaterialIcon Kind="Close" Width="18" Height="18" />
+                </Button>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Border>
+      </Grid>
     </Grid>
 
     <Border Grid.Row="2" Classes="statusbar">

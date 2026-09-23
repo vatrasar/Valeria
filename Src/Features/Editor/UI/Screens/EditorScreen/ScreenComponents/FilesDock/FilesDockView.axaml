@@ -1,0 +1,137 @@
+<rxui:ReactiveUserControl xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:material="using:Material.Icons.Avalonia"
+                          xmlns:res="using:Valeria.Src.Features.Editor.Resources"
+                          xmlns:vm="using:Valeria.Src.Features.Editor.UI.Screens.EditorScreen.ScreenComponents.FilesDock"
+                          x:TypeArguments="vm:FilesDockViewModel"
+                          x:Class="Valeria.Src.Features.Editor.UI.Screens.EditorScreen.ScreenComponents.FilesDock.FilesDockView">
+
+  <rxui:ReactiveUserControl.Styles>
+    <StyleInclude Source="ComponentStyles/FilesDockStyles.axaml" />
+  </rxui:ReactiveUserControl.Styles>
+
+  <Border x:Name="DockRootBorder" Classes="filesDock">
+    <Grid RowDefinitions="Auto,Auto,*">
+      <!-- Header -->
+      <Border Grid.Row="0" Classes="dockHeader">
+        <StackPanel Spacing="6">
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <material:MaterialIcon Kind="FolderStarMultiple" Width="16" Height="16" Foreground="{DynamicResource AccentBrush}" />
+              <TextBlock x:Name="DockTitleText" Classes="dockTitle" Text="{x:Static res:EditorStrings.FilesDockTitle}" />
+            </StackPanel>
+
+            <Button Grid.Column="1" x:Name="AddCurrentFileButton"
+                    Classes="icon"
+                    ToolTip.Tip="{x:Static res:EditorStrings.AddCurrentToFavorites}">
+              <material:MaterialIcon Kind="Plus" Width="16" Height="16" />
+            </Button>
+
+            <Button Grid.Column="2" x:Name="CollapseDockButton"
+                    Classes="icon"
+                    ToolTip.Tip="{x:Static res:EditorStrings.CollapseDock}">
+              <material:MaterialIcon Kind="ChevronLeft" Width="16" Height="16" />
+            </Button>
+          </Grid>
+
+          <!-- Mode Switcher -->
+          <Border Classes="modeSwitchContainer">
+            <Grid ColumnDefinitions="*,*">
+              <Button Grid.Column="0" x:Name="FavoritesModeButton"
+                      Classes="modeButton"
+                      HorizontalAlignment="Stretch"
+                      Content="{x:Static res:EditorStrings.FavoritesMode}" />
+              <Button Grid.Column="1" x:Name="RecentModeButton"
+                      Classes="modeButton"
+                      HorizontalAlignment="Stretch"
+                      Content="{x:Static res:EditorStrings.RecentMode}" />
+            </Grid>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <!-- Inline Add Favorite Form -->
+      <Border Grid.Row="1" x:Name="AddFavoritePanel" Classes="addFavoritePanel" IsVisible="False">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{x:Static res:EditorStrings.CustomNamePlaceholder}"
+                     FontSize="11"
+                     Foreground="{DynamicResource MutedTextBrush}" />
+          <TextBox x:Name="FavoriteCustomNameTextBox"
+                   Classes="favoriteInput"
+                   Watermark="{x:Static res:EditorStrings.CustomNamePlaceholder}" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="4">
+            <Button x:Name="CancelAddFavoriteButton"
+                    Classes="cardButton"
+                    ToolTip.Tip="{x:Static res:EditorStrings.Cancel}">
+              <material:MaterialIcon Kind="Close" Width="16" Height="16" Foreground="{DynamicResource MutedTextBrush}" />
+            </Button>
+            <Button x:Name="ConfirmAddFavoriteButton"
+                    Classes="cardButton"
+                    ToolTip.Tip="{x:Static res:EditorStrings.Confirm}">
+              <material:MaterialIcon Kind="Check" Width="16" Height="16" Foreground="{DynamicResource AccentBrush}" />
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Content Area -->
+      <Grid Grid.Row="2">
+        <!-- Favorites Mode View -->
+        <Border x:Name="FavoritesContainer">
+          <ScrollViewer x:Name="FavoritesScroller" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="0">
+              <!-- Pinned Summit Item: Most recently opened non-favorite file -->
+              <Border x:Name="SummitCard" Classes="summitCard" IsVisible="False">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                  <Button Grid.Column="0" x:Name="SummitOpenButton"
+                          Classes="cardButton"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Left">
+                    <StackPanel Spacing="2">
+                      <TextBlock x:Name="SummitBadge"
+                                 Classes="badgeText"
+                                 Text="{x:Static res:EditorStrings.LastOpenedNonFavorite}" />
+                      <TextBlock x:Name="SummitFileNameText"
+                                 Classes="itemTitle" />
+                      <TextBlock x:Name="SummitFilePathText"
+                                 Classes="itemSubtitle" />
+                    </StackPanel>
+                  </Button>
+                  <Button Grid.Column="1" x:Name="SummitAddFavoriteButton"
+                          Classes="cardButton"
+                          VerticalAlignment="Center"
+                          ToolTip.Tip="{x:Static res:EditorStrings.AddCurrentToFavorites}">
+                    <material:MaterialIcon Kind="StarOutline" Width="16" Height="16" Foreground="{DynamicResource AccentBrush}" />
+                  </Button>
+                </Grid>
+              </Border>
+
+              <TextBlock x:Name="EmptyFavoritesHint"
+                         Classes="emptyMessage"
+                         Text="{x:Static res:EditorStrings.NoFavoritesYet}"
+                         IsVisible="False" />
+
+              <!-- Favorites List: Sorted by last used descending -->
+              <StackPanel x:Name="FavoritesListPanel" Spacing="0" />
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+
+        <!-- Recent Files Mode View -->
+        <Border x:Name="RecentContainer" IsVisible="False">
+          <ScrollViewer x:Name="RecentScroller" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="0">
+              <TextBlock x:Name="EmptyRecentHint"
+                         Classes="emptyMessage"
+                         Text="{x:Static res:EditorStrings.NoRecentFilesYet}"
+                         IsVisible="False" />
+
+              <StackPanel x:Name="RecentListPanel" Spacing="0" />
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+      </Grid>
+    </Grid>
+  </Border>
+</rxui:ReactiveUserControl>

@@ -133,4 +133,49 @@
   <data name="Settings" xml:space="preserve">
     <value>Settings (Ctrl+,)</value>
   </data>
+  <data name="FilesDockTitle" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="FavoritesMode" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="RecentMode" xml:space="preserve">
+    <value>Recent (24h)</value>
+  </data>
+  <data name="AddCurrentToFavorites" xml:space="preserve">
+    <value>Add current file to favorites</value>
+  </data>
+  <data name="AlreadyInFavorites" xml:space="preserve">
+    <value>Current file is already in favorites</value>
+  </data>
+  <data name="CannotAddUnsavedFile" xml:space="preserve">
+    <value>Save the current file to add it to favorites</value>
+  </data>
+  <data name="CustomNamePlaceholder" xml:space="preserve">
+    <value>Name in favorites…</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="RemoveFavorite" xml:space="preserve">
+    <value>Remove from favorites</value>
+  </data>
+  <data name="LastOpenedNonFavorite" xml:space="preserve">
+    <value>Last opened (not in favorites)</value>
+  </data>
+  <data name="NoFavoritesYet" xml:space="preserve">
+    <value>No favorite files added yet. Open a file and click + to add it.</value>
+  </data>
+  <data name="NoRecentFilesYet" xml:space="preserve">
+    <value>No files opened in the last 24 hours.</value>
+  </data>
+  <data name="ToggleDock" xml:space="preserve">
+    <value>Toggle files dock</value>
+  </data>
+  <data name="CollapseDock" xml:space="preserve">
+    <value>Collapse dock</value>
+  </data>
 </root>

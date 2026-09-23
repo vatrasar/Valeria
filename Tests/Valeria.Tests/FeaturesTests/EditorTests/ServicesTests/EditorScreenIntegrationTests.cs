@@ -18,6 +18,7 @@ using AvaloniaEdit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Valeria.Src.Core.Domain.Models;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
@@ -393,7 +394,11 @@ public sealed class EditorScreenIntegrationTests
                 Locator.CurrentMutable.Register(() => new AvaloniaActivationForViewFetcher(), typeof(IActivationForViewFetcher));
 
                 IConfiguration configuration = new ConfigurationBuilder().Build();
-                ServiceProvider provider = new ServiceCollection().AddValeria(configuration).BuildServiceProvider();
+                ServiceCollection services = new();
+                services.AddValeria(configuration);
+                services.RemoveAll<IFilesDockService>();
+                services.AddSingleton<IFilesDockService>(new FakeFilesDockService());
+                ServiceProvider provider = services.BuildServiceProvider();
 
                 AppBootstrapper.RegisterFeatureModules();
 
@@ -472,6 +477,8 @@ public sealed class EditorScreenIntegrationTests
                 IConfiguration configuration = new ConfigurationBuilder().Build();
                 ServiceCollection services = new();
                 services.AddValeria(configuration);
+                services.RemoveAll<IFilesDockService>();
+                services.AddSingleton<IFilesDockService>(new FakeFilesDockService());
                 services.RemoveAll<IEditorFileService>();
                 services.AddSingleton<IEditorFileService>(new FakeEditorFileService("# Test file"));
                 ServiceProvider provider = services.BuildServiceProvider();
@@ -526,6 +533,8 @@ public sealed class EditorScreenIntegrationTests
         IConfiguration configuration = new ConfigurationBuilder().Build();
         ServiceCollection services = new();
         services.AddValeria(configuration);
+        services.RemoveAll<IFilesDockService>();
+        services.AddSingleton<IFilesDockService>(new FakeFilesDockService());
         services.RemoveAll<IEditorFileService>();
         services.AddSingleton<IEditorFileService>(new FakeEditorFileService(content));
         services.RemoveAll<IMarkdownPreviewBuilder>();
@@ -548,7 +557,11 @@ public sealed class EditorScreenIntegrationTests
             Locator.CurrentMutable.Register(() => new AvaloniaActivationForViewFetcher(), typeof(IActivationForViewFetcher));
 
             IConfiguration configuration = new ConfigurationBuilder().Build();
-            ServiceProvider provider = new ServiceCollection().AddValeria(configuration).BuildServiceProvider();
+            ServiceCollection services = new();
+            services.AddValeria(configuration);
+            services.RemoveAll<IFilesDockService>();
+            services.AddSingleton<IFilesDockService>(new FakeFilesDockService());
+            ServiceProvider provider = services.BuildServiceProvider();
 
             MainWindowViewModel shell = provider.GetRequiredService<MainWindowViewModel>();
             EditorViewModel editor = ActivatorUtilities.CreateInstance<EditorViewModel>(provider, shell, string.Empty);
@@ -677,5 +690,29 @@ public sealed class EditorScreenIntegrationTests
         }
 
         await session.Dispatch(() => Dispatcher.UIThread.RunJobs(), CancellationToken.None);
+    }
+
+    private sealed class FakeFilesDockService : IFilesDockService
+    {
+        public Task<IReadOnlyList<FavoriteFile>> GetFavoritesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<FavoriteFile>>(Array.Empty<FavoriteFile>());
+
+        public Task<FavoriteFile> AddFavoriteAsync(string filePath, string customName, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new FavoriteFile(1, filePath, customName, DateTime.UtcNow, DateTime.UtcNow));
+
+        public Task<bool> RemoveFavoriteAsync(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> IsFavoriteAsync(string filePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task RecordFileOpenAsync(string filePath, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyList<RecentFile>> GetRecentFilesWithin24HoursAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<RecentFile>>(Array.Empty<RecentFile>());
+
+        public Task<RecentFile?> GetLastOpenedNonFavoriteAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<RecentFile?>(null);
     }
 }

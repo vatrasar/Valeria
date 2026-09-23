@@ -16,8 +16,10 @@ using Valeria.Src.Core.Config;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Core.Mvvm;
 using Valeria.Src.Core.Services;
+using Valeria.Src.Core.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen.ScreenComponents.FilesDock;
 using Valeria.Src.Features.Settings.UI.Screens.SettingsScreen;
 using Valeria.Src.Infrastructure.Services;
 using Valeria.Src.Shared.Resources;
@@ -56,6 +58,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
 
     public IReadOnlyList<CodeLanguageSuggestion> CodeLanguageSuggestions => _syntax.GetLanguageSuggestions();
 
+    public FilesDockViewModel FilesDock { get; }
+
     public EditorViewModel(
         IScreen hostScreen,
         IEditorFileService files,
@@ -64,7 +68,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         IFileDialogService dialogs,
         ISettingsService settings,
         IOptions<AppConfig> config,
-        string initialFilePath)
+        string initialFilePath,
+        IFilesDockService? filesDockService = null)
         : base(new EditorState
         {
             EditorFontSize = settings.EditorFontSize,
@@ -80,6 +85,15 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         _initialFilePath = initialFilePath;
         _previewDebounceMilliseconds = config.Value.Editor.PreviewDebounceMilliseconds;
         PreviewMaxWidth = config.Value.Preview.MaxWidth;
+        FilesDock = new FilesDockViewModel(
+            filesDockService ?? new NullFilesDockService(),
+            isDockExpanded: string.IsNullOrEmpty(initialFilePath));
+
+        FilesDock.FileSelected
+            .Select(path => Observable.FromAsync(ct => OpenFileFromPathAsync(path, ct)))
+            .Switch()
+            .Subscribe()
+            .DisposeWith(Disposables);
 
         _settings.EditorFontSizeObservable
             .DistinctUntilChanged()
@@ -124,6 +138,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
         PrewarmHighlighter(cancellationToken);
+        await FilesDock.RefreshAsync(cancellationToken);
 
         if (_isInitialized)
             return;
@@ -461,6 +476,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                     ErrorMessage = null
                 });
             });
+
+            _ = FilesDock.NotifyFileOpenedAsync(path);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -469,6 +486,26 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         finally
         {
             _saveGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Opens a markdown file from the specified path into the editor.
+    /// Invoked by FilesDock when a user selects a favorite or recent file.
+    /// </summary>
+    public async Task OpenFileFromPathAsync(string path, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        try
+        {
+            string content = await _files.ReadTextAsync(path, cancellationToken);
+            ApplyLoadedDocument(content, path);
+        }
+        catch (Exception exception)
+        {
+            UpdateState(state => state with { ErrorMessage = exception.Message });
         }
     }
 
@@ -487,6 +524,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             ErrorMessage = null
         });
 
+        _ = FilesDock.NotifyFileOpenedAsync(path);
         _ = ProcessPreviewAsync(CancellationToken.None);
     }
 
@@ -604,5 +642,29 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             return Path.GetFileName(State.FilePath);
 
         return "untitled.md";
+    }
+
+    private sealed class NullFilesDockService : IFilesDockService
+    {
+        public Task<IReadOnlyList<FavoriteFile>> GetFavoritesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<FavoriteFile>>(Array.Empty<FavoriteFile>());
+
+        public Task<FavoriteFile> AddFavoriteAsync(string filePath, string customName, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new FavoriteFile(0, filePath, customName, DateTime.UtcNow, DateTime.UtcNow));
+
+        public Task<bool> RemoveFavoriteAsync(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> IsFavoriteAsync(string filePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task RecordFileOpenAsync(string filePath, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyList<RecentFile>> GetRecentFilesWithin24HoursAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<RecentFile>>(Array.Empty<RecentFile>());
+
+        public Task<RecentFile?> GetLastOpenedNonFavoriteAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<RecentFile?>(null);
     }
 }

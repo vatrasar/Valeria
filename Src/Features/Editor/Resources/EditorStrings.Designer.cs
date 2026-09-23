@@ -109,4 +109,34 @@ public static class EditorStrings
     public static string MatchCountFormat => ResourceManager.GetString("MatchCountFormat", _resourceCulture)!;
 
     public static string Settings => ResourceManager.GetString("Settings", _resourceCulture)!;
+ 
+    public static string FilesDockTitle => ResourceManager.GetString("FilesDockTitle", _resourceCulture)!;
+
+    public static string FavoritesMode => ResourceManager.GetString("FavoritesMode", _resourceCulture)!;
+
+    public static string RecentMode => ResourceManager.GetString("RecentMode", _resourceCulture)!;
+
+    public static string AddCurrentToFavorites => ResourceManager.GetString("AddCurrentToFavorites", _resourceCulture)!;
+
+    public static string AlreadyInFavorites => ResourceManager.GetString("AlreadyInFavorites", _resourceCulture)!;
+
+    public static string CannotAddUnsavedFile => ResourceManager.GetString("CannotAddUnsavedFile", _resourceCulture)!;
+
+    public static string CustomNamePlaceholder => ResourceManager.GetString("CustomNamePlaceholder", _resourceCulture)!;
+
+    public static string Confirm => ResourceManager.GetString("Confirm", _resourceCulture)!;
+
+    public static string Cancel => ResourceManager.GetString("Cancel", _resourceCulture)!;
+
+    public static string RemoveFavorite => ResourceManager.GetString("RemoveFavorite", _resourceCulture)!;
+
+    public static string LastOpenedNonFavorite => ResourceManager.GetString("LastOpenedNonFavorite", _resourceCulture)!;
+
+    public static string NoFavoritesYet => ResourceManager.GetString("NoFavoritesYet", _resourceCulture)!;
+
+    public static string NoRecentFilesYet => ResourceManager.GetString("NoRecentFilesYet", _resourceCulture)!;
+
+    public static string ToggleDock => ResourceManager.GetString("ToggleDock", _resourceCulture)!;
+
+    public static string CollapseDock => ResourceManager.GetString("CollapseDock", _resourceCulture)!;
 }

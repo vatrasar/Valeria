@@ -42,7 +42,8 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
 /// (ItemsControl), PreviewSearchBar, PreviewSearchTextBox, SearchMatchCaseToggleButton,
 /// SearchMatchCountLabel, SearchPreviousButton, SearchNextButton, CloseSearchButton,
-/// code language completion window, EditorToggleButton, SettingsButton, formatting toolbar, status bar.
+/// code language completion window, EditorToggleButton, SettingsButton, formatting toolbar,
+/// ToggleDockButton, FilesDockControl (FilesDockView), status bar.
 /// Navigate From: application startup, settings screen (back navigation).
 /// Navigate To: settings screen.
 /// </summary>
@@ -69,6 +70,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
         this.WhenActivated(disposables =>
         {
+            FilesDockControl.ViewModel = ViewModel?.FilesDock;
             RegisterDialogAnchor();
             RegisterWindowShortcuts(disposables);
             ConfigureSourceEditor(disposables);
@@ -743,6 +745,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     private void BindFileCommands(CompositeDisposable disposables)
     {
+        this.BindCommand(ViewModel, viewModel => viewModel.FilesDock.ToggleDockExpansionCommand, view => view.ToggleDockButton);
         this.BindCommand(ViewModel, viewModel => viewModel.OpenFileCommand, view => view.OpenFileButton);
         this.BindCommand(ViewModel, viewModel => viewModel.SaveFileCommand, view => view.SaveFileButton);
         this.BindCommand(ViewModel, viewModel => viewModel.SaveFileAsCommand, view => view.SaveFileAsButton);
