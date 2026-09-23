@@ -16,7 +16,7 @@
 
   <br />
 
-  [Why Valeria?](#-why-choose-valeria) • [Key Features](#-key-features) • [Desktop Experience](#-native-desktop-experience) • [Shortcuts](#-handy-keyboard-shortcuts) • [Installation](#-installation) • [Customization](#-customization)
+  [Why Valeria?](#-why-choose-valeria) • [Key Features](#-key-features) • [Files Dock](#️-expandable-files-dock-favorites--recent-files) • [Desktop Experience](#-native-desktop-experience) • [Shortcuts](#-handy-keyboard-shortcuts) • [Installation](#-installation) • [Customization](#-customization)
 
 </div>
 
@@ -69,7 +69,7 @@ Valeria is designed to feel right at home in your desktop environment:
   ```bash
   valeria my-notes.md
   ```
-- **Clean Storage**: Respects user directory standards (`~/.local/share/valeria`), keeping your home folder clean.
+- **Clean Storage**: Respects user directory standards (`~/.local/share/valeria`), storing your favorites and recent file database cleanly in your user space.
 
 ---
 
@@ -78,6 +78,14 @@ Valeria is designed to feel right at home in your desktop environment:
 ### 📝 Dual-Pane Writing Flow
 - **Adjustable Splitter**: Drag the central divider to balance editor and preview widths, or collapse the preview completely with a single click or shortcut (<kbd>Ctrl</kbd> + <kbd>P</kbd>) for distraction-free writing.
 - **Live Styled Preview**: Headings, blockquotes, lists, strikethrough, and links format automatically as you type.
+
+### ⭐️ Expandable Files Dock (Favorites & Recent Files)
+- **Collapsible Sidebar**: Slide out the left dock via the star icon in the toolbar or collapse it with smooth animated transitions.
+- **Favorites with Custom Aliases**: Pin frequently used documents and give them user-defined display names (e.g., "Daily Journal", "Sprint Notes") without changing the actual file name on disk.
+- **Dynamic Last-Used Sorting**: Favorite files are automatically organized so that the file you worked on most recently stays near the top.
+- **Pinned Summit Card**: In Favorites view, the single most recently opened non-favorite document is pinned at the top for instant switching or 1-click addition to your favorites.
+- **24-Hour Recent History**: Switch dock mode to browse all documents opened within the last 24 hours, with automatic cleanup of older records.
+- **Smart Dock State**: Starts open by default on fresh application launch with the welcome guide, and automatically stays collapsed when launching with a specific file from the terminal or file manager.
 
 ### 🔍 Find in Preview
 - **Instant Search**: Press <kbd>Ctrl</kbd> + <kbd>F</kbd> to search directly within your rendered document.
@@ -114,7 +122,8 @@ Valeria is designed to feel right at home in your desktop environment:
 | <kbd>Ctrl</kbd> + <kbd>P</kbd> or <kbd>Ctrl</kbd> + <kbd>E</kbd> | **Toggle Preview** (expand or collapse preview pane) |
 | <kbd>Ctrl</kbd> + <kbd>F</kbd> | **Find in Preview** (open search bar) |
 | <kbd>F3</kbd> / <kbd>Shift</kbd> + <kbd>F3</kbd> | Jump to **Next / Previous Match** |
-| <kbd>Esc</kbd> | Close search bar |
+| <kbd>Esc</kbd> | Close search bar or cancel favorite form |
+| <kbd>Enter</kbd> (in dock form) | Confirm and save new favorite alias |
 | <kbd>Ctrl</kbd> + <kbd>B</kbd> | Format selected text as **Bold** |
 | <kbd>Ctrl</kbd> + <kbd>I</kbd> | Format selected text as *Italic* |
 | <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | **Continue List** on the next line |
