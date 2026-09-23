@@ -75,6 +75,47 @@ public sealed class MarkdownHighlightingTests
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task HighlightCodeFence_ColorsCodeInsideDistinctFromFenceDelimiters()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+
+        await session.Dispatch(() =>
+        {
+            IHighlightingDefinition? definition = LoadHighlighting();
+            Assert.NotNull(definition);
+
+            string markdown = "```csharp\nint a = 1;\nstring b = \"hello\";\n```\n# Heading Outside";
+            TextDocument document = new(markdown);
+            IHighlighter highlighter = new DocumentHighlighter(document, definition);
+
+            HighlightedLine openFenceLine = highlighter.HighlightLine(1);
+            HighlightedLine codeLine1 = highlighter.HighlightLine(2);
+            HighlightedLine codeLine2 = highlighter.HighlightLine(3);
+            HighlightedLine closeFenceLine = highlighter.HighlightLine(4);
+            HighlightedLine outsideHeadingLine = highlighter.HighlightLine(5);
+
+            Assert.Contains(openFenceLine.Sections, s => s.Color.Name == "CodeFence");
+            Assert.Contains(closeFenceLine.Sections, s => s.Color.Name == "CodeFence");
+
+            Assert.Contains(codeLine1.Sections, s => s.Color.Name == "CodeBlock");
+            Assert.Contains(codeLine2.Sections, s => s.Color.Name == "CodeBlock");
+
+            Assert.DoesNotContain(codeLine1.Sections, s => s.Color.Name == "CodeFence");
+            Assert.DoesNotContain(codeLine2.Sections, s => s.Color.Name == "CodeFence");
+
+            Assert.Contains(outsideHeadingLine.Sections, s => s.Color.Name == "Heading");
+            Assert.DoesNotContain(outsideHeadingLine.Sections, s => s.Color.Name == "CodeBlock");
+
+            HighlightingColor? fenceColor = definition.GetNamedColor("CodeFence");
+            HighlightingColor? blockColor = definition.GetNamedColor("CodeBlock");
+
+            Assert.NotNull(fenceColor);
+            Assert.NotNull(blockColor);
+            Assert.NotEqual(fenceColor.Foreground?.GetColor(null), blockColor.Foreground?.GetColor(null));
+        }, CancellationToken.None);
+    }
+
     private static IHighlightingDefinition? LoadHighlighting()
     {
         using Stream? stream = Assembly

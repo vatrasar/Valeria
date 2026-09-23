@@ -8,6 +8,7 @@
   <Color name="Strike" foreground="#808080" />
   <Color name="InlineCode" foreground="#CE9178" background="#2D2D2D" />
   <Color name="CodeFence" foreground="#CE9178" background="#1F1F1F" />
+  <Color name="CodeBlock" foreground="#9CDCFE" background="#1F1F1F" />
   <Color name="Link" foreground="#4FA3E0" />
   <Color name="Url" foreground="#4EC9B0" />
   <Color name="List" foreground="#C586C0" />
@@ -16,7 +17,10 @@
   <Color name="Punctuation" foreground="#808080" />
 
   <RuleSet>
-    <Span color="CodeFence" begin="^```" end="^```" />
+    <Span color="CodeBlock" multiline="true">
+      <Begin color="CodeFence">^[ \t]{0,3}```.*$</Begin>
+      <End color="CodeFence">^[ \t]{0,3}```[ \t]*$</End>
+    </Span>
 
     <Rule color="Heading">^\#{1,6}[ \t].*$</Rule>
     <Rule color="Quote">^\s*&gt;.*$</Rule>
