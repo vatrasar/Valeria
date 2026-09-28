@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.Options;
 using ReactiveUI;
 using Valeria.Src.Core.Config;
+using Valeria.Src.Core.Domain.Models;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Core.Services;
 using Valeria.Src.Features.Editor.Domain.Models;
@@ -116,11 +117,42 @@ public sealed class EditorAutoSaveTests
         Assert.IsType<SettingsViewModel>(currentViewModel);
     }
 
+    [Fact]
+    public async Task AutoSave_WhenExecuted_DoesNotInvokeNotifyFileOpenedOnFilesDock()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        FakeEditorFileService files = new("initial content");
+        FakeSettingsService settings = new(true);
+        FakeFilesDockService dockService = new();
+        EditorViewModel editor = CreateEditor(files, settings, "/path/to/my_notes.md", filesDockService: dockService);
+
+        await session.Dispatch(async () =>
+        {
+            await editor.InitializeAsync(CancellationToken.None);
+        }, CancellationToken.None);
+
+        await WaitForConditionAsync(session, () => dockService.RecordFileOpenCallCount == 1, 3000);
+
+        await session.Dispatch(() =>
+        {
+            editor.SetMarkdownText("content to auto save");
+        }, CancellationToken.None);
+
+        Assert.True(editor.State.IsDirty);
+
+        await WaitForConditionAsync(session, () => !editor.State.IsDirty && files.WrittenContent == "content to auto save", 3000);
+
+        Assert.False(editor.State.IsDirty);
+        Assert.Equal("content to auto save", files.WrittenContent);
+        Assert.Equal(1, dockService.RecordFileOpenCallCount);
+    }
+
     private static EditorViewModel CreateEditor(
         FakeEditorFileService files,
         FakeSettingsService settings,
         string initialFilePath,
-        IScreen? hostScreen = null)
+        IScreen? hostScreen = null,
+        IFilesDockService? filesDockService = null)
     {
         IOptions<AppConfig> config = Options.Create(new AppConfig
         {
@@ -140,7 +172,8 @@ public sealed class EditorAutoSaveTests
             new FakeFileDialogService(),
             settings,
             config,
-            initialFilePath);
+            initialFilePath,
+            filesDockService);
     }
 
     private static async Task WaitForConditionAsync(HeadlessUnitTestSession session, Func<bool> condition, int timeoutMilliseconds)
@@ -278,5 +311,34 @@ public sealed class EditorAutoSaveTests
         public Task<string?> PickMarkdownFileToOpenAsync(CancellationToken cancellationToken) => Task.FromResult<string?>(null);
 
         public Task<string?> PickMarkdownFileToSaveAsync(string? suggestedFileName, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+    }
+
+    private sealed class FakeFilesDockService : IFilesDockService
+    {
+        public int RecordFileOpenCallCount { get; private set; }
+
+        public Task<IReadOnlyList<FavoriteFile>> GetFavoritesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<FavoriteFile>>(Array.Empty<FavoriteFile>());
+
+        public Task<FavoriteFile> AddFavoriteAsync(string filePath, string customName, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new FavoriteFile(1, filePath, customName, DateTime.UtcNow, DateTime.UtcNow));
+
+        public Task<bool> RemoveFavoriteAsync(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> IsFavoriteAsync(string filePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task RecordFileOpenAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            RecordFileOpenCallCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<RecentFile>> GetRecentFilesWithin24HoursAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<RecentFile>>(Array.Empty<RecentFile>());
+
+        public Task<RecentFile?> GetLastOpenedNonFavoriteAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<RecentFile?>(null);
     }
 }

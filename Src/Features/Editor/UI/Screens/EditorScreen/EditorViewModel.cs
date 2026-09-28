@@ -374,7 +374,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         if (path is null)
             return;
 
-        await WriteToPath(path, cancellationToken);
+        await WriteToPath(path, cancellationToken, notifyDock: true);
     }
 
     [ReactiveCommand]
@@ -453,7 +453,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         await WriteToPath(State.FilePath, cancellationToken);
     }
 
-    private async Task WriteToPath(string path, CancellationToken cancellationToken)
+    private async Task WriteToPath(string path, CancellationToken cancellationToken, bool notifyDock = false)
     {
         await _saveGate.WaitAsync(cancellationToken);
 
@@ -477,7 +477,10 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                 });
             });
 
-            _ = FilesDock.NotifyFileOpenedAsync(path);
+            if (notifyDock)
+            {
+                await RunOnUiThread(() => _ = FilesDock.NotifyFileOpenedAsync(path));
+            }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

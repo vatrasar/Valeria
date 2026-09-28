@@ -3,6 +3,7 @@
 
   <Style Selector="Border.filesDock">
     <Setter Property="Width" Value="270" />
+    <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,1,0" />

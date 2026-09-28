@@ -59,14 +59,17 @@ public partial class FilesDockView : ReactiveUserControl<FilesDockViewModel>
     private void BindStateObservables(CompositeDisposable disposables)
     {
         this.WhenAnyValue(view => view.ViewModel!.State.IsDockExpanded)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<bool>(isExpanded => DockRootBorder.Classes.Set("collapsed", !isExpanded)))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.Mode)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<FilesDockMode>(ApplyDockMode))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.NewFavoriteCustomName)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<string>(text =>
             {
                 if (!string.Equals(FavoriteCustomNameTextBox.Text, text, StringComparison.Ordinal))
@@ -75,14 +78,17 @@ public partial class FilesDockView : ReactiveUserControl<FilesDockViewModel>
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.LastOpenedNonFavorite)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<RecentFile?>(RenderSummitNonFavorite))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.Favorites)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<ImmutableList<FavoriteFile>>(RenderFavoritesList))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(view => view.ViewModel!.State.RecentFiles)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<ImmutableList<RecentFile>>(RenderRecentFilesList))
             .DisposeWith(disposables);
 
