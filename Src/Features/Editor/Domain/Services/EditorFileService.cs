@@ -15,6 +15,8 @@ public sealed class EditorFileService : IEditorFileService
 {
     private static readonly Encoding StrictUtf8Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
+    private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
     private static readonly Encoding FallbackEncoding;
 
     static EditorFileService()
@@ -34,12 +36,12 @@ public sealed class EditorFileService : IEditorFileService
     }
 
     /// <summary>
-    /// Writes the whole document as UTF-8 text.
+    /// Writes the whole document as UTF-8 text without BOM.
     /// Used by EditorViewModel when saving a document.
     /// </summary>
     public Task WriteTextAsync(string path, string content, CancellationToken cancellationToken)
     {
-        return System.IO.File.WriteAllTextAsync(path, content ?? string.Empty, Encoding.UTF8, cancellationToken);
+        return System.IO.File.WriteAllTextAsync(path, content ?? string.Empty, Utf8WithoutBom, cancellationToken);
     }
 
     /// <summary>

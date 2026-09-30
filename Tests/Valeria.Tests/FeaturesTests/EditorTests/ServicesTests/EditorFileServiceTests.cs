@@ -57,6 +57,26 @@ public sealed class EditorFileServiceTests
     }
 
     [Fact]
+    public async Task WriteTextAsync_WhenSavingContent_WritesUtf8WithoutBom()
+    {
+        string path = Path.GetTempFileName();
+        string content = "# Nagłówek z polskimi znakami: ążśźćółęń";
+
+        try
+        {
+            await _files.WriteTextAsync(path, content, CancellationToken.None);
+            byte[] bytes = await File.ReadAllBytesAsync(path, CancellationToken.None);
+
+            Assert.Equal(new UTF8Encoding(false).GetBytes(content), bytes);
+            Assert.False(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task ReadTextAsync_FallsBackToWindows1250_WhenBytesAreNotValidUtf8()
     {
         string path = Path.GetTempFileName();
