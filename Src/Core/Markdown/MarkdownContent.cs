@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 
 namespace Valeria.Src.Core.Markdown;
@@ -11,8 +12,40 @@ public sealed record MarkdownContent(ImmutableList<MarkdownBlock> Blocks)
     public static readonly MarkdownContent Empty = new(ImmutableList<MarkdownBlock>.Empty);
 }
 
+/// <summary>Represents a 1-based source line range for a markdown block.</summary>
+public readonly record struct BlockLineRange(int StartLine, int EndLine)
+{
+    public static readonly BlockLineRange Empty = new(0, 0);
+    public bool IsEmpty => StartLine <= 0 || EndLine <= 0;
+}
+
+/// <summary>
+/// Represents the character offset range and 1-based line range of a block in source markdown.
+/// Used for precise intra-block synchronization between editor and preview.
+/// </summary>
+public readonly record struct BlockSourceSpan(int StartOffset, int EndOffset, int StartLine, int EndLine)
+{
+    public static readonly BlockSourceSpan Empty = new(0, 0, 0, 0);
+    public bool IsEmpty => StartOffset < 0 || EndOffset < StartOffset || (StartLine == 0 && EndLine == 0);
+    public int Length => Math.Max(0, EndOffset - StartOffset + 1);
+
+    public bool ContainsOffset(int offset) => offset >= StartOffset && offset <= EndOffset;
+    public bool ContainsLine(int line) => line >= StartLine && line <= EndLine;
+
+    public static implicit operator BlockLineRange(BlockSourceSpan span) => new(span.StartLine, span.EndLine);
+}
+
 /// <summary>Base record of every markdown block element.</summary>
-public abstract record MarkdownBlock;
+public abstract record MarkdownBlock
+{
+    public BlockSourceSpan SourceSpan { get; init; } = BlockSourceSpan.Empty;
+
+    public BlockLineRange LineRange
+    {
+        get => new(SourceSpan.StartLine, SourceSpan.EndLine);
+        init => SourceSpan = new BlockSourceSpan(SourceSpan.StartOffset, SourceSpan.EndOffset, value.StartLine, value.EndLine);
+    }
+}
 
 /// <summary>Heading with level 1-6 and formatted inline content.</summary>
 public sealed record HeadingBlock(int Level, ImmutableList<MarkdownInline> Inlines) : MarkdownBlock;

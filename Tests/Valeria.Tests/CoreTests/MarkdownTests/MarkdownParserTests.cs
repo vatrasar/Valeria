@@ -149,6 +149,56 @@ public sealed class MarkdownParserTests
         Assert.Contains(paragraph.Inlines, inline => inline is HardLineBreak);
     }
 
+    [Fact]
+    public void Parse_PopulatesBlockLineRanges()
+    {
+        string markdown = "# Title\n\nFirst line of paragraph\nSecond line of paragraph\n\n```csharp\ncode line 1\ncode line 2\n```";
+        MarkdownContent content = MarkdownParser.Parse(markdown);
+
+        Assert.Equal(3, content.Blocks.Count);
+
+        HeadingBlock heading = Assert.IsType<HeadingBlock>(content.Blocks[0]);
+        Assert.Equal(1, heading.LineRange.StartLine);
+        Assert.Equal(1, heading.LineRange.EndLine);
+
+        ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(content.Blocks[1]);
+        Assert.Equal(3, paragraph.LineRange.StartLine);
+        Assert.Equal(4, paragraph.LineRange.EndLine);
+
+        CodeBlock code = Assert.IsType<CodeBlock>(content.Blocks[2]);
+        Assert.Equal(6, code.LineRange.StartLine);
+        Assert.Equal(9, code.LineRange.EndLine);
+    }
+
+    [Fact]
+    public void Parse_LongParagraph_ReturnsAccurateLineRange()
+    {
+        string paragraphLines = string.Join("\n", Enumerable.Range(1, 20).Select(i => $"Line {i} of giant paragraph."));
+        string doc = $"# Heading\n\n{paragraphLines}";
+        MarkdownContent content = MarkdownParser.Parse(doc);
+
+        Assert.Equal(2, content.Blocks.Count);
+        ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(content.Blocks[1]);
+        Assert.Equal(3, paragraph.LineRange.StartLine);
+        Assert.Equal(22, paragraph.LineRange.EndLine);
+    }
+
+    [Fact]
+    public void Parse_SingleLineWrappedParagraph_PopulatesFullSourceSpanOffset()
+    {
+        string paragraphText = "This is a single logical line paragraph with huge length " + new string('x', 500);
+        string doc = $"# Heading\n\n{paragraphText}\n\nAnother paragraph.";
+        MarkdownContent content = MarkdownParser.Parse(doc);
+
+        Assert.Equal(3, content.Blocks.Count);
+        ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(content.Blocks[1]);
+        Assert.Equal(3, paragraph.SourceSpan.StartLine);
+        Assert.Equal(3, paragraph.SourceSpan.EndLine);
+        Assert.Equal(11, paragraph.SourceSpan.StartOffset);
+        Assert.True(paragraph.SourceSpan.EndOffset >= 11 + paragraphText.Length - 1);
+        Assert.True(paragraph.SourceSpan.Length >= paragraphText.Length);
+    }
+
     private static string FlattenText(System.Collections.Immutable.ImmutableList<MarkdownInline> inlines)
     {
         return string.Concat(inlines.Select(FlattenInline));

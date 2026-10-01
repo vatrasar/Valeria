@@ -158,7 +158,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         BrushSet brushes,
         Action<int, bool>? onTaskToggled)
     {
-        return block switch
+        Control control = block switch
         {
             HeadingBlock heading => BuildHeading(heading, theme, brushes),
             ParagraphBlock paragraph => BuildParagraph(paragraph, theme, brushes, theme.BodyFontSize),
@@ -171,6 +171,13 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
             HtmlBlock html => BuildHtml(html, theme),
             _ => new TextBlock()
         };
+
+        if (!block.SourceSpan.IsEmpty)
+            control.Tag = block.SourceSpan;
+        else if (!block.LineRange.IsEmpty)
+            control.Tag = block.LineRange;
+
+        return control;
     }
 
     private Control BuildHeading(HeadingBlock heading, ThemeResources theme, BrushSet brushes)
@@ -211,6 +218,11 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     private Control BuildCodeBlock(CodeBlock code, ThemeResources theme)
     {
         SelectableTextBlock text = CreateCodeText(code, theme);
+        if (!code.SourceSpan.IsEmpty)
+            text.Tag = code.SourceSpan;
+        else if (!code.LineRange.IsEmpty)
+            text.Tag = code.LineRange;
+
         _pendingTargets.Add(new CodeHighlightTarget(text, code.Language, code.Code.TrimEnd('\n')));
 
         Border header = CreateCodeHeader(code, theme);
@@ -411,6 +423,11 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         row.Children.Add(marker);
         row.Children.Add(content);
         content.Margin = new Thickness(10, 0, 0, 0);
+
+        if (!item.SourceSpan.IsEmpty)
+            row.Tag = item.SourceSpan;
+        else if (!item.LineRange.IsEmpty)
+            row.Tag = item.LineRange;
 
         return row;
     }

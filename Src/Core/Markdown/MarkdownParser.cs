@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Markdig;
@@ -19,6 +20,7 @@ public static class MarkdownParser
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
+        .UsePreciseSourceLocation()
         .Build();
 
     /// <summary>
@@ -31,44 +33,66 @@ public static class MarkdownParser
             return MarkdownContent.Empty;
 
         MdSyntax.MarkdownDocument document = Markdig.Markdown.Parse(markdown, Pipeline);
+        int[] lineOffsets = BuildLineOffsets(markdown);
 
         int taskIndex = 0;
 
-        return new MarkdownContent(ParseBlocks(document, ref taskIndex));
+        return new MarkdownContent(ParseBlocks(document, ref taskIndex, lineOffsets, markdown.Length));
     }
 
-    private static ImmutableList<MarkdownBlock> ParseBlocks(MdSyntax.ContainerBlock container, ref int taskIndex)
+    private static ImmutableList<MarkdownBlock> ParseBlocks(MdSyntax.ContainerBlock container, ref int taskIndex, int[] lineOffsets, int markdownLength)
     {
         ImmutableList<MarkdownBlock>.Builder builder = ImmutableList.CreateBuilder<MarkdownBlock>();
 
         foreach (MdSyntax.Block? block in container)
-            foreach (MarkdownBlock parsed in ParseBlock(block, ref taskIndex))
+            foreach (MarkdownBlock parsed in ParseBlock(block, ref taskIndex, lineOffsets, markdownLength))
                 builder.Add(parsed);
 
         return builder.ToImmutable();
     }
 
-    private static ImmutableList<MarkdownBlock> ParseBlock(MdSyntax.Block? block, ref int taskIndex)
+    private static ImmutableList<MarkdownBlock> ParseBlock(MdSyntax.Block? block, ref int taskIndex, int[] lineOffsets, int markdownLength)
     {
         return block switch
         {
             MdSyntax.HeadingBlock heading => ImmutableList.Create<MarkdownBlock>(
-                new HeadingBlock(NormalizeHeadingLevel(heading.Level), ParseInlines(heading.Inline))),
+                new HeadingBlock(NormalizeHeadingLevel(heading.Level), ParseInlines(heading.Inline))
+                {
+                    SourceSpan = ResolveSourceSpan(heading, lineOffsets, markdownLength)
+                }),
             MdSyntax.ParagraphBlock paragraph => ImmutableList.Create<MarkdownBlock>(
-                new ParagraphBlock(ParseInlines(paragraph.Inline))),
+                new ParagraphBlock(ParseInlines(paragraph.Inline))
+                {
+                    SourceSpan = ResolveSourceSpan(paragraph, lineOffsets, markdownLength)
+                }),
             MdSyntax.FencedCodeBlock fence => ImmutableList.Create<MarkdownBlock>(
-                new CodeBlock(NormalizeLanguage(fence.Info?.ToString()), fence.Lines.ToString())),
+                new CodeBlock(NormalizeLanguage(fence.Info?.ToString()), fence.Lines.ToString())
+                {
+                    SourceSpan = ResolveSourceSpan(fence, lineOffsets, markdownLength)
+                }),
             MdSyntax.CodeBlock code => ImmutableList.Create<MarkdownBlock>(
-                new CodeBlock(null, code.Lines.ToString())),
+                new CodeBlock(null, code.Lines.ToString())
+                {
+                    SourceSpan = ResolveSourceSpan(code, lineOffsets, markdownLength)
+                }),
             MdSyntax.QuoteBlock quote => ImmutableList.Create<MarkdownBlock>(
-                new QuoteBlock(ParseBlocks(quote, ref taskIndex))),
-            MdSyntax.ListBlock list => ImmutableList.Create<MarkdownBlock>(ParseList(list, ref taskIndex)),
-            MdTables.Table table => ImmutableList.Create<MarkdownBlock>(ParseTable(table)),
-            MdSyntax.ThematicBreakBlock => ImmutableList.Create<MarkdownBlock>(new ThematicBreakBlock()),
+                new QuoteBlock(ParseBlocks(quote, ref taskIndex, lineOffsets, markdownLength))
+                {
+                    SourceSpan = ResolveSourceSpan(quote, lineOffsets, markdownLength)
+                }),
+            MdSyntax.ListBlock list => ImmutableList.Create<MarkdownBlock>(ParseList(list, ref taskIndex, lineOffsets, markdownLength)),
+            MdTables.Table table => ImmutableList.Create<MarkdownBlock>(ParseTable(table, lineOffsets, markdownLength)),
+            MdSyntax.ThematicBreakBlock thematic => ImmutableList.Create<MarkdownBlock>(new ThematicBreakBlock
+            {
+                SourceSpan = ResolveSourceSpan(thematic, lineOffsets, markdownLength)
+            }),
             MdSyntax.HtmlBlock html => ImmutableList.Create<MarkdownBlock>(
-                new HtmlBlock(html.Lines.ToString())),
-            MdSyntax.LeafBlock leaf => ParseLeafFallback(leaf),
-            MdSyntax.ContainerBlock nested => ParseBlocks(nested, ref taskIndex),
+                new HtmlBlock(html.Lines.ToString())
+                {
+                    SourceSpan = ResolveSourceSpan(html, lineOffsets, markdownLength)
+                }),
+            MdSyntax.LeafBlock leaf => ParseLeafFallback(leaf, lineOffsets, markdownLength),
+            MdSyntax.ContainerBlock nested => ParseBlocks(nested, ref taskIndex, lineOffsets, markdownLength),
             _ => ImmutableList<MarkdownBlock>.Empty
         };
     }
@@ -93,7 +117,7 @@ public static class MarkdownParser
         return language.ToLowerInvariant();
     }
 
-    private static ImmutableList<MarkdownBlock> ParseLeafFallback(MdSyntax.LeafBlock leaf)
+    private static ImmutableList<MarkdownBlock> ParseLeafFallback(MdSyntax.LeafBlock leaf, int[] lineOffsets, int markdownLength)
     {
         string text = leaf.Lines.ToString();
 
@@ -101,20 +125,31 @@ public static class MarkdownParser
             return ImmutableList<MarkdownBlock>.Empty;
 
         return ImmutableList.Create<MarkdownBlock>(
-            new ParagraphBlock(ImmutableList.Create<MarkdownInline>(new TextRun(text))));
+            new ParagraphBlock(ImmutableList.Create<MarkdownInline>(new TextRun(text)))
+            {
+                SourceSpan = ResolveSourceSpan(leaf, lineOffsets, markdownLength)
+            });
     }
 
-    private static MarkdownBlock ParseList(MdSyntax.ListBlock list, ref int taskIndex)
+    private static MarkdownBlock ParseList(MdSyntax.ListBlock list, ref int taskIndex, int[] lineOffsets, int markdownLength)
     {
         ImmutableList<ListItemBlock>.Builder items = ImmutableList.CreateBuilder<ListItemBlock>();
 
         foreach (MdSyntax.ListItemBlock item in list.OfType<MdSyntax.ListItemBlock>())
-            items.Add(ParseListItem(item, ref taskIndex));
+            items.Add(ParseListItem(item, ref taskIndex, lineOffsets, markdownLength));
 
         if (list.IsOrdered)
-            return new OrderedListBlock(ParseOrderedStart(list.OrderedStart), items.ToImmutable());
+        {
+            return new OrderedListBlock(ParseOrderedStart(list.OrderedStart), items.ToImmutable())
+            {
+                SourceSpan = ResolveSourceSpan(list, lineOffsets, markdownLength)
+            };
+        }
 
-        return new BulletListBlock(items.ToImmutable());
+        return new BulletListBlock(items.ToImmutable())
+        {
+            SourceSpan = ResolveSourceSpan(list, lineOffsets, markdownLength)
+        };
     }
 
     private static int ParseOrderedStart(string? orderedStart)
@@ -125,30 +160,40 @@ public static class MarkdownParser
         return 1;
     }
 
-    private static ListItemBlock ParseListItem(MdSyntax.ListItemBlock item, ref int taskIndex)
+    private static ListItemBlock ParseListItem(MdSyntax.ListItemBlock item, ref int taskIndex, int[] lineOffsets, int markdownLength)
     {
         bool? isChecked = null;
         int? taskIndexForItem = null;
         ImmutableList<MarkdownBlock>.Builder blocks = ImmutableList.CreateBuilder<MarkdownBlock>();
 
         foreach (MdSyntax.Block? child in item)
-            foreach (MarkdownBlock parsed in ParseListItemChild(child, ref isChecked, ref taskIndexForItem, ref taskIndex))
+            foreach (MarkdownBlock parsed in ParseListItemChild(child, ref isChecked, ref taskIndexForItem, ref taskIndex, lineOffsets, markdownLength))
                 blocks.Add(parsed);
 
-        return new ListItemBlock(blocks.ToImmutable(), isChecked, taskIndexForItem);
+        return new ListItemBlock(blocks.ToImmutable(), isChecked, taskIndexForItem)
+        {
+            SourceSpan = ResolveSourceSpan(item, lineOffsets, markdownLength)
+        };
     }
 
     private static ImmutableList<MarkdownBlock> ParseListItemChild(
         MdSyntax.Block? child,
         ref bool? isChecked,
         ref int? taskIndexForItem,
-        ref int taskIndex)
+        ref int taskIndex,
+        int[] lineOffsets,
+        int markdownLength)
     {
         if (child is MdSyntax.ParagraphBlock paragraph)
+        {
             return ImmutableList.Create<MarkdownBlock>(
-                new ParagraphBlock(ParseItemParagraphInlines(paragraph, ref isChecked, ref taskIndexForItem, ref taskIndex)));
+                new ParagraphBlock(ParseItemParagraphInlines(paragraph, ref isChecked, ref taskIndexForItem, ref taskIndex))
+                {
+                    SourceSpan = ResolveSourceSpan(paragraph, lineOffsets, markdownLength)
+                });
+        }
 
-        return ParseBlock(child, ref taskIndex);
+        return ParseBlock(child, ref taskIndex, lineOffsets, markdownLength);
     }
 
     private static ImmutableList<MarkdownInline> ParseItemParagraphInlines(
@@ -181,7 +226,7 @@ public static class MarkdownParser
         return inlines.SetItem(0, first with { Text = trimmed });
     }
 
-    private static TableBlock ParseTable(MdTables.Table table)
+    private static TableBlock ParseTable(MdTables.Table table, int[] lineOffsets, int markdownLength)
     {
         ImmutableList<TableColumnAlignment> alignments = ParseColumnAlignments(table);
         ImmutableList<TableRow>.Builder rows = ImmutableList.CreateBuilder<TableRow>();
@@ -197,7 +242,10 @@ public static class MarkdownParser
                 rows.Add(parsed);
         }
 
-        return new TableBlock(header, rows.ToImmutable(), alignments);
+        return new TableBlock(header, rows.ToImmutable(), alignments)
+        {
+            SourceSpan = ResolveSourceSpan(table, lineOffsets, markdownLength)
+        };
     }
 
     private static ImmutableList<TableColumnAlignment> ParseColumnAlignments(MdTables.Table table)
@@ -323,5 +371,87 @@ public static class MarkdownParser
         return string.Concat(container
             .Descendants<MdInlines.LiteralInline>()
             .Select(literal => literal.Content.ToString()));
+    }
+
+    private static BlockSourceSpan ResolveSourceSpan(MdSyntax.Block? block, int[] lineOffsets, int markdownLength)
+    {
+        if (block is null || markdownLength <= 0)
+            return BlockSourceSpan.Empty;
+
+        int startOffset = block.Span.Start >= 0
+            ? Math.Clamp(block.Span.Start, 0, markdownLength - 1)
+            : ResolveFallbackStartOffset(block.Line, lineOffsets);
+
+        int startLine = GetLineNumber(startOffset, lineOffsets);
+        int endLineFromLeaf = ResolveLeafEndLine(block, startLine);
+        int endOffsetFromLine = ResolveLineEndOffset(endLineFromLeaf, lineOffsets, markdownLength);
+
+        int rawEndOffset = block.Span.End >= startOffset ? block.Span.End : endOffsetFromLine;
+        int endOffset = Math.Max(rawEndOffset, endOffsetFromLine);
+        endOffset = Math.Clamp(endOffset, startOffset, markdownLength - 1);
+
+        int endLine = Math.Max(startLine, GetLineNumber(endOffset, lineOffsets));
+
+        return new BlockSourceSpan(startOffset, endOffset, startLine, endLine);
+    }
+
+    private static int ResolveFallbackStartOffset(int lineZeroBased, int[] lineOffsets)
+    {
+        if (lineZeroBased < 0 || lineOffsets.Length == 0)
+            return 0;
+
+        int index = Math.Clamp(lineZeroBased, 0, lineOffsets.Length - 1);
+        return lineOffsets[index];
+    }
+
+    private static int ResolveLineEndOffset(int lineOneBased, int[] lineOffsets, int markdownLength)
+    {
+        if (lineOffsets.Length == 0 || markdownLength <= 0)
+            return 0;
+
+        if (lineOneBased >= lineOffsets.Length)
+            return markdownLength - 1;
+
+        int nextLineStart = lineOffsets[lineOneBased];
+        return Math.Max(0, nextLineStart - 1);
+    }
+
+    private static int ResolveLeafEndLine(MdSyntax.Block block, int startLine)
+    {
+        if (block is MdSyntax.LeafBlock leaf && leaf.Lines.Count > 0)
+            return startLine + leaf.Lines.Count - 1;
+
+        return startLine;
+    }
+
+    private static int[] BuildLineOffsets(string markdown)
+    {
+        List<int> offsets = [0];
+
+        for (int index = 0; index < markdown.Length; index++)
+            AppendNewlineOffset(markdown[index], index, offsets);
+
+        return offsets.ToArray();
+    }
+
+    private static void AppendNewlineOffset(char character, int index, List<int> offsets)
+    {
+        if (character == '\n')
+            offsets.Add(index + 1);
+    }
+
+    private static int GetLineNumber(int offset, int[] lineOffsets)
+    {
+        if (lineOffsets.Length == 0)
+            return 1;
+
+        int clampedOffset = Math.Clamp(offset, 0, int.MaxValue);
+        int index = Array.BinarySearch(lineOffsets, clampedOffset);
+
+        if (index >= 0)
+            return index + 1;
+
+        int insertionIndex = ~index;
+        return Math.Max(1, insertionIndex);
     }
 }

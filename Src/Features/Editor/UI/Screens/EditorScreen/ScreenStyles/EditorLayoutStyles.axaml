@@ -170,4 +170,44 @@
     <Setter Property="MinWidth" Value="40" />
     <Setter Property="TextAlignment" Value="Center" />
   </Style>
+
+  <Style Selector="SelectableTextBlock.sync-highlight">
+    <Style.Animations>
+      <Animation Duration="0:0:1.0">
+        <KeyFrame Cue="0%">
+          <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Background" Value="Transparent" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <Style Selector="Border.sync-highlight">
+    <Style.Animations>
+      <Animation Duration="0:0:1.0">
+        <KeyFrame Cue="0%">
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+          <Setter Property="Opacity" Value="0.6" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1.0" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <Style Selector="Panel.sync-highlight">
+    <Style.Animations>
+      <Animation Duration="0:0:1.0">
+        <KeyFrame Cue="0%">
+          <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Background" Value="Transparent" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
 </Styles>
