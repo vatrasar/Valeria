@@ -19,6 +19,23 @@ public sealed class MarkdownStatsTests
     {
         Assert.Equal(6, MarkdownStats.CountWords("# Title\n\nsome **bold** words here"));
     }
+
+    [Fact]
+    public void CountWords_VariousWhitespaceCombinations_ReturnsAccurateCount()
+    {
+        string text = "   word1 \t\n word2\r\n\tword3    word4\n";
+        Assert.Equal(4, MarkdownStats.CountWords(text));
+    }
+
+    [Fact]
+    public void CountWords_LargeDocument_CountsAccurately()
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < 5000; i++)
+            sb.AppendLine("one two three four five");
+
+        Assert.Equal(25000, MarkdownStats.CountWords(sb.ToString()));
+    }
 }
 
 public sealed class EditorFormattingTests

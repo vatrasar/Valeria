@@ -1,3 +1,5 @@
+using System;
+
 namespace Valeria.Src.Core.Markdown;
 
 /// <summary>
@@ -15,6 +17,28 @@ public static class MarkdownStats
         if (string.IsNullOrWhiteSpace(text))
             return 0;
 
-        return text.Split((char[]?)null, System.StringSplitOptions.RemoveEmptyEntries).Length;
+        ReadOnlySpan<char> span = text.AsSpan();
+        int count = 0;
+        bool inWord = false;
+
+        foreach (char character in span)
+            ProcessCharacter(character, ref count, ref inWord);
+
+        return count;
+    }
+
+    private static void ProcessCharacter(char character, ref int count, ref bool inWord)
+    {
+        if (char.IsWhiteSpace(character))
+        {
+            inWord = false;
+            return;
+        }
+
+        if (!inWord)
+        {
+            inWord = true;
+            count++;
+        }
     }
 }

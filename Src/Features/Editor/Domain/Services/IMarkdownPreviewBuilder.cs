@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls.Documents;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Features.Editor.Domain.Models;
@@ -20,6 +22,13 @@ public interface IMarkdownPreviewBuilder
     /// for asynchronous highlighting.
     /// </summary>
     PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null, string? baseDirectory = null);
+
+    /// <summary>
+    /// Asynchronously builds all preview blocks in batches, yielding control to the UI thread
+    /// so user input like scrolling the editor remains responsive on large documents.
+    /// Invoked by EditorViewModel preview refresh.
+    /// </summary>
+    Task<PreviewBuildResult> BuildBlocksAsync(MarkdownContent content, Action<int, bool>? onTaskToggled = null, string? baseDirectory = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies pre-tokenized spans onto a previously built code target.

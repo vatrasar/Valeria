@@ -548,19 +548,22 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                 : Path.GetDirectoryName(State.FilePath);
 
             PreviewBuildResult? built = null;
-            await RunOnUiThread(() =>
+            await RunOnUiThreadAsync(async () =>
             {
                 if (IsStale(cancellationToken, version))
                     return;
 
-                built = _previewBuilder.BuildBlocks(content, ToggleTask, baseDirectory);
+                built = await _previewBuilder.BuildBlocksAsync(content, ToggleTask, baseDirectory, cancellationToken);
+
+                if (IsStale(cancellationToken, version) || (built.Blocks.Count == 0 && content.Blocks.Count > 0))
+                    return;
 
                 UpdateState(state => state with
                 {
                     PreviewBlocks = ImmutableList.CreateRange(built.Blocks),
                     IsPreviewIdle = built.CodeTargets.Count == 0
                 });
-            });
+            }, DispatcherPriority.Background);
 
             if (built is null || IsStale(cancellationToken, version) || built.CodeTargets.Count == 0)
                 return;
@@ -578,7 +581,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                         return;
 
                     _previewBuilder.ApplyHighlight(target, lines);
-                });
+                }, DispatcherPriority.Background);
             }
 
             await RunOnUiThread(() =>
@@ -587,7 +590,7 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
                     return;
 
                 UpdateState(state => state with { IsPreviewIdle = true });
-            });
+            }, DispatcherPriority.Background);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -603,7 +606,23 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             return;
         }
 
-        await Dispatcher.UIThread.InvokeAsync(action);
+        await Dispatcher.UIThread.InvokeAsync(action, DispatcherPriority.Normal);
+    }
+
+    private static async Task RunOnUiThread(Action action, DispatcherPriority priority)
+    {
+        if (Dispatcher.UIThread.CheckAccess() && priority == DispatcherPriority.Normal)
+        {
+            action();
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(action, priority);
+    }
+
+    private static async Task RunOnUiThreadAsync(Func<Task> action, DispatcherPriority priority)
+    {
+        await Dispatcher.UIThread.InvokeAsync(action, priority);
     }
 
     private bool IsStale(CancellationToken cancellationToken, int version)

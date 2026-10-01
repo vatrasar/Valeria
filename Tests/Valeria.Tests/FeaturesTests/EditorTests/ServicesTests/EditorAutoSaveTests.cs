@@ -283,6 +283,15 @@ public sealed class EditorAutoSaveTests
             return new PreviewBuildResult(Array.Empty<Control>(), ImmutableList<CodeHighlightTarget>.Empty);
         }
 
+        public Task<PreviewBuildResult> BuildBlocksAsync(
+            MarkdownContent content,
+            Action<int, bool>? onTaskToggled = null,
+            string? baseDirectory = null,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(BuildBlocks(content, onTaskToggled, baseDirectory));
+        }
+
         public void ApplyHighlight(CodeHighlightTarget target, IReadOnlyList<HighlightedLine> lines)
         {
         }

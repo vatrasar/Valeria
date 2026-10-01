@@ -39,6 +39,50 @@ public sealed class MarkdownPreviewBuilderTests
 
 
     [Fact]
+    public async Task BuildBlocksAsync_LargeDocument_RendersAllBlocks()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < 120; i++)
+        {
+            sb.AppendLine($"Paragraph {i}");
+            sb.AppendLine();
+        }
+
+        MarkdownContent content = MarkdownParser.Parse(sb.ToString());
+
+        PreviewBuildResult result = await session.Dispatch(async () =>
+        {
+            return await _builder.BuildBlocksAsync(content);
+        }, CancellationToken.None);
+
+        Assert.Equal(120, result.Blocks.Count);
+    }
+
+    [Fact]
+    public async Task BuildBlocksAsync_WhenCancelled_ReturnsEmpty()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < 100; i++)
+        {
+            sb.AppendLine($"Paragraph {i}");
+            sb.AppendLine();
+        }
+
+        MarkdownContent content = MarkdownParser.Parse(sb.ToString());
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        PreviewBuildResult result = await session.Dispatch(async () =>
+        {
+            return await _builder.BuildBlocksAsync(content, cancellationToken: cts.Token);
+        }, CancellationToken.None);
+
+        Assert.Empty(result.Blocks);
+    }
+
+    [Fact]
     public async Task BuildBlocks_Link_RendersAsNativeSpanWithUrl()
     {
         (string? url, string textContent, bool hasUnderline) = await EvaluateAsync(() =>

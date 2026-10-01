@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -91,6 +92,50 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         IReadOnlyList<Control> blocks = content.Blocks.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
 
         return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
+    }
+
+    /// <summary>
+    /// Asynchronously builds all preview blocks in batches, yielding control to the UI thread
+    /// so user input like scrolling the editor remains responsive on large documents.
+    /// Code blocks are created as plain selectable text and collected for asynchronous highlighting.
+    /// Used by EditorViewModel preview refresh.
+    /// </summary>
+    public async Task<PreviewBuildResult> BuildBlocksAsync(
+        MarkdownContent content,
+        Action<int, bool>? onTaskToggled = null,
+        string? baseDirectory = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThemeResources theme = ThemeResources.Resolve();
+        BrushSet brushes = BrushSet.Default(theme);
+        _pendingTargets = [];
+        _currentBaseDirectory = baseDirectory;
+
+        const int batchSize = 40;
+        List<Control> blocks = new(content.Blocks.Count);
+
+        for (int index = 0; index < content.Blocks.Count; index++)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return new PreviewBuildResult([], ImmutableList<CodeHighlightTarget>.Empty);
+
+            blocks.Add(BuildBlock(content.Blocks[index], theme, brushes, onTaskToggled));
+
+            if (ShouldYield(index, content.Blocks.Count, batchSize))
+                await YieldToDispatcherAsync();
+        }
+
+        return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
+    }
+
+    private static bool ShouldYield(int index, int totalCount, int batchSize)
+    {
+        return (index + 1) % batchSize == 0 && index + 1 < totalCount;
+    }
+
+    private static async Task YieldToDispatcherAsync()
+    {
+        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
     }
 
     /// <summary>
