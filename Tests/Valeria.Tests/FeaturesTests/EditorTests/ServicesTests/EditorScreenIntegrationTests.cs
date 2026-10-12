@@ -991,6 +991,70 @@ public sealed class EditorScreenIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task DeletingListItemInSourceEditor_RenumbersSubsequentListItemsAutomatically()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+
+        try
+        {
+            (window, EditorViewModel editor) = await SetupEditorAsync(session);
+
+            string initialText = "1. First\n2. Second\n3. Third\n4. Fourth\n5. Fifth\n6. Sixth\n7. Seventh";
+
+            await session.Dispatch(() =>
+            {
+                EditorView view = RequireView(window);
+                TextEditor source = RequireSourceEditor(view);
+                source.Text = initialText;
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            await session.Dispatch(() =>
+            {
+                EditorView view = RequireView(window);
+                TextEditor source = RequireSourceEditor(view);
+                int offset = source.Document.Text.IndexOf("5. Fifth\n", StringComparison.Ordinal);
+                source.Document.Remove(offset, "5. Fifth\n".Length);
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            (string sourceText, string viewModelText) = await session.Dispatch(() =>
+            {
+                EditorView view = RequireView(window);
+                TextEditor source = RequireSourceEditor(view);
+                Dispatcher.UIThread.RunJobs();
+                return (source.Text, editor.State.MarkdownText);
+            }, CancellationToken.None);
+
+            const string expected = "1. First\n2. Second\n3. Third\n4. Fourth\n5. Sixth\n6. Seventh";
+            Assert.Equal(expected, sourceText);
+            Assert.Equal(expected, viewModelText);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public void EditorViewModel_RenumberOrderedListAfterDeletion_UpdatesState()
+    {
+        EditorViewModel editor = CreateEditorWithFile(string.Empty, string.Empty);
+        const string text = "1. A\n2. B\n3. C\n4. D\n6. F\n7. G";
+        editor.SetMarkdownText(text);
+        FormattingResult? result = editor.RenumberOrderedListAfterDeletion(text.IndexOf("6. F", StringComparison.Ordinal));
+
+        Assert.NotNull(result);
+        Assert.Equal("1. A\n2. B\n3. C\n4. D\n5. F\n6. G", editor.State.MarkdownText);
+    }
+
 
 
     private static EditorViewModel CreateEditorWithFile(string filePath, string content)

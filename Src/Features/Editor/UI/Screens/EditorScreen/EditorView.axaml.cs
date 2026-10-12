@@ -39,7 +39,8 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// dark preview with highlighted code blocks on the right.
 /// Available functionalities: open/save/save-as files, inline formatting
 /// (bold, italic, strike, code, link), block formatting (headings, lists,
-/// quote, code fence, table), Ctrl+Enter list continuation, editor panel
+/// quote, code fence, table), Ctrl+Enter list continuation, automatic renumbering of
+/// ordered lists when an item is deleted, editor panel
 /// toggle, two-way click-to-sync navigation between source editor and preview panel
 /// with intra-block character offset and line resolution and animated pulse highlights,
 /// automatic closing of markdown code fences, language suggestions
@@ -69,6 +70,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private Control? _currentHighlightedControl;
     private int _selectionPulseId;
     private CompletionWindow? _codeLanguageCompletionWindow;
+    private int _lastRemovalOffset = -1;
+    private bool _hasPendingDeletion;
+    private bool _isRenumberingList;
 
     public EditorView()
         : this(Locator.Current.GetService<IPreviewSearchService>() ?? new PreviewSearchService())
@@ -791,6 +795,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     private void TrackEditorChanges(CompositeDisposable disposables)
     {
+        SourceEditor.Document.Changing += OnDocumentChanging;
+        Disposable.Create(() => SourceEditor.Document.Changing -= OnDocumentChanging).DisposeWith(disposables);
+
         SourceEditor.TextChanged += OnSourceTextChanged;
         Disposable.Create(() => SourceEditor.TextChanged -= OnSourceTextChanged).DisposeWith(disposables);
 
@@ -798,12 +805,65 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         Disposable.Create(() => SourceEditor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged).DisposeWith(disposables);
     }
 
+    private void OnDocumentChanging(object? sender, DocumentChangeEventArgs eventArgs)
+    {
+        if (_syncingEditor || _isRenumberingList)
+            return;
+
+        if (eventArgs.RemovalLength <= 0)
+            return;
+
+        _lastRemovalOffset = eventArgs.Offset;
+        _hasPendingDeletion = true;
+    }
+
     private void OnSourceTextChanged(object? sender, EventArgs args)
     {
         if (_syncingEditor || ViewModel is null)
             return;
 
+        if (_hasPendingDeletion)
+        {
+            _hasPendingDeletion = false;
+            TryRenumberOrderedListsAfterDeletion(_lastRemovalOffset);
+        }
+
         ViewModel.SetMarkdownText(SourceEditor.Text ?? string.Empty);
+    }
+
+    private void TryRenumberOrderedListsAfterDeletion(int removalOffset)
+    {
+        if (removalOffset < 0 || SourceEditor.Document is null)
+            return;
+
+        string currentText = SourceEditor.Text ?? string.Empty;
+        IReadOnlyList<ListNumberAdjustment> adjustments =
+            EditorFormatting.GetOrderedListAdjustmentsAfterDeletion(currentText, removalOffset);
+
+        if (adjustments.Count == 0)
+            return;
+
+        ApplyListAdjustments(adjustments);
+    }
+
+    private void ApplyListAdjustments(IReadOnlyList<ListNumberAdjustment> adjustments)
+    {
+        _isRenumberingList = true;
+
+        try
+        {
+            for (int index = adjustments.Count - 1; index >= 0; index--)
+                ApplySingleAdjustment(adjustments[index]);
+        }
+        finally
+        {
+            _isRenumberingList = false;
+        }
+    }
+
+    private void ApplySingleAdjustment(ListNumberAdjustment adjustment)
+    {
+        SourceEditor.Document.Replace(adjustment.Offset, adjustment.Length, adjustment.NewNumber);
     }
 
     private void OnCaretPositionChanged(object? sender, EventArgs args)

@@ -335,6 +335,22 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         return result;
     }
 
+    /// <summary>
+    /// Renumbers subsequent ordered list items after an item has been deleted at the specified offset.
+    /// Invoked by EditorView or automated tests when an ordered list item is removed.
+    /// </summary>
+    public FormattingResult? RenumberOrderedListAfterDeletion(int offset)
+    {
+        FormattingResult? result = EditorFormatting.RenumberOrderedListAfterDeletion(State.MarkdownText, offset);
+
+        if (result is null)
+            return null;
+
+        SetMarkdownText(result.Text);
+
+        return result;
+    }
+
     [ReactiveCommand]
     private async Task OpenFile(CancellationToken cancellationToken)
     {
