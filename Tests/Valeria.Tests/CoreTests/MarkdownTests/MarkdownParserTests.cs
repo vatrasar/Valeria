@@ -199,6 +199,20 @@ public sealed class MarkdownParserTests
         Assert.True(paragraph.SourceSpan.Length >= paragraphText.Length);
     }
 
+    [Fact]
+    public void Parse_List_Spans()
+    {
+        string doc = "- item 1\n- item 2\n- item 3";
+        MarkdownContent content = MarkdownParser.Parse(doc);
+        BulletListBlock list = Assert.IsType<BulletListBlock>(content.Blocks[0]);
+
+        Assert.Equal(3, list.Items.Count);
+        Assert.Equal(1, list.Items[0].SourceSpan.StartLine);
+        Assert.Equal(2, list.Items[1].SourceSpan.StartLine);
+        Assert.Equal(3, list.Items[2].SourceSpan.StartLine);
+        Assert.Equal(0, list.Items[0].SourceSpan.StartOffset);
+    }
+
     private static string FlattenText(System.Collections.Immutable.ImmutableList<MarkdownInline> inlines)
     {
         return string.Concat(inlines.Select(FlattenInline));

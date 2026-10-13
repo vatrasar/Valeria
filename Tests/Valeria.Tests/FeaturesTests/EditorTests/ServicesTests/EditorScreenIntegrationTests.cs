@@ -640,6 +640,58 @@ public sealed class EditorScreenIntegrationTests
     }
 
     [Fact]
+    public async Task ClickInSourceEditor_OnListItem_HighlightsListItemInPreview()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+
+        try
+        {
+            (window, EditorViewModel editor) = await SetupEditorAsync(session);
+
+            string doc = "# Title\n\n- Item 1\n- Item 2\n- Item 3";
+
+            await session.Dispatch(() =>
+            {
+                editor.ToggleEditorCommand.Execute().Subscribe();
+                editor.SetMarkdownText(doc);
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            await Task.Delay(PreviewWaitMilliseconds);
+            await WaitForPreviewAsync(session, editor);
+
+            (bool rowHighlighted, string? highlightedTag) = await session.Dispatch(() =>
+            {
+                EditorView view = RequireView(window);
+                TextEditor source = RequireSourceEditor(view);
+
+                source.TextArea.Caret.Line = 4;
+                view.HandleEditorPointerReleased(4);
+                Dispatcher.UIThread.RunJobs();
+
+                Control? highlighted = view.GetVisualDescendants()
+                    .OfType<Control>()
+                    .FirstOrDefault(c => c.Classes.Contains("sync-highlight"));
+
+                return (highlighted is Grid, highlighted?.Tag?.ToString());
+            }, CancellationToken.None);
+
+            Assert.True(rowHighlighted);
+            Assert.NotNull(highlightedTag);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
+        }
+    }
+
+    [Fact]
     public async Task ClickInPreview_NavigatesEditorToMatchingLine()
     {
         HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
