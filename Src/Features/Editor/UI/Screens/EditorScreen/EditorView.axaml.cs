@@ -1,35 +1,23 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
-using AvaloniaEdit.CodeCompletion;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
+using ReactiveUI;
 using Splat;
 using Valeria.Src.Core.Markdown;
-using Valeria.Src.Features.Editor.Domain.Models;
 using Valeria.Src.Features.Editor.Domain.Services;
 using Valeria.Src.Features.Editor.Resources;
-using ReactiveUI;
 
 namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
@@ -64,15 +52,11 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     private const double EditorColumnMinWidth = 250;
 
-    private readonly IPreviewSearchService _searchService;
+    private readonly EditorSearchController _searchController;
+    private readonly EditorShortcutController _shortcutController;
+    private readonly EditorTextEditController _textEditController;
+    private readonly EditorScrollSyncController _scrollSyncController;
     private bool _syncingEditor;
-    private CancellationTokenSource? _highlightCts;
-    private Control? _currentHighlightedControl;
-    private int _selectionPulseId;
-    private CompletionWindow? _codeLanguageCompletionWindow;
-    private int _lastRemovalOffset = -1;
-    private bool _hasPendingDeletion;
-    private bool _isRenumberingList;
 
     public EditorView()
         : this(Locator.Current.GetService<IPreviewSearchService>() ?? new PreviewSearchService())
@@ -81,382 +65,79 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     public EditorView(IPreviewSearchService searchService)
     {
-        _searchService = searchService;
         InitializeComponent();
+
+        _searchController = new EditorSearchController(
+            PreviewSearchBar,
+            PreviewSearchTextBox,
+            SearchMatchCaseToggleButton,
+            SearchMatchCountLabel,
+            SearchPreviousButton,
+            SearchNextButton,
+            CloseSearchButton,
+            searchService,
+            () => ViewModel);
+
+        _shortcutController = new EditorShortcutController(
+            this,
+            SourceEditor,
+            EditorPane,
+            () => ViewModel,
+            _searchController,
+            ApplyInlineWrap);
+
+        _textEditController = new EditorTextEditController(
+            SourceEditor,
+            () => ViewModel,
+            ApplyResult);
+
+        _scrollSyncController = new EditorScrollSyncController(
+            SourceEditor,
+            PreviewScroller,
+            PreviewBlocksControl,
+            () => ViewModel);
 
         this.WhenActivated(disposables =>
         {
             FilesDockControl.ViewModel = ViewModel?.FilesDock;
-            RegisterDialogAnchor();
-            RegisterWindowShortcuts(disposables);
+            ViewModel?.SetTopLevelProvider(() => TopLevel.GetTopLevel(this));
+
+            _shortcutController.Attach(disposables);
+            _searchController.Attach(disposables);
+            _textEditController.Attach(disposables);
+            _scrollSyncController.Attach(disposables);
+
             ConfigureSourceEditor(disposables);
-            InterceptListContinuation(disposables);
-            InterceptAutoClosingCharacters(disposables);
-            InterceptCodeLanguageCompletion(disposables);
             BindPreview(disposables);
-            BindPreviewSearch(disposables);
             BindStatusBar(disposables);
             BindFileCommands(disposables);
             TrackFormattingButtons(disposables);
-            TrackEditorChanges(disposables);
-            SetupClickSynchronization(disposables);
 
             _ = ViewModel?.InitializeAsync(default);
         });
     }
 
-    private void RegisterWindowShortcuts(CompositeDisposable disposables)
+    internal void HandleEditorPointerReleased(int caretLineOrOffset)
     {
-        TopLevel? topLevel = TopLevel.GetTopLevel(this);
-
-        if (topLevel is not null)
-        {
-            AttachTopLevelShortcuts(topLevel, disposables);
-            return;
-        }
-
-        void OnAttached(object? sender, VisualTreeAttachmentEventArgs args)
-        {
-            AttachedToVisualTree -= OnAttached;
-            TopLevel? attached = TopLevel.GetTopLevel(this);
-            if (attached is not null)
-                AttachTopLevelShortcuts(attached, disposables);
-        }
-
-        AttachedToVisualTree += OnAttached;
-        Disposable.Create(() => AttachedToVisualTree -= OnAttached).DisposeWith(disposables);
+        _scrollSyncController.HandleEditorPointerReleased(caretLineOrOffset);
     }
 
-    private void AttachTopLevelShortcuts(TopLevel topLevel, CompositeDisposable disposables)
+    internal void HandlePreviewBlockClicked(Control clickedControl, BlockLineRange range, Point positionInBlock)
     {
-        topLevel.AddHandler(InputElement.KeyDownEvent, OnTopLevelKeyDown, RoutingStrategies.Tunnel);
-        Disposable.Create(() => topLevel.RemoveHandler(InputElement.KeyDownEvent, OnTopLevelKeyDown)).DisposeWith(disposables);
+        _scrollSyncController.HandlePreviewBlockClicked(clickedControl, range, positionInBlock);
     }
 
-    private void OnTopLevelKeyDown(object? sender, KeyEventArgs keyEvent)
+    internal void HandlePreviewBlockClicked(Control clickedControl, BlockSourceSpan span, Point positionInBlock)
     {
-        if (ViewModel is null || keyEvent.Handled)
-            return;
-
-        ProcessShortcutKeyEvent(keyEvent);
+        _scrollSyncController.HandlePreviewBlockClicked(clickedControl, span, positionInBlock);
     }
 
     protected override void OnKeyDown(KeyEventArgs keyEvent)
     {
-        if (ViewModel is null)
-        {
-            base.OnKeyDown(keyEvent);
-            return;
-        }
-
-        ProcessShortcutKeyEvent(keyEvent);
+        _shortcutController.ProcessShortcutKeyEvent(keyEvent);
 
         if (!keyEvent.Handled)
             base.OnKeyDown(keyEvent);
-    }
-
-    private void ProcessShortcutKeyEvent(KeyEventArgs keyEvent)
-    {
-        if (keyEvent.Handled || ViewModel is null)
-            return;
-
-        bool control = keyEvent.KeyModifiers.HasFlag(KeyModifiers.Control);
-        bool shift = keyEvent.KeyModifiers.HasFlag(KeyModifiers.Shift);
-
-        if (control && shift && keyEvent.Key == Key.S)
-        {
-            ExecuteSaveAs();
-            keyEvent.Handled = true;
-            return;
-        }
-
-        if (control && keyEvent.Key == Key.F)
-        {
-            if (CanOpenPreviewSearch())
-            {
-                OpenOrFocusPreviewSearch();
-                keyEvent.Handled = true;
-            }
-            return;
-        }
-
-        if (keyEvent.Key == Key.Escape && ViewModel.State.IsPreviewSearchOpen)
-        {
-            ViewModel.ClosePreviewSearchCommand.Execute().Subscribe();
-            keyEvent.Handled = true;
-            return;
-        }
-
-        if (keyEvent.Key == Key.F3 && ViewModel.State.IsPreviewSearchOpen)
-        {
-            if (shift)
-                ExecutePreviousSearchMatch();
-            else
-                ExecuteNextSearchMatch();
-
-            keyEvent.Handled = true;
-            return;
-        }
-
-        if (control)
-            HandleControlShortcut(keyEvent);
-    }
-
-    private void HandleControlShortcut(KeyEventArgs keyEvent)
-    {
-        if (ViewModel is null)
-            return;
-
-        switch (keyEvent.Key)
-        {
-            case Key.O:
-                ViewModel.OpenFileCommand.Execute().Subscribe();
-                keyEvent.Handled = true;
-                break;
-            case Key.S:
-                ViewModel.SaveFileCommand.Execute().Subscribe();
-                keyEvent.Handled = true;
-                break;
-            case Key.E:
-            case Key.P:
-                ViewModel.ToggleEditorCommand.Execute().Subscribe();
-                keyEvent.Handled = true;
-                break;
-            case Key.B:
-                ApplyInlineWrap("**", EditorStrings.PlaceholderBoldText);
-                keyEvent.Handled = true;
-                break;
-            case Key.I:
-                ApplyInlineWrap("*", EditorStrings.PlaceholderItalicText);
-                keyEvent.Handled = true;
-                break;
-            case Key.OemComma:
-                ViewModel.NavigateToSettingsCommand.Execute().Subscribe();
-                keyEvent.Handled = true;
-                break;
-        }
-    }
-
-    private void ExecuteSaveAs()
-    {
-        ViewModel?.SaveFileAsCommand.Execute().Subscribe();
-    }
-
-    private void RegisterDialogAnchor()
-    {
-        ViewModel?.SetTopLevelProvider(() => TopLevel.GetTopLevel(this));
-    }
-
-    private void InterceptListContinuation(CompositeDisposable disposables)
-    {
-        AddHandler(InputElement.KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
-        Disposable.Create(() => RemoveHandler(InputElement.KeyDownEvent, OnPreviewKeyDown)).DisposeWith(disposables);
-    }
-
-    private void InterceptAutoClosingCharacters(CompositeDisposable disposables)
-    {
-        AddHandler(InputElement.TextInputEvent, OnPreviewTextInput, RoutingStrategies.Tunnel);
-        Disposable.Create(() => RemoveHandler(InputElement.TextInputEvent, OnPreviewTextInput)).DisposeWith(disposables);
-    }
-
-    private void InterceptCodeLanguageCompletion(CompositeDisposable disposables)
-    {
-        SourceEditor.TextArea.TextEntering += OnTextEntering;
-        Disposable.Create(() => SourceEditor.TextArea.TextEntering -= OnTextEntering).DisposeWith(disposables);
-        Disposable.Create(CloseCodeLanguageCompletion).DisposeWith(disposables);
-    }
-
-    private void OnTextEntering(object? sender, TextInputEventArgs textEvent)
-    {
-        if (_codeLanguageCompletionWindow is null || string.IsNullOrEmpty(textEvent.Text))
-            return;
-
-        if (!IsLanguageIdentifierCharacter(textEvent.Text[0]))
-            _codeLanguageCompletionWindow.CompletionList.RequestInsertion(textEvent);
-    }
-
-    private void OnPreviewKeyDown(object? sender, KeyEventArgs keyEvent)
-    {
-        if (ViewModel is null)
-            return;
-
-        bool isCtrlEnter = keyEvent.KeyModifiers.HasFlag(KeyModifiers.Control)
-                           && !keyEvent.KeyModifiers.HasFlag(KeyModifiers.Shift)
-                           && keyEvent.Key is Key.Return or Key.Enter;
-
-        if (!isCtrlEnter)
-            return;
-
-        FormattingResult? result = ViewModel.ContinueList(SourceEditor.CaretOffset);
-
-        if (result is null)
-            return;
-
-        ApplyResult(result);
-        keyEvent.Handled = true;
-    }
-
-    private void OnPreviewTextInput(object? sender, TextInputEventArgs textInputEvent)
-    {
-        if (textInputEvent.Handled || textInputEvent.Text is not { Length: 1 } inputText)
-            return;
-
-        char inputCharacter = inputText[0];
-
-        if (inputCharacter == '`' && TrySkipExistingCodeFence())
-        {
-            textInputEvent.Handled = true;
-            return;
-        }
-
-        if (inputCharacter == '`' && TryCompleteCodeFence())
-        {
-            ShowCodeLanguageCompletion();
-            textInputEvent.Handled = true;
-            return;
-        }
-
-        if (TrySkipExistingClosingCharacter(inputCharacter))
-        {
-            textInputEvent.Handled = true;
-            return;
-        }
-
-        char? closingCharacter = GetClosingCharacter(inputCharacter);
-
-        if (closingCharacter is null)
-            return;
-
-        InsertPairedCharacters(inputCharacter, closingCharacter.Value);
-        textInputEvent.Handled = true;
-    }
-
-    private bool TrySkipExistingClosingCharacter(char inputCharacter)
-    {
-        if (!IsClosingCharacter(inputCharacter) || SourceEditor.SelectionLength != 0)
-            return false;
-
-        int caretOffset = SourceEditor.CaretOffset;
-        string documentText = SourceEditor.Text ?? string.Empty;
-
-        if (caretOffset >= documentText.Length || documentText[caretOffset] != inputCharacter)
-            return false;
-
-        SourceEditor.CaretOffset++;
-        return true;
-    }
-
-    private void ShowCodeLanguageCompletion()
-    {
-        CloseCodeLanguageCompletion();
-
-        if (ViewModel is null || ViewModel.CodeLanguageSuggestions.Count == 0)
-            return;
-
-        CompletionWindow completionWindow = new(SourceEditor.TextArea)
-        {
-            StartOffset = SourceEditor.CaretOffset,
-            EndOffset = SourceEditor.CaretOffset
-        };
-
-        foreach (CodeLanguageSuggestion suggestion in ViewModel.CodeLanguageSuggestions)
-            completionWindow.CompletionList.CompletionData.Add(new CodeLanguageCompletionData(suggestion));
-        completionWindow.Closed += OnCodeLanguageCompletionClosed;
-        _codeLanguageCompletionWindow = completionWindow;
-        completionWindow.Show();
-    }
-
-    private void OnCodeLanguageCompletionClosed(object? sender, EventArgs args)
-    {
-        if (sender is CompletionWindow completionWindow)
-            completionWindow.Closed -= OnCodeLanguageCompletionClosed;
-
-        _codeLanguageCompletionWindow = null;
-    }
-
-    private void CloseCodeLanguageCompletion()
-    {
-        _codeLanguageCompletionWindow?.Close();
-        _codeLanguageCompletionWindow = null;
-    }
-
-    private static bool IsLanguageIdentifierCharacter(char character)
-    {
-        return char.IsLetterOrDigit(character) || character is '#' or '+' or '-';
-    }
-
-    private bool TryCompleteCodeFence()
-    {
-        if (SourceEditor.SelectionLength != 0)
-            return false;
-
-        int caretOffset = SourceEditor.CaretOffset;
-        string documentText = SourceEditor.Text ?? string.Empty;
-
-        if (caretOffset < 2
-            || documentText[caretOffset - 1] != '`'
-            || documentText[caretOffset - 2] != '`'
-            || caretOffset >= 3 && documentText[caretOffset - 3] == '`')
-            return false;
-
-        const string codeFence = "```";
-        SourceEditor.Document.Replace(caretOffset - 2, 2, string.Concat(codeFence, codeFence));
-        SourceEditor.CaretOffset = caretOffset + 1;
-        return true;
-    }
-
-    private bool TrySkipExistingCodeFence()
-    {
-        if (SourceEditor.SelectionLength != 0)
-            return false;
-
-        int caretOffset = SourceEditor.CaretOffset;
-        string documentText = SourceEditor.Text ?? string.Empty;
-
-        if (caretOffset + 2 >= documentText.Length
-            || documentText[caretOffset] != '`'
-            || documentText[caretOffset + 1] != '`'
-            || documentText[caretOffset + 2] != '`')
-            return false;
-
-        SourceEditor.CaretOffset += 3;
-        return true;
-    }
-
-    private void InsertPairedCharacters(char openingCharacter, char closingCharacter)
-    {
-        int selectionStart = SourceEditor.SelectionStart;
-        int selectionLength = SourceEditor.SelectionLength;
-        string selectedText = selectionLength == 0 ? string.Empty : SourceEditor.SelectedText;
-        string pairedText = string.Concat(openingCharacter, selectedText, closingCharacter);
-
-        SourceEditor.Document.Replace(selectionStart, selectionLength, pairedText);
-
-        if (selectionLength == 0)
-        {
-            SourceEditor.CaretOffset = selectionStart + 1;
-            return;
-        }
-
-        SourceEditor.Select(selectionStart + 1, selectionLength);
-    }
-
-    private static char? GetClosingCharacter(char openingCharacter)
-    {
-        return openingCharacter switch
-        {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '"' => '"',
-            '\'' => '\'',
-            _ => null
-        };
-    }
-
-    private static bool IsClosingCharacter(char character)
-    {
-        return character is ')' or ']' or '}' or '"' or '\'';
     }
 
     private void ConfigureSourceEditor(CompositeDisposable disposables)
@@ -475,6 +156,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         SourceEditor.SyntaxHighlighting = LoadMarkdownHighlighting();
         PreviewBlocksControl.MaxWidth = ViewModel?.PreviewMaxWidth ?? 860;
 
+        SourceEditor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
+        Disposable.Create(() => SourceEditor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged).DisposeWith(disposables);
+
         this.WhenAnyValue(view => view.ViewModel!.State.EditorFontSize)
             .Where(fontSize => fontSize > 0)
             .Subscribe(Observer.Create<double>(fontSize => SourceEditor.FontSize = fontSize))
@@ -484,6 +168,11 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             .Where(tabWidth => tabWidth > 0)
             .Subscribe(Observer.Create<int>(tabWidth => SourceEditor.Options.IndentationSize = tabWidth))
             .DisposeWith(disposables);
+    }
+
+    private void OnCaretPositionChanged(object? sender, EventArgs args)
+    {
+        ViewModel?.UpdateCaret(SourceEditor.TextArea.Caret.Line, SourceEditor.TextArea.Caret.Column);
     }
 
     private static IHighlightingDefinition? LoadMarkdownHighlighting()
@@ -522,202 +211,6 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<string>(SyncEditorText))
             .DisposeWith(disposables);
-    }
-
-    private void BindPreviewSearch(CompositeDisposable disposables)
-    {
-        this.BindCommand(ViewModel, vm => vm.ClosePreviewSearchCommand, v => v.CloseSearchButton);
-        this.BindCommand(ViewModel, vm => vm.TogglePreviewSearchMatchCaseCommand, v => v.SearchMatchCaseToggleButton);
-
-        TrackClick(SearchNextButton, (_, _) => ExecuteNextSearchMatch(), disposables);
-        TrackClick(SearchPreviousButton, (_, _) => ExecutePreviousSearchMatch(), disposables);
-
-        PreviewSearchTextBox.KeyDown += OnPreviewSearchKeyDown;
-        Disposable.Create(() => PreviewSearchTextBox.KeyDown -= OnPreviewSearchKeyDown).DisposeWith(disposables);
-
-        PreviewSearchTextBox.GetObservable(TextBox.TextProperty)
-            .Skip(1)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(Observer.Create<string?>(OnPreviewSearchTextChanged))
-            .DisposeWith(disposables);
-
-        this.WhenAnyValue(view => view.ViewModel!.State.IsPreviewSearchOpen)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(Observer.Create<bool>(OnPreviewSearchOpenChanged))
-            .DisposeWith(disposables);
-
-        this.WhenAnyValue(view => view.ViewModel!.State.PreviewSearchQuery)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(Observer.Create<string>(OnPreviewSearchQueryChanged))
-            .DisposeWith(disposables);
-
-        this.WhenAnyValue(view => view.ViewModel!.State.PreviewSearchMatchCase)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(Observer.Create<bool>(OnPreviewSearchMatchCaseChanged))
-            .DisposeWith(disposables);
-
-        this.WhenAnyValue(view => view.ViewModel!.State.PreviewBlocks)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(Observer.Create<ImmutableList<Control>>(OnPreviewBlocksChangedForSearch))
-            .DisposeWith(disposables);
-    }
-
-    private void OnPreviewSearchKeyDown(object? sender, KeyEventArgs keyEvent)
-    {
-        if (ViewModel is null)
-            return;
-
-        if (keyEvent.Key is Key.Return or Key.Enter)
-        {
-            if (keyEvent.KeyModifiers.HasFlag(KeyModifiers.Shift))
-                ExecutePreviousSearchMatch();
-            else
-                ExecuteNextSearchMatch();
-
-            keyEvent.Handled = true;
-        }
-        else if (keyEvent.Key == Key.Escape)
-        {
-            ViewModel.ClosePreviewSearchCommand.Execute().Subscribe();
-            keyEvent.Handled = true;
-        }
-    }
-
-    private void OnPreviewSearchTextChanged(string? text)
-    {
-        if (ViewModel is null)
-            return;
-
-        string currentText = text ?? string.Empty;
-
-        if (ViewModel.State.PreviewSearchQuery != currentText)
-        {
-            ViewModel.SetPreviewSearchQuery(currentText);
-            PerformPreviewSearch();
-        }
-    }
-
-    private void OnPreviewSearchOpenChanged(bool isOpen)
-    {
-        PreviewSearchBar.IsVisible = isOpen;
-
-        if (isOpen)
-        {
-            PreviewSearchTextBox.Focus();
-            PreviewSearchTextBox.SelectAll();
-            PerformPreviewSearch();
-            return;
-        }
-
-        _searchService.Clear();
-        UpdateSearchMatchCountLabel(string.Empty, 0, 0);
-    }
-
-    private void OnPreviewSearchQueryChanged(string query)
-    {
-        if (PreviewSearchTextBox.Text != query)
-            PreviewSearchTextBox.Text = query;
-
-        PerformPreviewSearch();
-    }
-
-    private void OnPreviewSearchMatchCaseChanged(bool matchCase)
-    {
-        SearchMatchCaseToggleButton.IsChecked = matchCase;
-        PerformPreviewSearch();
-    }
-
-    private void OnPreviewBlocksChangedForSearch(ImmutableList<Control> blocks)
-    {
-        if (ViewModel?.State.IsPreviewSearchOpen == true)
-            PerformPreviewSearch();
-    }
-
-    private void PerformPreviewSearch()
-    {
-        if (ViewModel is null)
-            return;
-
-        if (!ViewModel.State.IsPreviewSearchOpen)
-        {
-            _searchService.Clear();
-            return;
-        }
-
-        string query = ViewModel.State.PreviewSearchQuery;
-        bool matchCase = ViewModel.State.PreviewSearchMatchCase;
-        IEnumerable<Control> blocks = ViewModel.State.PreviewBlocks;
-
-        PreviewSearchResult result = _searchService.Search(blocks, query, matchCase);
-        ViewModel.UpdatePreviewSearchResults(result.CurrentMatchIndex, result.TotalMatches);
-        UpdateSearchMatchCountLabel(query, result.CurrentMatchIndex, result.TotalMatches);
-    }
-
-    private void ExecuteNextSearchMatch()
-    {
-        if (ViewModel is null)
-            return;
-
-        PreviewSearchResult result = _searchService.NavigateNext();
-        ViewModel.UpdatePreviewSearchResults(result.CurrentMatchIndex, result.TotalMatches);
-        UpdateSearchMatchCountLabel(ViewModel.State.PreviewSearchQuery, result.CurrentMatchIndex, result.TotalMatches);
-    }
-
-    private void ExecutePreviousSearchMatch()
-    {
-        if (ViewModel is null)
-            return;
-
-        PreviewSearchResult result = _searchService.NavigatePrevious();
-        ViewModel.UpdatePreviewSearchResults(result.CurrentMatchIndex, result.TotalMatches);
-        UpdateSearchMatchCountLabel(ViewModel.State.PreviewSearchQuery, result.CurrentMatchIndex, result.TotalMatches);
-    }
-
-    private void UpdateSearchMatchCountLabel(string query, int currentIndex, int totalMatches)
-    {
-        if (string.IsNullOrEmpty(query))
-        {
-            SearchMatchCountLabel.Text = string.Empty;
-            return;
-        }
-
-        if (totalMatches == 0)
-        {
-            SearchMatchCountLabel.Text = EditorStrings.NoMatches;
-            return;
-        }
-
-        SearchMatchCountLabel.Text = string.Format(EditorStrings.MatchCountFormat, currentIndex, totalMatches);
-    }
-
-    private void OpenOrFocusPreviewSearch()
-    {
-        if (ViewModel is null)
-            return;
-
-        if (!ViewModel.State.IsPreviewSearchOpen)
-        {
-            ViewModel.OpenPreviewSearchCommand.Execute().Subscribe();
-            return;
-        }
-
-        PreviewSearchTextBox.Focus();
-        PreviewSearchTextBox.SelectAll();
-    }
-
-    private bool CanOpenPreviewSearch()
-    {
-        bool isEditorVisible = EditorPane.IsVisible && SourceEditor.IsVisible;
-        bool isEditorFocused = isEditorVisible && (SourceEditor.IsFocused || SourceEditor.TextArea.IsFocused);
-
-        return !isEditorFocused;
-    }
-
-    private bool IsEditorAreaFocused()
-    {
-        bool isEditorVisible = EditorPane.IsVisible && SourceEditor.IsVisible;
-
-        return isEditorVisible && (SourceEditor.IsFocused || SourceEditor.TextArea.IsFocused);
     }
 
     private void SetEditorVisibility(bool visible)
@@ -791,84 +284,6 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     {
         button.Click += handler;
         Disposable.Create(() => button.Click -= handler).DisposeWith(disposables);
-    }
-
-    private void TrackEditorChanges(CompositeDisposable disposables)
-    {
-        SourceEditor.Document.Changing += OnDocumentChanging;
-        Disposable.Create(() => SourceEditor.Document.Changing -= OnDocumentChanging).DisposeWith(disposables);
-
-        SourceEditor.TextChanged += OnSourceTextChanged;
-        Disposable.Create(() => SourceEditor.TextChanged -= OnSourceTextChanged).DisposeWith(disposables);
-
-        SourceEditor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
-        Disposable.Create(() => SourceEditor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged).DisposeWith(disposables);
-    }
-
-    private void OnDocumentChanging(object? sender, DocumentChangeEventArgs eventArgs)
-    {
-        if (_syncingEditor || _isRenumberingList)
-            return;
-
-        if (eventArgs.RemovalLength <= 0)
-            return;
-
-        _lastRemovalOffset = eventArgs.Offset;
-        _hasPendingDeletion = true;
-    }
-
-    private void OnSourceTextChanged(object? sender, EventArgs args)
-    {
-        if (_syncingEditor || ViewModel is null)
-            return;
-
-        if (_hasPendingDeletion)
-        {
-            _hasPendingDeletion = false;
-            TryRenumberOrderedListsAfterDeletion(_lastRemovalOffset);
-        }
-
-        ViewModel.SetMarkdownText(SourceEditor.Text ?? string.Empty);
-    }
-
-    private void TryRenumberOrderedListsAfterDeletion(int removalOffset)
-    {
-        if (removalOffset < 0 || SourceEditor.Document is null)
-            return;
-
-        string currentText = SourceEditor.Text ?? string.Empty;
-        IReadOnlyList<ListNumberAdjustment> adjustments =
-            EditorFormatting.GetOrderedListAdjustmentsAfterDeletion(currentText, removalOffset);
-
-        if (adjustments.Count == 0)
-            return;
-
-        ApplyListAdjustments(adjustments);
-    }
-
-    private void ApplyListAdjustments(IReadOnlyList<ListNumberAdjustment> adjustments)
-    {
-        _isRenumberingList = true;
-
-        try
-        {
-            for (int index = adjustments.Count - 1; index >= 0; index--)
-                ApplySingleAdjustment(adjustments[index]);
-        }
-        finally
-        {
-            _isRenumberingList = false;
-        }
-    }
-
-    private void ApplySingleAdjustment(ListNumberAdjustment adjustment)
-    {
-        SourceEditor.Document.Replace(adjustment.Offset, adjustment.Length, adjustment.NewNumber);
-    }
-
-    private void OnCaretPositionChanged(object? sender, EventArgs args)
-    {
-        ViewModel?.UpdateCaret(SourceEditor.TextArea.Caret.Line, SourceEditor.TextArea.Caret.Column);
     }
 
     private void ApplyInlineWrap(string marker, string placeholder)
@@ -973,564 +388,5 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             return family;
 
         return FontFamily.Default;
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _highlightCts?.Cancel();
-        _highlightCts?.Dispose();
-        _highlightCts = null;
-    }
-
-    private void SetupClickSynchronization(CompositeDisposable disposables)
-    {
-        SourceEditor.TextArea.AddHandler(InputElement.PointerReleasedEvent, OnEditorPointerReleased, RoutingStrategies.Bubble, handledEventsToo: true);
-        PreviewScroller.AddHandler(InputElement.PointerPressedEvent, OnPreviewPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
-
-        Disposable.Create(() =>
-        {
-            SourceEditor.TextArea.RemoveHandler(InputElement.PointerReleasedEvent, OnEditorPointerReleased);
-            PreviewScroller.RemoveHandler(InputElement.PointerPressedEvent, OnPreviewPointerPressed);
-        }).DisposeWith(disposables);
-    }
-
-    private void OnEditorPointerReleased(object? sender, PointerReleasedEventArgs args)
-    {
-        int caretOffset = SourceEditor.CaretOffset;
-        SyncPreviewToOffset(caretOffset);
-    }
-
-    internal void HandleEditorPointerReleased(int caretLineOrOffset)
-    {
-        if (SourceEditor.Document is not null && caretLineOrOffset >= 1 && caretLineOrOffset <= SourceEditor.Document.LineCount)
-        {
-            int offset = SourceEditor.Document.GetLineByNumber(caretLineOrOffset).Offset;
-            SyncPreviewToOffset(offset);
-            return;
-        }
-
-        SyncPreviewToOffset(caretLineOrOffset);
-    }
-
-    private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs args)
-    {
-        if (args.Source is not Visual sourceVisual || IsInteractiveChild(sourceVisual) || IsWithinSearchPane(sourceVisual))
-            return;
-
-        (Control? clickedControl, BlockSourceSpan span) = FindClickedBlock(sourceVisual);
-
-        if (clickedControl is null || span.IsEmpty)
-            (clickedControl, span) = ResolveBlockFromPreviewCoordinates(args);
-
-        if (clickedControl is null || span.IsEmpty)
-            return;
-
-        Point position = args.GetPosition(clickedControl);
-        HandlePreviewBlockClicked(clickedControl, span, position);
-    }
-
-    internal void HandlePreviewBlockClicked(Control clickedControl, BlockLineRange range, Point positionInBlock)
-    {
-        BlockSourceSpan span = TryGetBlockSpan(clickedControl, out BlockSourceSpan resolved)
-            ? resolved
-            : new BlockSourceSpan(0, 0, range.StartLine, range.EndLine);
-
-        HandlePreviewBlockClicked(clickedControl, span, positionInBlock);
-    }
-
-    internal void HandlePreviewBlockClicked(Control clickedControl, BlockSourceSpan span, Point positionInBlock)
-    {
-        int targetOffset = CalculateIntraBlockOffset(clickedControl, span, positionInBlock);
-        JumpEditorToOffset(targetOffset, span);
-        ApplyPreviewHighlight(clickedControl);
-    }
-
-    private int CalculateIntraBlockOffset(Control control, BlockSourceSpan span, Point clickPosition)
-    {
-        int docLength = Math.Max(0, SourceEditor.Document?.TextLength ?? 0);
-        if (span.IsEmpty || docLength == 0)
-            return 0;
-
-        if (span.StartOffset >= 0 && span.EndOffset >= span.StartOffset && span.StartOffset <= docLength)
-            return CalculateSpanOffset(control, span, clickPosition, docLength);
-
-        return ResolveFallbackLineOffset(span, control, clickPosition, docLength);
-    }
-
-    private static int CalculateSpanOffset(Control control, BlockSourceSpan span, Point clickPosition, int docLength)
-    {
-        double height = control.Bounds.Height;
-        if (height <= 36 || span.EndOffset <= span.StartOffset)
-            return Math.Clamp(span.StartOffset, 0, docLength);
-
-        double fraction = Math.Clamp(clickPosition.Y / height, 0.0, 1.0);
-        int computedOffset = span.StartOffset + (int)Math.Round(fraction * (span.EndOffset - span.StartOffset));
-        return Math.Clamp(computedOffset, 0, docLength);
-    }
-
-    private int ResolveFallbackLineOffset(BlockSourceSpan span, Control control, Point clickPosition, int docLength)
-    {
-        if (SourceEditor.Document is null || SourceEditor.Document.LineCount == 0)
-            return 0;
-
-        int maxLine = SourceEditor.Document.LineCount;
-        double height = control.Bounds.Height;
-        double fraction = height > 0 ? Math.Clamp(clickPosition.Y / height, 0.0, 1.0) : 0.0;
-        int computedLine = span.StartLine + (int)Math.Round(fraction * (span.EndLine - span.StartLine));
-        int clampedLine = Math.Clamp(computedLine, 1, maxLine);
-
-        return SourceEditor.Document.GetLineByNumber(clampedLine).Offset;
-    }
-
-    private void JumpEditorToOffset(int targetOffset, BlockSourceSpan span)
-    {
-        if (SourceEditor.Document is null || SourceEditor.Document.TextLength == 0)
-            return;
-
-        int clampedOffset = Math.Clamp(targetOffset, 0, SourceEditor.Document.TextLength);
-
-        (int start, int length) = ResolveBlockSelection(span, clampedOffset);
-        SourceEditor.Select(start, length);
-
-        TextLocation location = SourceEditor.Document.GetLocation(clampedOffset);
-        SourceEditor.ScrollTo(location.Line, location.Column);
-
-        int pulseId = Interlocked.Increment(ref _selectionPulseId);
-        _ = ClearEditorSelectionAfterDelayAsync(pulseId, start, clampedOffset);
-    }
-
-    private (int Start, int Length) ResolveBlockSelection(BlockSourceSpan span, int targetOffset)
-    {
-        if (SourceEditor.Document is null || SourceEditor.Document.TextLength == 0)
-            return (targetOffset, 0);
-
-        int docLength = SourceEditor.Document.TextLength;
-
-        if (span.StartOffset >= 0 && span.EndOffset >= span.StartOffset && span.StartOffset < docLength)
-            return CalculateSpanSelection(span, docLength);
-
-        if (span.StartLine > 0 && span.EndLine >= span.StartLine)
-            return CalculateLineRangeSelection(span, docLength);
-
-        return ResolveWordSelection(targetOffset);
-    }
-
-    private (int Start, int Length) CalculateSpanSelection(BlockSourceSpan span, int docLength)
-    {
-        int start = Math.Clamp(span.StartOffset, 0, docLength);
-        int rawEnd = Math.Clamp(span.EndOffset + 1, start, docLength);
-        string text = SourceEditor.Document!.Text;
-
-        int end = rawEnd;
-        while (end > start && (text[end - 1] == '\n' || text[end - 1] == '\r'))
-            end--;
-
-        int length = end - start;
-        return (start, length);
-    }
-
-    private (int Start, int Length) CalculateLineRangeSelection(BlockSourceSpan span, int docLength)
-    {
-        int lineCount = SourceEditor.Document!.LineCount;
-        int clampedStartLine = Math.Clamp(span.StartLine, 1, lineCount);
-        int clampedEndLine = Math.Clamp(span.EndLine, clampedStartLine, lineCount);
-
-        DocumentLine startLine = SourceEditor.Document.GetLineByNumber(clampedStartLine);
-        DocumentLine endLine = SourceEditor.Document.GetLineByNumber(clampedEndLine);
-
-        int start = Math.Clamp(startLine.Offset, 0, docLength);
-        int end = Math.Clamp(endLine.Offset + endLine.Length, start, docLength);
-
-        return (start, Math.Max(0, end - start));
-    }
-
-    private (int Start, int Length) ResolveWordSelection(int offset)
-    {
-        if (SourceEditor.Document is null || SourceEditor.Document.TextLength == 0)
-            return (offset, 0);
-
-        string text = SourceEditor.Document.Text;
-        int clamped = Math.Clamp(offset, 0, text.Length);
-
-        if (clamped == text.Length)
-            return (clamped, 0);
-
-        int start = clamped;
-        while (start > 0 && !char.IsWhiteSpace(text[start - 1]))
-            start--;
-
-        int end = clamped;
-        while (end < text.Length && !char.IsWhiteSpace(text[end]))
-            end++;
-
-        int length = Math.Max(1, Math.Min(end - start, 48));
-        return (start, length);
-    }
-
-    private async Task ClearEditorSelectionAfterDelayAsync(int pulseId, int selectionStart, int caretOffset)
-    {
-        try
-        {
-            await Task.Delay(800);
-
-            if (_selectionPulseId == pulseId && SourceEditor.SelectionStart == selectionStart)
-                SourceEditor.Select(caretOffset, 0);
-        }
-        catch (Exception)
-        {
-        }
-    }
-
-    private (Control? Control, BlockSourceSpan Span) ResolveBlockFromPreviewCoordinates(PointerEventArgs args)
-    {
-        if (ViewModel is null || ViewModel.State.PreviewBlocks.Count == 0)
-            return (null, BlockSourceSpan.Empty);
-
-        Point clickPosition = args.GetPosition(PreviewBlocksControl);
-        Control? matchedBlock = FindNearestBlockAtY(ViewModel.State.PreviewBlocks, clickPosition.Y);
-
-        if (matchedBlock is null)
-            return (null, BlockSourceSpan.Empty);
-
-        Control deepestControl = FindDeepestBlockAtY(matchedBlock, clickPosition.Y, PreviewBlocksControl);
-        if (TryGetBlockSpan(deepestControl, out BlockSourceSpan deepestSpan))
-            return (deepestControl, deepestSpan);
-
-        if (TryGetBlockSpan(matchedBlock, out BlockSourceSpan blockSpan))
-            return (matchedBlock, blockSpan);
-
-        return (null, BlockSourceSpan.Empty);
-    }
-
-    private Control? FindNearestBlockAtY(IReadOnlyList<Control> blocks, double clickY)
-    {
-        Control? nearest = null;
-        double shortestDistance = double.MaxValue;
-
-        foreach (Control block in blocks)
-            EvaluateBlockProximity(block, clickY, ref nearest, ref shortestDistance);
-
-        return nearest;
-    }
-
-    private void EvaluateBlockProximity(Control block, double clickY, ref Control? nearest, ref double shortestDistance)
-    {
-        Point? position = block.TranslatePoint(new Point(0, 0), PreviewBlocksControl);
-        if (!position.HasValue)
-            return;
-
-        double top = position.Value.Y;
-        double bottom = top + block.Bounds.Height;
-        double distance = CalculateVerticalDistance(clickY, top, bottom);
-
-        if (distance < shortestDistance)
-        {
-            shortestDistance = distance;
-            nearest = block;
-        }
-    }
-
-    private static double CalculateVerticalDistance(double y, double top, double bottom)
-    {
-        if (y >= top && y <= bottom)
-            return 0;
-
-        if (y < top)
-            return top - y;
-
-        return y - bottom;
-    }
-
-    private static Control FindDeepestBlockAtY(Control parent, double clickY, Control relativeTo)
-    {
-        foreach (Control child in ResolveChildControls(parent))
-        {
-            Control? match = MatchDeepestChildAtY(child, clickY, relativeTo);
-            if (match is not null)
-                return match;
-        }
-
-        return parent;
-    }
-
-    private static Control? MatchDeepestChildAtY(Control child, double clickY, Control relativeTo)
-    {
-        Point? childPoint = child.TranslatePoint(new Point(0, 0), relativeTo);
-        if (!childPoint.HasValue)
-            return null;
-
-        double top = childPoint.Value.Y;
-        double bottom = top + child.Bounds.Height;
-
-        if (clickY < top || clickY > bottom)
-            return null;
-
-        if (!TryGetBlockSpan(child, out _))
-            return null;
-
-        return FindDeepestBlockAtY(child, clickY, relativeTo);
-    }
-
-    private static bool IsInteractiveChild(Visual? visual)
-    {
-        Visual? current = visual;
-
-        while (current is not null)
-        {
-            if (IsInteractiveControl(current))
-                return true;
-
-            current = current.GetVisualParent();
-        }
-
-        return false;
-    }
-
-    private static bool IsInteractiveControl(Visual visual)
-    {
-        return visual is Button or CheckBox or TextBox or ToggleButton;
-    }
-
-    private static bool IsWithinSearchPane(Visual? visual)
-    {
-        Visual? current = visual;
-
-        while (current is not null)
-        {
-            if (current is Border border && border.Classes.Contains("previewSearchBar"))
-                return true;
-
-            current = current.GetVisualParent();
-        }
-
-        return false;
-    }
-
-    private static (Control? Control, BlockSourceSpan Span) FindClickedBlock(Visual? visual)
-    {
-        Visual? current = visual;
-
-        while (current is not null)
-        {
-            if (TryResolveBlockSpan(current, out Control? control, out BlockSourceSpan span))
-                return (control, span);
-
-            current = current.GetVisualParent();
-        }
-
-        return (null, BlockSourceSpan.Empty);
-    }
-
-    private static bool TryResolveBlockSpan(Visual visual, out Control? control, out BlockSourceSpan span)
-    {
-        if (visual is Control candidate && TryGetBlockSpan(candidate, out span))
-        {
-            control = candidate;
-            return true;
-        }
-
-        control = null;
-        span = BlockSourceSpan.Empty;
-        return false;
-    }
-
-    private static bool TryGetBlockSpan(Control control, out BlockSourceSpan span)
-    {
-        if (control.Tag is BlockSourceSpan sourceSpan && !sourceSpan.IsEmpty)
-        {
-            span = sourceSpan;
-            return true;
-        }
-
-        if (control.Tag is BlockLineRange lineRange && !lineRange.IsEmpty)
-        {
-            span = new BlockSourceSpan(0, 0, lineRange.StartLine, lineRange.EndLine);
-            return true;
-        }
-
-        span = BlockSourceSpan.Empty;
-        return false;
-    }
-
-    private void SyncPreviewToOffset(int offset)
-    {
-        if (ViewModel is null || ViewModel.State.PreviewBlocks.Count == 0)
-            return;
-
-        int line = ResolveLineForOffset(offset);
-        Control? targetControl = FindPreviewBlockForOffset(offset, line, ViewModel.State.PreviewBlocks);
-
-        if (targetControl is null)
-            return;
-
-        if (!TryGetBlockSpan(targetControl, out BlockSourceSpan span))
-            return;
-
-        ScrollPreviewToSpan(targetControl, offset, span);
-        ApplyPreviewHighlight(targetControl);
-    }
-
-    private int ResolveLineForOffset(int offset)
-    {
-        if (SourceEditor.Document is null || SourceEditor.Document.TextLength == 0)
-            return 1;
-
-        int clampedOffset = Math.Clamp(offset, 0, SourceEditor.Document.TextLength);
-        return SourceEditor.Document.GetLocation(clampedOffset).Line;
-    }
-
-    private static Control? FindPreviewBlockForOffset(int offset, int line, IReadOnlyList<Control> blocks)
-    {
-        Control? nearestPrecedingBlock = null;
-
-        foreach (Control block in blocks)
-        {
-            if (TryMatchBlockForOffset(block, offset, line, ref nearestPrecedingBlock, out Control? matched))
-                return matched;
-        }
-
-        return nearestPrecedingBlock ?? blocks.FirstOrDefault();
-    }
-
-    private static bool TryMatchBlockForOffset(Control block, int offset, int line, ref Control? nearestPreceding, out Control? matched)
-    {
-        matched = null;
-
-        if (!TryGetBlockSpan(block, out BlockSourceSpan span) || span.IsEmpty)
-            return false;
-
-        bool matchesOffset = span.StartOffset >= 0 && span.EndOffset >= span.StartOffset && span.ContainsOffset(offset);
-        bool matchesLine = line > 0 && span.ContainsLine(line);
-
-        if (matchesOffset || matchesLine)
-        {
-            matched = FindDeeperBlockForOffset(block, offset, line) ?? block;
-            return true;
-        }
-
-        if (span.StartOffset <= offset || (line > 0 && span.StartLine <= line))
-            nearestPreceding = block;
-
-        return false;
-    }
-
-    private static Control? FindDeeperBlockForOffset(Control parent, int offset, int line)
-    {
-        IEnumerable<Control> children = ResolveChildControls(parent);
-
-        foreach (Control child in children)
-        {
-            Control? match = MatchDeeperChildForOffset(child, offset, line);
-
-            if (match is not null)
-                return match;
-        }
-
-        return null;
-    }
-
-    private static Control? MatchDeeperChildForOffset(Control child, int offset, int line)
-    {
-        if (!TryGetBlockSpan(child, out BlockSourceSpan span))
-            return null;
-
-        bool matchesOffset = span.StartOffset >= 0 && span.EndOffset >= span.StartOffset && span.ContainsOffset(offset);
-        bool matchesLine = line > 0 && span.ContainsLine(line);
-
-        if (matchesOffset || matchesLine)
-            return FindDeeperBlockForOffset(child, offset, line) ?? child;
-
-        return null;
-    }
-
-    private static IEnumerable<Control> ResolveChildControls(Control parent)
-    {
-        return parent switch
-        {
-            Panel panel => panel.Children,
-            Border border when border.Child is Panel innerPanel => innerPanel.Children,
-            Border border when border.Child is Control innerControl => [innerControl],
-            _ => Enumerable.Empty<Control>()
-        };
-    }
-
-    private void ScrollPreviewToSpan(Control targetControl, int offset, BlockSourceSpan span)
-    {
-        double fraction = 0.0;
-        if (!span.IsEmpty && span.EndOffset > span.StartOffset)
-            fraction = Math.Clamp((offset - span.StartOffset) / (double)(span.EndOffset - span.StartOffset), 0.0, 1.0);
-
-        ScrollPreviewToProportionalPoint(targetControl, fraction);
-    }
-
-    private void ScrollPreviewToProportionalPoint(Control targetControl, double fraction)
-    {
-        double localY = fraction * targetControl.Bounds.Height;
-        Rect targetRect = new(0, localY, Math.Max(1, targetControl.Bounds.Width), 28);
-        targetControl.BringIntoView(targetRect);
-
-        Point? relativePoint = targetControl.TranslatePoint(new Point(0, localY), PreviewBlocksControl);
-        if (relativePoint.HasValue && PreviewScroller.Viewport.Height > 0 && PreviewScroller.Extent.Height > PreviewScroller.Viewport.Height)
-        {
-            double absoluteY = relativePoint.Value.Y;
-            double desiredScrollY = Math.Max(0, absoluteY - PreviewScroller.Viewport.Height * 0.25);
-            double maxOffset = Math.Max(0, PreviewScroller.Extent.Height - PreviewScroller.Viewport.Height);
-            PreviewScroller.Offset = new Vector(PreviewScroller.Offset.X, Math.Clamp(desiredScrollY, 0, maxOffset));
-        }
-    }
-
-    private void ApplyPreviewHighlight(Control targetControl)
-    {
-        _highlightCts?.Cancel();
-        _highlightCts?.Dispose();
-
-        if (_currentHighlightedControl is not null)
-            _currentHighlightedControl.Classes.Remove("sync-highlight");
-
-        _currentHighlightedControl = targetControl;
-        targetControl.Classes.Add("sync-highlight");
-
-        CancellationTokenSource cancellationSource = new();
-        _highlightCts = cancellationSource;
-
-        _ = RemoveHighlightAfterDelayAsync(targetControl, cancellationSource.Token);
-    }
-
-    private static async Task RemoveHighlightAfterDelayAsync(Control control, CancellationToken token)
-    {
-        try
-        {
-            await Task.Delay(1000, token);
-            control.Classes.Remove("sync-highlight");
-        }
-        catch (OperationCanceledException)
-        {
-        }
-    }
-
-    private sealed class CodeLanguageCompletionData : ICompletionData
-    {
-        private readonly CodeLanguageSuggestion _suggestion;
-
-        public CodeLanguageCompletionData(CodeLanguageSuggestion suggestion)
-        {
-            _suggestion = suggestion;
-        }
-
-        public IImage? Image => null;
-
-        public string Text => _suggestion.Identifier;
-
-        public object Content => _suggestion.Identifier;
-
-        public object Description => _suggestion.DisplayName;
-
-        public double Priority => 1;
-
-        public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
-        {
-            textArea.Document.Replace(completionSegment, _suggestion.Identifier);
-        }
     }
 }
