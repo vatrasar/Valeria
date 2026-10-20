@@ -3,10 +3,15 @@ using System.Collections.Immutable;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Threading;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
-internal sealed class ThemeResources
+/// <summary>
+/// Resolves and holds active theme typography, colors, brushes and font metrics.
+/// </summary>
+public sealed class ThemeResources
 {
     private const string PrimaryTextBrushKey = "PrimaryTextBrush";
     private const string MutedTextBrushKey = "MutedTextBrush";
@@ -36,7 +41,7 @@ internal sealed class ThemeResources
     public IBrush Muted { get; private set; } = Brushes.Gray;
     public IBrush Heading { get; private set; } = Brushes.White;
     public IBrush Accent { get; private set; } = Brushes.SkyBlue;
-    public IBrush AccentHover { get; private set; } = new SolidColorBrush(Color.Parse("#72B7E8"));
+    public IBrush AccentHover { get; private set; } = new ImmutableSolidColorBrush(Color.Parse("#72B7E8"));
     public IBrush CodeInlineBackground { get; private set; } = Brushes.DimGray;
     public IBrush CodeInlineForeground { get; private set; } = Brushes.White;
     public IBrush CodeBlockBackground { get; private set; } = Brushes.Black;
@@ -58,20 +63,37 @@ internal sealed class ThemeResources
     public ImmutableList<double> HeadingSizes { get; private set; } =
         ImmutableList.Create(30.0, 24.0, 22.0, 20.0, 18.0, 16.0);
 
+    /// <summary>
+    /// Gets the font size in points for the specified heading level (1-6).
+    /// </summary>
     public double HeadingFontSize(int level)
     {
         return HeadingSizes[Math.Clamp(level, 1, 6) - 1];
     }
 
+    /// <summary>
+    /// Creates a typography and layout metrics model for preview element height estimation.
+    /// </summary>
+    public Valeria.Src.Features.Editor.Domain.Models.PreviewLayoutMetrics CreateMetrics(int codeBlockMaxHeight = 420)
+    {
+        return new Valeria.Src.Features.Editor.Domain.Models.PreviewLayoutMetrics(this, codeBlockMaxHeight);
+    }
+
+    /// <summary>
+    /// Resolves theme brushes and font sizes from the active application resource dictionary.
+    /// </summary>
     public static ThemeResources Resolve()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+            return new ThemeResources();
+
         ThemeResources theme = new()
         {
             Body = FindBrush(PrimaryTextBrushKey, Brushes.Gray),
             Muted = FindBrush(MutedTextBrushKey, Brushes.Gray),
             Heading = FindBrush(HeadingBrushKey, Brushes.White),
             Accent = FindBrush(AccentBrushKey, Brushes.SkyBlue),
-            AccentHover = FindBrush(AccentHoverBrushKey, new SolidColorBrush(Color.Parse("#72B7E8"))),
+            AccentHover = FindBrush(AccentHoverBrushKey, new ImmutableSolidColorBrush(Color.Parse("#72B7E8"))),
             CodeInlineBackground = FindBrush(CodeInlineBackgroundKey, Brushes.DimGray),
             CodeInlineForeground = FindBrush(CodeInlineForegroundKey, Brushes.White),
             CodeBlockBackground = FindBrush(CodeBlockBackgroundKey, Brushes.Black),

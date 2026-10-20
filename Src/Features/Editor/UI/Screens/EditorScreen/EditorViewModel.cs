@@ -167,20 +167,56 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
     /// Replaces the whole document text, updating dirty flag, title and word count.
     /// Invoked by EditorView when the AvaloniaEdit content changes.
     /// </summary>
+    private CancellationTokenSource? _wordCountCts;
+
+    /// <summary>
+    /// Updates the visible range of chunks in the preview panel based on viewport scrolling.
+    /// Invoked by EditorView when the preview scroll viewer scrolls.
+    /// </summary>
+    public void UpdatePreviewViewport(double viewportY, double viewportHeight)
+    {
+        _previewCoordinator.UpdateVisibleChunks(viewportY, viewportHeight);
+    }
+
+    /// <summary>
+    /// Replaces the whole document text, updating dirty flag, title and word count.
+    /// Invoked by EditorView when the AvaloniaEdit content changes.
+    /// </summary>
     public void SetMarkdownText(string text)
     {
         string safeText = text ?? string.Empty;
         bool isDirty = _documentCoordinator.IsDirty(safeText);
+        bool isLargeText = safeText.Length >= 50_000;
+
+        int wordCount = isLargeText ? State.WordCount : MarkdownStats.CountWords(safeText);
 
         UpdateState(state => state with
         {
             MarkdownText = safeText,
             IsDirty = isDirty,
-            WordCount = MarkdownStats.CountWords(safeText),
+            WordCount = wordCount,
             DocumentTitle = EditorDocumentCoordinator.BuildDocumentTitle(state.FilePath, isDirty),
             DocumentPath = EditorDocumentCoordinator.BuildDocumentPath(state.FilePath, isDirty),
             ErrorMessage = null
         });
+
+        if (isLargeText)
+            ScheduleBackgroundWordCount(safeText);
+    }
+
+    private void ScheduleBackgroundWordCount(string text)
+    {
+        _wordCountCts?.Cancel();
+        _wordCountCts?.Dispose();
+        _wordCountCts = new CancellationTokenSource();
+        CancellationToken token = _wordCountCts.Token;
+
+        _ = Task.Run(() =>
+        {
+            int count = MarkdownStats.CountWords(text);
+            if (!token.IsCancellationRequested)
+                RxApp.MainThreadScheduler.Schedule(() => UpdateState(state => state with { WordCount = count }));
+        }, token);
     }
 
     /// <summary>
@@ -344,5 +380,17 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
 
         _isPrewarmed = true;
         _ = _syntax.PrewarmAsync(cancellationToken);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _wordCountCts?.Cancel();
+            _wordCountCts?.Dispose();
+            _wordCountCts = null;
+        }
+
+        base.Dispose(disposing);
     }
 }

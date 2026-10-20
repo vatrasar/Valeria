@@ -211,6 +211,19 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<string>(SyncEditorText))
             .DisposeWith(disposables);
+
+        PreviewScroller.ScrollChanged += OnPreviewScrollerScrollChanged;
+        Disposable.Create(() => PreviewScroller.ScrollChanged -= OnPreviewScrollerScrollChanged).DisposeWith(disposables);
+
+        ViewModel?.UpdatePreviewViewport(PreviewScroller.Offset.Y, Math.Max(PreviewScroller.Viewport.Height, 800));
+    }
+
+    private void OnPreviewScrollerScrollChanged(object? sender, ScrollChangedEventArgs args)
+    {
+        if (Math.Abs(args.OffsetDelta.Y) < 1.0 && Math.Abs(args.ViewportDelta.Y) < 1.0)
+            return;
+
+        ViewModel?.UpdatePreviewViewport(PreviewScroller.Offset.Y, PreviewScroller.Viewport.Height);
     }
 
     private void SetEditorVisibility(bool visible)
@@ -227,12 +240,20 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         if (_syncingEditor)
             return;
 
-        if (SourceEditor.Text == documentText)
+        if (SourceEditor.Document is not null && SourceEditor.Document.TextLength == (documentText?.Length ?? 0) && SourceEditor.Text == documentText)
             return;
 
-        int caret = SourceEditor.CaretOffset;
-        SourceEditor.Text = documentText ?? string.Empty;
-        SourceEditor.CaretOffset = Math.Min(caret, SourceEditor.Text.Length);
+        _syncingEditor = true;
+        try
+        {
+            int caret = SourceEditor.CaretOffset;
+            SourceEditor.Text = documentText ?? string.Empty;
+            SourceEditor.CaretOffset = Math.Min(caret, SourceEditor.Text.Length);
+        }
+        finally
+        {
+            _syncingEditor = false;
+        }
     }
 
     private void BindStatusBar(CompositeDisposable disposables)

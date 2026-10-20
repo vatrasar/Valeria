@@ -24,6 +24,11 @@ public interface IMarkdownPreviewBuilder
     PreviewBuildResult BuildBlocks(MarkdownContent content, Action<int, bool>? onTaskToggled = null, string? baseDirectory = null);
 
     /// <summary>
+    /// Synchronously builds preview controls for a single markdown chunk.
+    /// </summary>
+    PreviewBuildResult BuildChunkBlocks(MarkdownChunk chunk, Action<int, bool>? onTaskToggled = null, string? baseDirectory = null);
+
+    /// <summary>
     /// Asynchronously builds all preview blocks in batches, yielding control to the UI thread
     /// so user input like scrolling the editor remains responsive on large documents.
     /// Invoked by EditorViewModel preview refresh.

@@ -424,7 +424,7 @@ public static class MarkdownParser
         return startLine;
     }
 
-    private static int[] BuildLineOffsets(string markdown)
+    internal static int[] BuildLineOffsets(string markdown)
     {
         List<int> offsets = [0];
 

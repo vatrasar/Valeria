@@ -48,8 +48,38 @@ public static partial class MarkdownListRenumberer
     {
         string safeText = text ?? string.Empty;
 
-        if (safeText.Length == 0)
+        if (safeText.Length == 0 || !MarkdownListWindowLocator.IsLikelyNearOrderedList(safeText, offset))
             return Array.Empty<ListNumberAdjustment>();
+
+        if (safeText.Length > 20_000 && MarkdownListWindowLocator.TryGetLocalListWindow(safeText, offset, out string windowText, out int windowStart))
+        {
+            int localOffset = offset - windowStart;
+            List<ParsedLineInfo> localLines = ParseAllLines(windowText);
+            int localTargetLineIndex = FindLineIndexAtOffset(localLines, localOffset);
+
+            if (!TryFindTargetListMarker(localLines, localTargetLineIndex, out string localPrefix, out char localDelimiter))
+                return Array.Empty<ListNumberAdjustment>();
+
+            int localStartIndex = FindBlockStartIndex(localLines, localTargetLineIndex, localPrefix);
+            int localEndIndex = FindBlockEndIndex(localLines, localTargetLineIndex, localPrefix);
+
+            List<ParsedLineInfo> localItems = CollectMatchingItems(localLines, localStartIndex, localEndIndex, localPrefix, localDelimiter);
+            List<ListNumberAdjustment> localAdjustments = ComputeAdjustments(localItems, localTargetLineIndex);
+
+            if (windowStart == 0 || localAdjustments.Count == 0)
+                return localAdjustments;
+
+            List<ListNumberAdjustment> adjusted = new(localAdjustments.Count);
+            for (int i = 0; i < localAdjustments.Count; i++)
+            {
+                adjusted.Add(new ListNumberAdjustment(
+                    localAdjustments[i].Offset + windowStart,
+                    localAdjustments[i].Length,
+                    localAdjustments[i].NewNumber));
+            }
+
+            return adjusted;
+        }
 
         List<ParsedLineInfo> lines = ParseAllLines(safeText);
         int targetLineIndex = FindLineIndexAtOffset(lines, offset);

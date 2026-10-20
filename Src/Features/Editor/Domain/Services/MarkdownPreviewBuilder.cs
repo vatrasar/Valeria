@@ -73,6 +73,26 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     }
 
     /// <summary>
+    /// Synchronously builds preview controls for a single markdown chunk.
+    /// Code blocks are collected as targets for background syntax highlighting.
+    /// Used by EditorPreviewCoordinator for chunk-level virtualization.
+    /// </summary>
+    public PreviewBuildResult BuildChunkBlocks(
+        MarkdownChunk chunk,
+        Action<int, bool>? onTaskToggled = null,
+        string? baseDirectory = null)
+    {
+        ThemeResources theme = ThemeResources.Resolve();
+        BrushSet brushes = BrushSet.Default(theme);
+        _pendingTargets = [];
+        _currentBaseDirectory = baseDirectory;
+
+        IReadOnlyList<Control> blocks = chunk.Blocks.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
+
+        return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
+    }
+
+    /// <summary>
     /// Asynchronously builds all preview blocks in batches, yielding control to the UI thread
     /// so user input like scrolling the editor remains responsive on large documents.
     /// Code blocks are created as plain selectable text and collected for asynchronous highlighting.

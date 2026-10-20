@@ -162,6 +162,14 @@ internal sealed class FakeMarkdownPreviewBuilder : IMarkdownPreviewBuilder
         return new PreviewBuildResult(Array.Empty<Control>(), ImmutableList<CodeHighlightTarget>.Empty);
     }
 
+    public PreviewBuildResult BuildChunkBlocks(
+        MarkdownChunk chunk,
+        Action<int, bool>? onTaskToggled = null,
+        string? baseDirectory = null)
+    {
+        return new PreviewBuildResult(Array.Empty<Control>(), ImmutableList<CodeHighlightTarget>.Empty);
+    }
+
     public Task<PreviewBuildResult> BuildBlocksAsync(
         MarkdownContent content,
         Action<int, bool>? onTaskToggled = null,
