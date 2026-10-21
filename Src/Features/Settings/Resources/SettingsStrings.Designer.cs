@@ -73,4 +73,8 @@ public static class SettingsStrings
     public static string HeadingPaletteCool => ResourceManager.GetString("HeadingPaletteCool", _resourceCulture)!;
  
     public static string HeadingPaletteClassic => ResourceManager.GetString("HeadingPaletteClassic", _resourceCulture)!;
+ 
+    public static string HeadingNumberingTitle => ResourceManager.GetString("HeadingNumberingTitle", _resourceCulture)!;
+
+    public static string HeadingNumberingDescription => ResourceManager.GetString("HeadingNumberingDescription", _resourceCulture)!;
 }

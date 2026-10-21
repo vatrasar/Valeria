@@ -38,4 +38,6 @@ public sealed class PreviewOptions
     public int CodeBlockMaxHeight { get; set; } = 420;
 
     public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette { get; set; } = Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool;
+
+    public bool EnableHeadingNumbering { get; set; } = true;
 }

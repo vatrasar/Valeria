@@ -16,6 +16,8 @@ public sealed record SettingsState
     public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette { get; init; } =
         Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool;
 
+    public bool IsHeadingNumberingEnabled { get; init; } = true;
+
     public bool HasUnsavedChanges { get; init; }
 
     public bool IsSavedFeedbackVisible { get; init; }

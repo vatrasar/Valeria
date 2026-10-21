@@ -28,6 +28,7 @@ public partial class SettingsViewModel : ViewModelBase<SettingsState>, IRoutable
             EditorFontSize = settingsService.EditorFontSize,
             EditorTabWidth = settingsService.EditorTabWidth,
             HeadingPalette = settingsService.HeadingPalette,
+            IsHeadingNumberingEnabled = settingsService.IsHeadingNumberingEnabled,
             HasUnsavedChanges = false,
             IsSavedFeedbackVisible = false
         })
@@ -50,6 +51,7 @@ public partial class SettingsViewModel : ViewModelBase<SettingsState>, IRoutable
         _settingsService.SetEditorFontSize(State.EditorFontSize);
         _settingsService.SetEditorTabWidth(State.EditorTabWidth);
         _settingsService.SetHeadingPalette(State.HeadingPalette);
+        _settingsService.SetHeadingNumberingEnabled(State.IsHeadingNumberingEnabled);
 
         UpdateState(state => state with
         {
@@ -147,6 +149,23 @@ public partial class SettingsViewModel : ViewModelBase<SettingsState>, IRoutable
         UpdateState(state => state with
         {
             HeadingPalette = palette,
+            HasUnsavedChanges = true,
+            IsSavedFeedbackVisible = false
+        });
+    }
+
+    /// <summary>
+    /// Updates the draft heading numbering setting in local view state.
+    /// Invoked by SettingsView heading numbering toggle.
+    /// </summary>
+    public void SetHeadingNumbering(bool isEnabled)
+    {
+        if (State.IsHeadingNumberingEnabled == isEnabled)
+            return;
+
+        UpdateState(state => state with
+        {
+            IsHeadingNumberingEnabled = isEnabled,
             HasUnsavedChanges = true,
             IsSavedFeedbackVisible = false
         });

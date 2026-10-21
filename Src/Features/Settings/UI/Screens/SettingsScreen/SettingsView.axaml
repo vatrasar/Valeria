@@ -122,6 +122,20 @@
             </ComboBox>
           </Grid>
         </Border>
+
+        <Border Classes="settingsCard">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="settingItemTitle" Text="{x:Static res:SettingsStrings.HeadingNumberingTitle}" />
+              <TextBlock Classes="settingItemDescription" Text="{x:Static res:SettingsStrings.HeadingNumberingDescription}" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1"
+                          x:Name="HeadingNumberingToggleSwitch"
+                          OnContent="{x:Static res:SettingsStrings.AutoSaveStatusOn}"
+                          OffContent="{x:Static res:SettingsStrings.AutoSaveStatusOff}"
+                          VerticalAlignment="Center" />
+          </Grid>
+        </Border>
       </StackPanel>
     </ScrollViewer>
   </Grid>

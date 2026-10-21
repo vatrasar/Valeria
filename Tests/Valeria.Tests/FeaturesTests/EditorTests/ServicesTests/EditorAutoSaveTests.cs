@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
@@ -260,6 +261,9 @@ public sealed class EditorAutoSaveTests
         public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette => _paletteSubject.Value;
         public IObservable<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> HeadingPaletteObservable => _paletteSubject;
 
+        public bool IsHeadingNumberingEnabled { get; private set; } = true;
+        public IObservable<bool> HeadingNumberingEnabledObservable => Observable.Return(IsHeadingNumberingEnabled);
+
         public FakeSettingsService(bool initialAutoSave, int initialDelay = 0, double initialFont = 14, int initialTab = 4, Valeria.Src.Core.Domain.Enums.HeadingColorPalette initialPalette = Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Semantic)
         {
             _subject = new BehaviorSubject<bool>(initialAutoSave);
@@ -278,6 +282,8 @@ public sealed class EditorAutoSaveTests
         public void SetEditorTabWidth(int tabWidth) => _tabSubject.OnNext(tabWidth);
 
         public void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette) => _paletteSubject.OnNext(palette);
+
+        public void SetHeadingNumberingEnabled(bool enabled) => IsHeadingNumberingEnabled = enabled;
     }
 
     private sealed class FakePreviewBuilder : IMarkdownPreviewBuilder

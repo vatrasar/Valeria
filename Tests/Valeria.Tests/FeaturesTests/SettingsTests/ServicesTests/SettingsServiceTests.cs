@@ -172,4 +172,33 @@ public sealed class SettingsServiceTests : IDisposable
         using SettingsService reloadedService = new(config, _tempSettingsPath);
         Assert.Equal(Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Classic, reloadedService.HeadingPalette);
     }
+
+    [Fact]
+    public void HeadingNumberingEnabled_ByDefaultWithoutSavedFile_ReturnsTrue()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig());
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        Assert.True(service.IsHeadingNumberingEnabled);
+    }
+
+    [Fact]
+    public async Task SetHeadingNumberingEnabled_WhenUpdated_PersistsAndEmitsNewValue()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig());
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        bool latestValue = true;
+        using var subscription = service.HeadingNumberingEnabledObservable.Subscribe(value => latestValue = value);
+
+        service.SetHeadingNumberingEnabled(false);
+
+        Assert.False(service.IsHeadingNumberingEnabled);
+        Assert.False(latestValue);
+
+        await Task.Delay(100);
+
+        using SettingsService reloadedService = new(config, _tempSettingsPath);
+        Assert.False(reloadedService.IsHeadingNumberingEnabled);
+    }
 }

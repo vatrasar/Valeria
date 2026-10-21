@@ -163,6 +163,26 @@ public sealed class SettingsViewModelTests
         Assert.True(viewModel.State.IsSavedFeedbackVisible);
     }
 
+    [Fact]
+    public void SetHeadingNumbering_UpdatesDraftState_AndSaveSettingsPersistsToService()
+    {
+        FakeSettingsService settingsService = new(true, initialHeadingNumbering: true);
+        TestScreen hostScreen = new();
+        SettingsViewModel viewModel = new(hostScreen, settingsService);
+
+        viewModel.SetHeadingNumbering(false);
+
+        Assert.True(settingsService.IsHeadingNumberingEnabled);
+        Assert.False(viewModel.State.IsHeadingNumberingEnabled);
+        Assert.True(viewModel.State.HasUnsavedChanges);
+
+        viewModel.SaveSettingsCommand.Execute().Subscribe();
+
+        Assert.False(settingsService.IsHeadingNumberingEnabled);
+        Assert.False(viewModel.State.HasUnsavedChanges);
+        Assert.True(viewModel.State.IsSavedFeedbackVisible);
+    }
+
     private sealed class DummyRoutableViewModel : ReactiveObject, IRoutableViewModel
     {
         public string? UrlPathSegment => "dummy";
@@ -186,6 +206,7 @@ public sealed class SettingsViewModelTests
         private readonly BehaviorSubject<double> _fontSubject;
         private readonly BehaviorSubject<int> _tabSubject;
         private readonly BehaviorSubject<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> _paletteSubject;
+        private readonly BehaviorSubject<bool> _headingNumberingSubject;
 
         public bool IsAutoSaveEnabled => _subject.Value;
         public IObservable<bool> AutoSaveEnabledObservable => _subject;
@@ -202,13 +223,23 @@ public sealed class SettingsViewModelTests
         public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette => _paletteSubject.Value;
         public IObservable<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> HeadingPaletteObservable => _paletteSubject;
 
-        public FakeSettingsService(bool initialAutoSave, int initialDelay = 10, double initialFont = 14, int initialTab = 4, Valeria.Src.Core.Domain.Enums.HeadingColorPalette initialPalette = Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool)
+        public bool IsHeadingNumberingEnabled => _headingNumberingSubject.Value;
+        public IObservable<bool> HeadingNumberingEnabledObservable => _headingNumberingSubject;
+
+        public FakeSettingsService(
+            bool initialAutoSave,
+            int initialDelay = 10,
+            double initialFont = 14,
+            int initialTab = 4,
+            Valeria.Src.Core.Domain.Enums.HeadingColorPalette initialPalette = Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool,
+            bool initialHeadingNumbering = true)
         {
             _subject = new BehaviorSubject<bool>(initialAutoSave);
             _delaySubject = new BehaviorSubject<int>(initialDelay);
             _fontSubject = new BehaviorSubject<double>(initialFont);
             _tabSubject = new BehaviorSubject<int>(initialTab);
             _paletteSubject = new BehaviorSubject<Valeria.Src.Core.Domain.Enums.HeadingColorPalette>(initialPalette);
+            _headingNumberingSubject = new BehaviorSubject<bool>(initialHeadingNumbering);
         }
 
         public void SetAutoSaveEnabled(bool enabled) => _subject.OnNext(enabled);
@@ -220,5 +251,7 @@ public sealed class SettingsViewModelTests
         public void SetEditorTabWidth(int tabWidth) => _tabSubject.OnNext(tabWidth);
 
         public void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette) => _paletteSubject.OnNext(palette);
+
+        public void SetHeadingNumberingEnabled(bool enabled) => _headingNumberingSubject.OnNext(enabled);
     }
 }

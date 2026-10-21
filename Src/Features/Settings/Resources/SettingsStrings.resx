@@ -75,4 +75,10 @@
   <data name="HeadingPaletteClassic" xml:space="preserve">
     <value>Classic (uniform color)</value>
   </data>
+  <data name="HeadingNumberingTitle" xml:space="preserve">
+    <value>Heading numbering</value>
+  </data>
+  <data name="HeadingNumberingDescription" xml:space="preserve">
+    <value>Display LaTeX-style hierarchical numbering (1., 1.1, etc.) on headings in the preview pane</value>
+  </data>
 </root>

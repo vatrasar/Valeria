@@ -219,7 +219,8 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         BrushSet brushes,
         double fontSize)
     {
-        if (!string.IsNullOrEmpty(heading.SectionNumber))
+        bool isNumberingEnabled = _settings?.IsHeadingNumberingEnabled ?? _options.EnableHeadingNumbering;
+        if (isNumberingEnabled && !string.IsNullOrEmpty(heading.SectionNumber))
         {
             string numberPrefix = heading.Inlines.Count > 0
                 ? $"{heading.SectionNumber} "

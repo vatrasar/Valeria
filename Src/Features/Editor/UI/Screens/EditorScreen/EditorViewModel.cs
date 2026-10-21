@@ -125,6 +125,14 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             .Subscribe()
             .DisposeWith(Disposables);
 
+        _settings.HeadingNumberingEnabledObservable
+            .DistinctUntilChanged()
+            .Do(_ => _previewCoordinator.InvalidateContainers())
+            .Select(_ => Observable.FromAsync(_previewCoordinator.ProcessPreviewAsync))
+            .Switch()
+            .Subscribe()
+            .DisposeWith(Disposables);
+
         this.WhenAnyValue(viewModel => viewModel.State.MarkdownText)
             .Throttle(TimeSpan.FromMilliseconds(config.Value.Editor.PreviewDebounceMilliseconds), RxApp.TaskpoolScheduler)
             .Select(_ => Observable.FromAsync(_previewCoordinator.ProcessPreviewAsync))

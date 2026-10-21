@@ -33,6 +33,11 @@ public interface ISettingsService
     Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette { get; }
 
     /// <summary>
+    /// Gets whether LaTeX-style hierarchical heading numbering is enabled in the preview pane.
+    /// </summary>
+    bool IsHeadingNumberingEnabled { get; }
+
+    /// <summary>
     /// Gets an observable stream that emits when the AutoSave setting changes.
     /// </summary>
     IObservable<bool> AutoSaveEnabledObservable { get; }
@@ -58,6 +63,11 @@ public interface ISettingsService
     IObservable<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> HeadingPaletteObservable { get; }
 
     /// <summary>
+    /// Gets an observable stream that emits when the heading numbering setting changes.
+    /// </summary>
+    IObservable<bool> HeadingNumberingEnabledObservable { get; }
+
+    /// <summary>
     /// Updates the global AutoSave setting and persists it.
     /// </summary>
     void SetAutoSaveEnabled(bool enabled);
@@ -81,4 +91,9 @@ public interface ISettingsService
     /// Updates the heading color palette and persists it.
     /// </summary>
     void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette);
+
+    /// <summary>
+    /// Updates whether heading numbering is enabled in the preview pane and persists it.
+    /// </summary>
+    void SetHeadingNumberingEnabled(bool enabled);
 }

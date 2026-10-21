@@ -15,9 +15,9 @@ namespace Valeria.Src.Features.Settings.UI.Screens.SettingsScreen;
 
 /// <summary>
 /// Settings screen: displays application-wide configuration options.
-/// Purpose: allows the user to configure global preferences such as AutoSave, font size, tab width, and heading color palette, with explicit saving.
-/// Available functionalities: edit AutoSave toggle, configure AutoSave delay, configure editor font size and tab indentation width, select preview heading color palette, save settings, navigate back to editor.
-/// Key UI elements: BackButton, SaveSettingsButton, SavedNotificationLabel, AutoSaveToggleSwitch, AutoSaveDelayNumericUpDown, FontSizeNumericUpDown, TabWidthNumericUpDown, HeadingPaletteComboBox.
+/// Purpose: allows the user to configure global preferences such as AutoSave, font size, tab width, heading color palette, and heading numbering, with explicit saving.
+/// Available functionalities: edit AutoSave toggle, configure AutoSave delay, configure editor font size and tab indentation width, select preview heading color palette, toggle heading numbering, save settings, navigate back to editor.
+/// Key UI elements: BackButton, SaveSettingsButton, SavedNotificationLabel, AutoSaveToggleSwitch, AutoSaveDelayNumericUpDown, FontSizeNumericUpDown, TabWidthNumericUpDown, HeadingPaletteComboBox, HeadingNumberingToggleSwitch.
 /// Navigate From: EditorScreen.
 /// Navigate To: EditorScreen (back navigation).
 /// </summary>
@@ -54,6 +54,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
             BindFontSize(disposables);
             BindTabWidth(disposables);
             BindHeadingPalette(disposables);
+            BindHeadingNumbering(disposables);
         });
     }
 
@@ -161,6 +162,27 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
             {
                 if (selected is HeadingPaletteOption option && option.Value != ViewModel!.State.HeadingPalette)
                     ViewModel.SetHeadingPalette(option.Value);
+            }))
+            .DisposeWith(disposables);
+    }
+
+    private void BindHeadingNumbering(CompositeDisposable disposables)
+    {
+        this.WhenAnyValue(view => view.ViewModel!.State.IsHeadingNumberingEnabled)
+            .Subscribe(Observer.Create<bool>(enabled =>
+            {
+                _isSyncing = true;
+                HeadingNumberingToggleSwitch.IsChecked = enabled;
+                _isSyncing = false;
+            }))
+            .DisposeWith(disposables);
+
+        HeadingNumberingToggleSwitch.GetObservable(ToggleSwitch.IsCheckedProperty)
+            .Where(_ => !_isSyncing && ViewModel is not null)
+            .Subscribe(Observer.Create<bool?>(isChecked =>
+            {
+                if (isChecked.HasValue && isChecked.Value != ViewModel!.State.IsHeadingNumberingEnabled)
+                    ViewModel.SetHeadingNumbering(isChecked.Value);
             }))
             .DisposeWith(disposables);
     }
