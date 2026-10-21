@@ -8,6 +8,19 @@
   <Color x:Key="PrimaryTextColor">#D4D4D4</Color>
   <Color x:Key="MutedTextColor">#9D9D9D</Color>
   <Color x:Key="HeadingColor">#E8E8E8</Color>
+  <Color x:Key="Heading1SemanticColor">#FFFFFF</Color>
+  <Color x:Key="Heading2SemanticColor">#58B4F5</Color>
+  <Color x:Key="Heading3SemanticColor">#64D2B4</Color>
+  <Color x:Key="Heading4SemanticColor">#E2C08D</Color>
+  <Color x:Key="Heading5SemanticColor">#C5D4DD</Color>
+  <Color x:Key="Heading6SemanticColor">#9EAEB8</Color>
+
+  <Color x:Key="Heading1CoolColor">#FFFFFF</Color>
+  <Color x:Key="Heading2CoolColor">#58B4F5</Color>
+  <Color x:Key="Heading3CoolColor">#8BD1F8</Color>
+  <Color x:Key="Heading4CoolColor">#B8E2F9</Color>
+  <Color x:Key="Heading5CoolColor">#D6E6F2</Color>
+  <Color x:Key="Heading6CoolColor">#8FA0AD</Color>
   <Color x:Key="AccentColor">#4FA3E0</Color>
   <Color x:Key="AccentHoverColor">#72B7E8</Color>
   <Color x:Key="CodeInlineBackgroundColor">#2D2D2D</Color>
@@ -39,6 +52,20 @@
   <SolidColorBrush x:Key="PrimaryTextBrush" Color="{StaticResource PrimaryTextColor}" />
   <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource MutedTextColor}" />
   <SolidColorBrush x:Key="HeadingBrush" Color="{StaticResource HeadingColor}" />
+
+  <SolidColorBrush x:Key="Heading1SemanticBrush" Color="{StaticResource Heading1SemanticColor}" />
+  <SolidColorBrush x:Key="Heading2SemanticBrush" Color="{StaticResource Heading2SemanticColor}" />
+  <SolidColorBrush x:Key="Heading3SemanticBrush" Color="{StaticResource Heading3SemanticColor}" />
+  <SolidColorBrush x:Key="Heading4SemanticBrush" Color="{StaticResource Heading4SemanticColor}" />
+  <SolidColorBrush x:Key="Heading5SemanticBrush" Color="{StaticResource Heading5SemanticColor}" />
+  <SolidColorBrush x:Key="Heading6SemanticBrush" Color="{StaticResource Heading6SemanticColor}" />
+
+  <SolidColorBrush x:Key="Heading1CoolBrush" Color="{StaticResource Heading1CoolColor}" />
+  <SolidColorBrush x:Key="Heading2CoolBrush" Color="{StaticResource Heading2CoolColor}" />
+  <SolidColorBrush x:Key="Heading3CoolBrush" Color="{StaticResource Heading3CoolColor}" />
+  <SolidColorBrush x:Key="Heading4CoolBrush" Color="{StaticResource Heading4CoolColor}" />
+  <SolidColorBrush x:Key="Heading5CoolBrush" Color="{StaticResource Heading5CoolColor}" />
+  <SolidColorBrush x:Key="Heading6CoolBrush" Color="{StaticResource Heading6CoolColor}" />
   <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
   <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
   <SolidColorBrush x:Key="CodeInlineBackgroundBrush" Color="{StaticResource CodeInlineBackgroundColor}" />

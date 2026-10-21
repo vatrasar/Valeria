@@ -243,6 +243,7 @@ public sealed class EditorAutoSaveTests
         private readonly BehaviorSubject<int> _delaySubject;
         private readonly BehaviorSubject<double> _fontSubject;
         private readonly BehaviorSubject<int> _tabSubject;
+        private readonly BehaviorSubject<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> _paletteSubject;
 
         public bool IsAutoSaveEnabled => _subject.Value;
         public IObservable<bool> AutoSaveEnabledObservable => _subject;
@@ -256,12 +257,16 @@ public sealed class EditorAutoSaveTests
         public int EditorTabWidth => _tabSubject.Value;
         public IObservable<int> EditorTabWidthObservable => _tabSubject;
 
-        public FakeSettingsService(bool initialAutoSave, int initialDelay = 0, double initialFont = 14, int initialTab = 4)
+        public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette => _paletteSubject.Value;
+        public IObservable<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> HeadingPaletteObservable => _paletteSubject;
+
+        public FakeSettingsService(bool initialAutoSave, int initialDelay = 0, double initialFont = 14, int initialTab = 4, Valeria.Src.Core.Domain.Enums.HeadingColorPalette initialPalette = Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Semantic)
         {
             _subject = new BehaviorSubject<bool>(initialAutoSave);
             _delaySubject = new BehaviorSubject<int>(initialDelay);
             _fontSubject = new BehaviorSubject<double>(initialFont);
             _tabSubject = new BehaviorSubject<int>(initialTab);
+            _paletteSubject = new BehaviorSubject<Valeria.Src.Core.Domain.Enums.HeadingColorPalette>(initialPalette);
         }
 
         public void SetAutoSaveEnabled(bool enabled) => _subject.OnNext(enabled);
@@ -271,6 +276,8 @@ public sealed class EditorAutoSaveTests
         public void SetEditorFontSize(double fontSize) => _fontSubject.OnNext(fontSize);
 
         public void SetEditorTabWidth(int tabWidth) => _tabSubject.OnNext(tabWidth);
+
+        public void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette) => _paletteSubject.OnNext(palette);
     }
 
     private sealed class FakePreviewBuilder : IMarkdownPreviewBuilder

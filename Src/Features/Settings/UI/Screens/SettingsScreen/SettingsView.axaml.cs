@@ -7,18 +7,29 @@ using Avalonia.Controls;
 using Avalonia.ReactiveUI;
 using ReactiveUI;
 
+using Valeria.Src.Core.Domain.Enums;
+using Valeria.Src.Core.Domain.Models;
+using Valeria.Src.Features.Settings.Resources;
+
 namespace Valeria.Src.Features.Settings.UI.Screens.SettingsScreen;
 
 /// <summary>
 /// Settings screen: displays application-wide configuration options.
-/// Purpose: allows the user to configure global preferences such as AutoSave, font size, and tab width, with explicit saving.
-/// Available functionalities: edit AutoSave toggle, configure AutoSave delay, configure editor font size and tab indentation width, save settings, navigate back to editor.
-/// Key UI elements: BackButton, SaveSettingsButton, SavedNotificationLabel, AutoSaveToggleSwitch, AutoSaveDelayNumericUpDown, FontSizeNumericUpDown, TabWidthNumericUpDown.
+/// Purpose: allows the user to configure global preferences such as AutoSave, font size, tab width, and heading color palette, with explicit saving.
+/// Available functionalities: edit AutoSave toggle, configure AutoSave delay, configure editor font size and tab indentation width, select preview heading color palette, save settings, navigate back to editor.
+/// Key UI elements: BackButton, SaveSettingsButton, SavedNotificationLabel, AutoSaveToggleSwitch, AutoSaveDelayNumericUpDown, FontSizeNumericUpDown, TabWidthNumericUpDown, HeadingPaletteComboBox.
 /// Navigate From: EditorScreen.
 /// Navigate To: EditorScreen (back navigation).
 /// </summary>
 public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
 {
+    private static readonly HeadingPaletteOption[] HeadingPaletteOptions =
+    [
+        new(HeadingColorPalette.Cool, SettingsStrings.HeadingPaletteCool),
+        new(HeadingColorPalette.Semantic, SettingsStrings.HeadingPaletteSemantic),
+        new(HeadingColorPalette.Classic, SettingsStrings.HeadingPaletteClassic)
+    ];
+
     private bool _isSyncing;
 
     public SettingsView()
@@ -42,6 +53,7 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
             BindAutoSaveDelay(disposables);
             BindFontSize(disposables);
             BindTabWidth(disposables);
+            BindHeadingPalette(disposables);
         });
     }
 
@@ -125,6 +137,30 @@ public partial class SettingsView : ReactiveUserControl<SettingsViewModel>
             {
                 if (value.HasValue && (int)value.Value != ViewModel!.State.EditorTabWidth)
                     ViewModel.SetTabWidth((int)value.Value);
+            }))
+            .DisposeWith(disposables);
+    }
+
+    private void BindHeadingPalette(CompositeDisposable disposables)
+    {
+        HeadingPaletteComboBox.ItemsSource = HeadingPaletteOptions;
+
+        this.WhenAnyValue(view => view.ViewModel!.State.HeadingPalette)
+            .Subscribe(Observer.Create<HeadingColorPalette>(palette =>
+            {
+                _isSyncing = true;
+                HeadingPaletteComboBox.SelectedItem = Array.Find(HeadingPaletteOptions, opt => opt.Value == palette)
+                    ?? HeadingPaletteOptions[0];
+                _isSyncing = false;
+            }))
+            .DisposeWith(disposables);
+
+        HeadingPaletteComboBox.GetObservable(ComboBox.SelectedItemProperty)
+            .Where(_ => !_isSyncing && ViewModel is not null)
+            .Subscribe(Observer.Create<object?>(selected =>
+            {
+                if (selected is HeadingPaletteOption option && option.Value != ViewModel!.State.HeadingPalette)
+                    ViewModel.SetHeadingPalette(option.Value);
             }))
             .DisposeWith(disposables);
     }

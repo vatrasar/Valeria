@@ -159,10 +159,38 @@ public sealed class MarkdownHeadingNumbererTests
 
         string? levelZero = tracker.GetNextNumber(0);
         string? levelOne = tracker.GetNextNumber(1);
+        string? levelFive = tracker.GetNextNumber(5);
+        string? levelSix = tracker.GetNextNumber(6);
         string? levelSeven = tracker.GetNextNumber(7);
 
         Assert.Null(levelZero);
         Assert.Null(levelOne);
-        Assert.Equal("1.1.1.1.1", levelSeven);
+        Assert.Null(levelFive);
+        Assert.Null(levelSix);
+        Assert.Null(levelSeven);
+    }
+
+    [Fact]
+    public void ApplyNumbering_AllHeadingLevels_OnlyLevelsTwoThroughFourReceiveNumbers()
+    {
+        string md = """
+            # Document Title
+            ## Section Two
+            ### Subsection Three
+            #### Subsubsection Four
+            ##### Subsection Five
+            ###### Subsection Six
+            """;
+
+        MarkdownContent content = MarkdownParser.Parse(md);
+        List<HeadingBlock> headings = [.. content.Blocks.OfType<HeadingBlock>()];
+
+        Assert.Equal(6, headings.Count);
+        Assert.Null(headings[0].SectionNumber);
+        Assert.Equal("1.", headings[1].SectionNumber);
+        Assert.Equal("1.1", headings[2].SectionNumber);
+        Assert.Equal("1.1.1", headings[3].SectionNumber);
+        Assert.Null(headings[4].SectionNumber);
+        Assert.Null(headings[5].SectionNumber);
     }
 }

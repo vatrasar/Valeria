@@ -50,6 +50,15 @@ public sealed class EditorPreviewCoordinator
     }
 
     /// <summary>
+    /// Clears virtualized chunk containers forcing complete re-rendering on next preview update.
+    /// Used by EditorViewModel when global typography or palette settings change.
+    /// </summary>
+    public void InvalidateContainers()
+    {
+        _chunkContainers.Clear();
+    }
+
+    /// <summary>
     /// Parses the document in the background and builds the preview representation.
     /// Uses multithreaded chunked virtualization for large files and direct rendering for small files.
     /// Invoked by EditorViewModel when document content changes.

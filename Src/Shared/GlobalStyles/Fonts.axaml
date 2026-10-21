@@ -6,10 +6,10 @@
 
   <sys:Double x:Key="BodyFontSize">16</sys:Double>
   <sys:Double x:Key="CodeFontSize">13.5</sys:Double>
-  <sys:Double x:Key="Heading1FontSize">30</sys:Double>
-  <sys:Double x:Key="Heading2FontSize">24</sys:Double>
-  <sys:Double x:Key="Heading3FontSize">22</sys:Double>
-  <sys:Double x:Key="Heading4FontSize">20</sys:Double>
-  <sys:Double x:Key="Heading5FontSize">18</sys:Double>
-  <sys:Double x:Key="Heading6FontSize">16</sys:Double>
+  <sys:Double x:Key="Heading1FontSize">32</sys:Double>
+  <sys:Double x:Key="Heading2FontSize">25</sys:Double>
+  <sys:Double x:Key="Heading3FontSize">21</sys:Double>
+  <sys:Double x:Key="Heading4FontSize">18</sys:Double>
+  <sys:Double x:Key="Heading5FontSize">15.5</sys:Double>
+  <sys:Double x:Key="Heading6FontSize">14</sys:Double>
 </ResourceDictionary>

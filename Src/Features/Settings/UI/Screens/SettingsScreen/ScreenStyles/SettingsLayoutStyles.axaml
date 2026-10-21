@@ -37,11 +37,12 @@
   <Style Selector="ScrollViewer.settingsContent">
     <Setter Property="Background" Value="{DynamicResource PageBackgroundBrush}" />
     <Setter Property="Padding" Value="32,24" />
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
   </Style>
 
   <Style Selector="StackPanel.settingsContainer">
     <Setter Property="MaxWidth" Value="680" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
   </Style>
 
   <Style Selector="TextBlock.settingsSectionHeader">

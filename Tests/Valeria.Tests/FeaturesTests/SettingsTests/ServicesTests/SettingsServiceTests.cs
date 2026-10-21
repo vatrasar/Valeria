@@ -143,4 +143,33 @@ public sealed class SettingsServiceTests : IDisposable
         using SettingsService reloadedService = new(config, _tempSettingsPath);
         Assert.Equal(2, reloadedService.EditorTabWidth);
     }
+
+    [Fact]
+    public void HeadingPalette_WhenNoSettingsFile_DefaultsToCool()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig());
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        Assert.Equal(Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool, service.HeadingPalette);
+    }
+
+    [Fact]
+    public async Task SetHeadingPalette_WhenUpdated_PersistsAndEmitsNewValue()
+    {
+        IOptions<AppConfig> config = Options.Create(new AppConfig());
+        using SettingsService service = new(config, _tempSettingsPath);
+
+        Valeria.Src.Core.Domain.Enums.HeadingColorPalette latestValue = Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool;
+        using var subscription = service.HeadingPaletteObservable.Subscribe(value => latestValue = value);
+
+        service.SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Classic);
+
+        Assert.Equal(Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Classic, service.HeadingPalette);
+        Assert.Equal(Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Classic, latestValue);
+
+        await Task.Delay(100);
+
+        using SettingsService reloadedService = new(config, _tempSettingsPath);
+        Assert.Equal(Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Classic, reloadedService.HeadingPalette);
+    }
 }

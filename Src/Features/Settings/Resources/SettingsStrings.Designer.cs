@@ -61,4 +61,16 @@ public static class SettingsStrings
     public static string TabWidthDescription => ResourceManager.GetString("TabWidthDescription", _resourceCulture)!;
 
     public static string SavedStatus => ResourceManager.GetString("SavedStatus", _resourceCulture)!;
+ 
+    public static string PreviewSection => ResourceManager.GetString("PreviewSection", _resourceCulture)!;
+
+    public static string HeadingPaletteTitle => ResourceManager.GetString("HeadingPaletteTitle", _resourceCulture)!;
+
+    public static string HeadingPaletteDescription => ResourceManager.GetString("HeadingPaletteDescription", _resourceCulture)!;
+
+    public static string HeadingPaletteSemantic => ResourceManager.GetString("HeadingPaletteSemantic", _resourceCulture)!;
+
+    public static string HeadingPaletteCool => ResourceManager.GetString("HeadingPaletteCool", _resourceCulture)!;
+ 
+    public static string HeadingPaletteClassic => ResourceManager.GetString("HeadingPaletteClassic", _resourceCulture)!;
 }

@@ -148,24 +148,23 @@ public static class MarkdownHeadingNumberer
 }
 
 /// <summary>
-/// Maintains counters for headings of level 2-6 according to LaTeX hierarchical sectioning rules.
-/// Level 1 headings (#) represent document titles and are not numbered.
+/// Maintains counters for headings of level 2-4 according to LaTeX hierarchical sectioning rules.
+/// Level 1 headings (#) represent document titles and levels 5-6 are unnumbered subsections.
 /// </summary>
 public sealed class HeadingNumberTracker
 {
-    private readonly int[] _counters = new int[6];
+    private readonly int[] _counters = new int[4];
 
     /// <summary>
-    /// Computes the next formatted section number for the specified heading level.
-    /// Level 1 headings return null as they are considered unnumbered titles.
+    /// Computes the next formatted section number for the specified heading level (2-4).
+    /// Headings outside this range return null as unnumbered elements.
     /// </summary>
     public string? GetNextNumber(int level)
     {
-        if (level <= 1)
+        if (level < 2 || level > 4)
             return null;
 
-        int clampedLevel = Math.Clamp(level, 2, 6);
-        int sectionLevel = clampedLevel - 1;
+        int sectionLevel = level - 1;
 
         EnsureParentLevelsInitialized(sectionLevel);
         _counters[sectionLevel]++;
@@ -185,7 +184,7 @@ public sealed class HeadingNumberTracker
 
     private void ResetDeeperLevels(int sectionLevel)
     {
-        for (int i = sectionLevel + 1; i <= 5; i++)
+        for (int i = sectionLevel + 1; i <= 3; i++)
             _counters[i] = 0;
     }
 

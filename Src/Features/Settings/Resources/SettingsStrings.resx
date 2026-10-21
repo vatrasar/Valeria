@@ -57,4 +57,22 @@
   <data name="SavedStatus" xml:space="preserve">
     <value>Settings saved</value>
   </data>
+  <data name="PreviewSection" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="HeadingPaletteTitle" xml:space="preserve">
+    <value>Heading color palette</value>
+  </data>
+  <data name="HeadingPaletteDescription" xml:space="preserve">
+    <value>Color scheme for H1-H6 headings in the preview pane</value>
+  </data>
+  <data name="HeadingPaletteSemantic" xml:space="preserve">
+    <value>Semantic (multi-color)</value>
+  </data>
+  <data name="HeadingPaletteCool" xml:space="preserve">
+    <value>Cool Blue (monochrome)</value>
+  </data>
+  <data name="HeadingPaletteClassic" xml:space="preserve">
+    <value>Classic (uniform color)</value>
+  </data>
 </root>

@@ -11,7 +11,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Microsoft.Extensions.Options;
 using Valeria.Src.Core.Config;
+using Valeria.Src.Core.Domain.Enums;
 using Valeria.Src.Core.Markdown;
+using Valeria.Src.Core.Services;
 using Valeria.Src.Features.Editor.Domain.Models;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
@@ -28,6 +30,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
 
     private readonly ICodeSyntaxService _syntax;
     private readonly IMarkdownImageLoader _imageLoader;
+    private readonly ISettingsService? _settings;
     private readonly PreviewOptions _options;
     private readonly MarkdownImageRenderer _imageRenderer;
     private readonly MarkdownInlineRenderer _inlineRenderer;
@@ -40,11 +43,13 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     public MarkdownPreviewBuilder(
         ICodeSyntaxService syntax,
         IOptions<AppConfig> config,
-        IMarkdownImageLoader? imageLoader = null)
+        IMarkdownImageLoader? imageLoader = null,
+        ISettingsService? settings = null)
     {
         _syntax = syntax;
         _options = config.Value.Preview;
         _imageLoader = imageLoader ?? new MarkdownImageLoader();
+        _settings = settings;
 
         _imageRenderer = new MarkdownImageRenderer(_imageLoader, _options);
         _inlineRenderer = new MarkdownInlineRenderer(_imageRenderer);
@@ -63,7 +68,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         Action<int, bool>? onTaskToggled = null,
         string? baseDirectory = null)
     {
-        ThemeResources theme = ThemeResources.Resolve();
+        ThemeResources theme = ResolveTheme();
         BrushSet brushes = BrushSet.Default(theme);
         _pendingTargets = [];
         _currentBaseDirectory = baseDirectory;
@@ -84,7 +89,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         Action<int, bool>? onTaskToggled = null,
         string? baseDirectory = null)
     {
-        ThemeResources theme = ThemeResources.Resolve();
+        ThemeResources theme = ResolveTheme();
         BrushSet brushes = BrushSet.Default(theme);
         _pendingTargets = [];
         _currentBaseDirectory = baseDirectory;
@@ -107,7 +112,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         string? baseDirectory = null,
         CancellationToken cancellationToken = default)
     {
-        ThemeResources theme = ThemeResources.Resolve();
+        ThemeResources theme = ResolveTheme();
         BrushSet brushes = BrushSet.Default(theme);
         _pendingTargets = [];
         _currentBaseDirectory = baseDirectory;
@@ -137,6 +142,12 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     public void ApplyHighlight(CodeHighlightTarget target, IReadOnlyList<HighlightedLine> lines)
     {
         _codeBlockRenderer.ApplyHighlight(target, lines);
+    }
+
+    private ThemeResources ResolveTheme()
+    {
+        HeadingColorPalette palette = _settings?.HeadingPalette ?? _options.HeadingPalette;
+        return ThemeResources.Resolve(palette);
     }
 
     private static bool ShouldYield(int index, int totalCount, int batchSize)
@@ -180,15 +191,26 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     private Control BuildHeading(HeadingBlock heading, ThemeResources theme, BrushSet brushes)
     {
         double fontSize = theme.HeadingFontSize(heading.Level);
-        SelectableTextBlock text = CreateBodyText(theme, brushes.Heading, fontSize);
-        text.FontWeight = FontWeight.Bold;
-        text.Margin = new Thickness(0, 12, 0, 6);
+        IBrush headingBrush = brushes.GetHeadingBrush(heading.Level);
+        SelectableTextBlock text = CreateBodyText(theme, headingBrush, fontSize);
+        text.FontWeight = heading.Level <= 3 ? FontWeight.Bold : FontWeight.SemiBold;
+        text.Margin = GetHeadingMargin(heading.Level);
 
         AppendHeadingInlines(heading, text, theme, brushes, fontSize);
         MarkdownLinkHandler.Attach(text);
 
         return text;
     }
+
+    private static Thickness GetHeadingMargin(int level) => level switch
+    {
+        1 => new Thickness(0, 20, 0, 8),
+        2 => new Thickness(0, 16, 0, 6),
+        3 => new Thickness(0, 14, 0, 5),
+        4 => new Thickness(0, 12, 0, 4),
+        5 => new Thickness(0, 10, 0, 4),
+        _ => new Thickness(0, 8, 0, 4)
+    };
 
     private void AppendHeadingInlines(
         HeadingBlock heading,
@@ -220,7 +242,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     {
         for (int i = 0; i < blocks.Count; i++)
         {
-            if (blocks[i] is HeadingBlock heading && heading.Level >= 2)
+            if (blocks[i] is HeadingBlock heading && heading.Level is >= 2 and <= 4)
                 return !string.IsNullOrEmpty(heading.SectionNumber);
         }
 

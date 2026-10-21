@@ -6,6 +6,8 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Threading;
 
+using Valeria.Src.Core.Domain.Enums;
+
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
 /// <summary>
@@ -60,8 +62,10 @@ public sealed class ThemeResources
     public FontFamily MonoFont { get; private set; } = new FontFamily("monospace");
     public double BodyFontSize { get; private set; } = 16;
     public double CodeFontSize { get; private set; } = 13.5;
+    public HeadingColorPalette ActivePalette { get; private set; } = HeadingColorPalette.Cool;
+    public ImmutableList<IBrush> HeadingBrushes { get; private set; } = ImmutableList<IBrush>.Empty;
     public ImmutableList<double> HeadingSizes { get; private set; } =
-        ImmutableList.Create(30.0, 24.0, 22.0, 20.0, 18.0, 16.0);
+        ImmutableList.Create(32.0, 25.0, 21.0, 18.0, 15.5, 14.0);
 
     /// <summary>
     /// Gets the font size in points for the specified heading level (1-6).
@@ -69,6 +73,15 @@ public sealed class ThemeResources
     public double HeadingFontSize(int level)
     {
         return HeadingSizes[Math.Clamp(level, 1, 6) - 1];
+    }
+
+    /// <summary>
+    /// Gets the foreground brush for the specified heading level (1-6).
+    /// </summary>
+    public IBrush HeadingBrush(int level)
+    {
+        int index = Math.Clamp(level, 1, 6) - 1;
+        return HeadingBrushes.Count > index ? HeadingBrushes[index] : Heading;
     }
 
     /// <summary>
@@ -82,7 +95,7 @@ public sealed class ThemeResources
     /// <summary>
     /// Resolves theme brushes and font sizes from the active application resource dictionary.
     /// </summary>
-    public static ThemeResources Resolve()
+    public static ThemeResources Resolve(HeadingColorPalette palette = HeadingColorPalette.Cool)
     {
         if (!Dispatcher.UIThread.CheckAccess())
             return new ThemeResources();
@@ -111,16 +124,40 @@ public sealed class ThemeResources
             ProseFont = FindFont(ProseFontKey, FontFamily.Default),
             MonoFont = FindFont(MonoFontKey, new FontFamily("monospace")),
             BodyFontSize = FindSize(BodyFontSizeKey, 16),
-            CodeFontSize = FindSize(CodeFontSizeKey, 13.5)
+            CodeFontSize = FindSize(CodeFontSizeKey, 13.5),
+            ActivePalette = palette
         };
 
+        if (palette == HeadingColorPalette.Classic)
+        {
+            theme.HeadingBrushes = ImmutableList.Create(
+                theme.Heading,
+                theme.Heading,
+                theme.Heading,
+                theme.Heading,
+                theme.Heading,
+                theme.Heading);
+        }
+        else
+        {
+            string suffix = palette == HeadingColorPalette.Cool ? "Cool" : "Semantic";
+
+            theme.HeadingBrushes = ImmutableList.Create(
+                FindBrush($"Heading1{suffix}Brush", theme.Heading),
+                FindBrush($"Heading2{suffix}Brush", theme.Heading),
+                FindBrush($"Heading3{suffix}Brush", theme.Heading),
+                FindBrush($"Heading4{suffix}Brush", theme.Heading),
+                FindBrush($"Heading5{suffix}Brush", theme.Heading),
+                FindBrush($"Heading6{suffix}Brush", theme.Heading));
+        }
+
         theme.HeadingSizes = ImmutableList.Create(
-            FindSize("Heading1FontSize", 30),
-            FindSize("Heading2FontSize", 24),
-            FindSize("Heading3FontSize", 22),
-            FindSize("Heading4FontSize", 20),
-            FindSize("Heading5FontSize", 18),
-            FindSize("Heading6FontSize", 16));
+            FindSize("Heading1FontSize", 32),
+            FindSize("Heading2FontSize", 25),
+            FindSize("Heading3FontSize", 21),
+            FindSize("Heading4FontSize", 18),
+            FindSize("Heading5FontSize", 15.5),
+            FindSize("Heading6FontSize", 14));
 
         return theme;
     }

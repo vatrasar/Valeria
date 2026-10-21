@@ -35,10 +35,10 @@ public static class DependencyInjection
         services.AddSingleton<IEditorFileService, EditorFileService>();
         services.AddSingleton<ICodeSyntaxService, CodeSyntaxService>();
         services.AddSingleton<IMarkdownImageLoader, MarkdownImageLoader>();
+        services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IMarkdownPreviewBuilder, MarkdownPreviewBuilder>();
         services.AddSingleton<IPreviewSearchService, PreviewSearchService>();
         services.AddSingleton<IFileDialogService, FileDialogService>();
-        services.AddSingleton<ISettingsService, SettingsService>();
 
         services.AddSingleton<MainWindowViewModel>(provider =>
             ActivatorUtilities.CreateInstance<MainWindowViewModel>(provider, string.Empty));

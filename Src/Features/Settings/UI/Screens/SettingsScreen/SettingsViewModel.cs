@@ -27,6 +27,7 @@ public partial class SettingsViewModel : ViewModelBase<SettingsState>, IRoutable
             AutoSaveDelaySeconds = settingsService.AutoSaveDelaySeconds,
             EditorFontSize = settingsService.EditorFontSize,
             EditorTabWidth = settingsService.EditorTabWidth,
+            HeadingPalette = settingsService.HeadingPalette,
             HasUnsavedChanges = false,
             IsSavedFeedbackVisible = false
         })
@@ -48,6 +49,7 @@ public partial class SettingsViewModel : ViewModelBase<SettingsState>, IRoutable
         _settingsService.SetAutoSaveDelaySeconds(State.AutoSaveDelaySeconds);
         _settingsService.SetEditorFontSize(State.EditorFontSize);
         _settingsService.SetEditorTabWidth(State.EditorTabWidth);
+        _settingsService.SetHeadingPalette(State.HeadingPalette);
 
         UpdateState(state => state with
         {
@@ -128,6 +130,23 @@ public partial class SettingsViewModel : ViewModelBase<SettingsState>, IRoutable
         UpdateState(state => state with
         {
             EditorTabWidth = tabWidth,
+            HasUnsavedChanges = true,
+            IsSavedFeedbackVisible = false
+        });
+    }
+
+    /// <summary>
+    /// Updates the draft heading color palette in local view state.
+    /// Invoked by SettingsView heading palette combo box.
+    /// </summary>
+    public void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette)
+    {
+        if (State.HeadingPalette == palette)
+            return;
+
+        UpdateState(state => state with
+        {
+            HeadingPalette = palette,
             HasUnsavedChanges = true,
             IsSavedFeedbackVisible = false
         });

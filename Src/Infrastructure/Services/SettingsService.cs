@@ -20,6 +20,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
     private readonly BehaviorSubject<int> _autoSaveDelaySecondsSubject;
     private readonly BehaviorSubject<double> _editorFontSizeSubject;
     private readonly BehaviorSubject<int> _editorTabWidthSubject;
+    private readonly BehaviorSubject<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> _headingPaletteSubject;
     private readonly object _fileLock = new();
 
     public bool IsAutoSaveEnabled => _autoSaveSubject.Value;
@@ -30,6 +31,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
 
     public int EditorTabWidth => _editorTabWidthSubject.Value;
 
+    public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette => _headingPaletteSubject.Value;
+
     public IObservable<bool> AutoSaveEnabledObservable => _autoSaveSubject.AsObservable();
 
     public IObservable<int> AutoSaveDelaySecondsObservable => _autoSaveDelaySecondsSubject.AsObservable();
@@ -37,6 +40,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
     public IObservable<double> EditorFontSizeObservable => _editorFontSizeSubject.AsObservable();
 
     public IObservable<int> EditorTabWidthObservable => _editorTabWidthSubject.AsObservable();
+
+    public IObservable<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> HeadingPaletteObservable => _headingPaletteSubject.AsObservable();
 
     public SettingsService(IOptions<AppConfig> config)
         : this(config, ResolveDefaultSettingsPath())
@@ -47,12 +52,14 @@ public sealed class SettingsService : ISettingsService, IDisposable
     {
         _settingsFilePath = settingsFilePath;
 
-        (bool autoSave, int delay, double fontSize, int tabWidth) = LoadPreferences(config.Value.Editor);
+        (bool autoSave, int delay, double fontSize, int tabWidth, Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette) =
+            LoadPreferences(config.Value.Editor, config.Value.Preview);
 
         _autoSaveSubject = new BehaviorSubject<bool>(autoSave);
         _autoSaveDelaySecondsSubject = new BehaviorSubject<int>(delay);
         _editorFontSizeSubject = new BehaviorSubject<double>(fontSize);
         _editorTabWidthSubject = new BehaviorSubject<int>(tabWidth);
+        _headingPaletteSubject = new BehaviorSubject<Valeria.Src.Core.Domain.Enums.HeadingColorPalette>(palette);
     }
 
     /// <summary>
@@ -109,12 +116,25 @@ public sealed class SettingsService : ISettingsService, IDisposable
         _ = SavePreferencesAsync();
     }
 
+    /// <summary>
+    /// Updates the heading color palette and saves it to persistent storage.
+    /// </summary>
+    public void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette)
+    {
+        if (_headingPaletteSubject.Value == palette)
+            return;
+
+        _headingPaletteSubject.OnNext(palette);
+        _ = SavePreferencesAsync();
+    }
+
     public void Dispose()
     {
         _autoSaveSubject.Dispose();
         _autoSaveDelaySecondsSubject.Dispose();
         _editorFontSizeSubject.Dispose();
         _editorTabWidthSubject.Dispose();
+        _headingPaletteSubject.Dispose();
     }
 
     private static string ResolveDefaultSettingsPath()
@@ -125,15 +145,17 @@ public sealed class SettingsService : ISettingsService, IDisposable
         return Path.Combine(appDirectory, "settings.json");
     }
 
-    private (bool AutoSave, int Delay, double FontSize, int TabWidth) LoadPreferences(EditorOptions fallback)
+    private (bool AutoSave, int Delay, double FontSize, int TabWidth, Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette)
+        LoadPreferences(EditorOptions editorFallback, PreviewOptions previewFallback)
     {
-        bool autoSave = fallback.AutoSave;
-        int delay = Math.Max(1, fallback.AutoSaveDelayMilliseconds / 1000);
-        double fontSize = fallback.FontSize;
-        int tabWidth = fallback.TabWidth;
+        bool autoSave = editorFallback.AutoSave;
+        int delay = Math.Max(1, editorFallback.AutoSaveDelayMilliseconds / 1000);
+        double fontSize = editorFallback.FontSize;
+        int tabWidth = editorFallback.TabWidth;
+        Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette = previewFallback.HeadingPalette;
 
         if (!File.Exists(_settingsFilePath))
-            return (autoSave, delay, fontSize, tabWidth);
+            return (autoSave, delay, fontSize, tabWidth, palette);
 
         try
         {
@@ -154,14 +176,36 @@ public sealed class SettingsService : ISettingsService, IDisposable
 
                 if (root.TryGetProperty("EditorTabWidth", out JsonElement tabElement))
                     tabWidth = Math.Clamp(tabElement.GetInt32(), 2, 8);
+
+                if (root.TryGetProperty("HeadingPalette", out JsonElement paletteElement))
+                    palette = ParseHeadingPalette(paletteElement, palette);
             }
         }
         catch (Exception)
         {
-            return (autoSave, delay, fontSize, tabWidth);
+            return (autoSave, delay, fontSize, tabWidth, palette);
         }
 
-        return (autoSave, delay, fontSize, tabWidth);
+        return (autoSave, delay, fontSize, tabWidth, palette);
+    }
+
+    private static Valeria.Src.Core.Domain.Enums.HeadingColorPalette ParseHeadingPalette(
+        JsonElement element,
+        Valeria.Src.Core.Domain.Enums.HeadingColorPalette fallback)
+    {
+        if (element.ValueKind == JsonValueKind.String &&
+            Enum.TryParse<Valeria.Src.Core.Domain.Enums.HeadingColorPalette>(element.GetString(), true, out var parsed))
+        {
+            return parsed;
+        }
+
+        if (element.ValueKind == JsonValueKind.Number &&
+            Enum.IsDefined(typeof(Valeria.Src.Core.Domain.Enums.HeadingColorPalette), element.GetInt32()))
+        {
+            return (Valeria.Src.Core.Domain.Enums.HeadingColorPalette)element.GetInt32();
+        }
+
+        return fallback;
     }
 
     private Task SavePreferencesAsync()
@@ -170,6 +214,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
         int delay = _autoSaveDelaySecondsSubject.Value;
         double fontSize = _editorFontSizeSubject.Value;
         int tabWidth = _editorTabWidthSubject.Value;
+        string palette = _headingPaletteSubject.Value.ToString();
 
         return Task.Run(() =>
         {
@@ -186,7 +231,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
                         AutoSave = autoSave,
                         AutoSaveDelaySeconds = delay,
                         EditorFontSize = fontSize,
-                        EditorTabWidth = tabWidth
+                        EditorTabWidth = tabWidth,
+                        HeadingPalette = palette
                     };
 
                     string json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });

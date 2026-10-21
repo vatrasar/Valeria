@@ -227,6 +227,37 @@ public sealed class MarkdownPreviewBuilderBasicTests
         Assert.Equal(1, accentBorders);
     }
 
+    [Fact]
+    public async Task BuildBlocks_AllHeadings_AppliesDecreasingFontSizesAndAppropriateWeights()
+    {
+        (List<double> fontSizes, List<FontWeight> weights) = await MarkdownPreviewTestHelpers.EvaluateAsync(() =>
+        {
+            string md = "# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6";
+            List<SelectableTextBlock> texts = Build(md)
+                .SelectMany(MarkdownPreviewTestHelpers.Descendants<SelectableTextBlock>)
+                .ToList();
+
+            return (
+                texts.Select(t => t.FontSize).ToList(),
+                texts.Select(t => t.FontWeight).ToList());
+        });
+
+        Assert.Equal(6, fontSizes.Count);
+        Assert.Equal(32, fontSizes[0]);
+        Assert.Equal(25, fontSizes[1]);
+        Assert.Equal(21, fontSizes[2]);
+        Assert.Equal(18, fontSizes[3]);
+        Assert.Equal(15.5, fontSizes[4]);
+        Assert.Equal(14, fontSizes[5]);
+
+        Assert.Equal(FontWeight.Bold, weights[0]);
+        Assert.Equal(FontWeight.Bold, weights[1]);
+        Assert.Equal(FontWeight.Bold, weights[2]);
+        Assert.Equal(FontWeight.SemiBold, weights[3]);
+        Assert.Equal(FontWeight.SemiBold, weights[4]);
+        Assert.Equal(FontWeight.SemiBold, weights[5]);
+    }
+
     private IReadOnlyList<Control> Build(string markdown, Action<int, bool>? onTaskToggled = null)
     {
         return _builder.BuildBlocks(MarkdownParser.Parse(markdown), onTaskToggled).Blocks;

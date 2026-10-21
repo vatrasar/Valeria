@@ -28,6 +28,11 @@ public interface ISettingsService
     int EditorTabWidth { get; }
 
     /// <summary>
+    /// Gets the color palette used for markdown heading levels.
+    /// </summary>
+    Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette { get; }
+
+    /// <summary>
     /// Gets an observable stream that emits when the AutoSave setting changes.
     /// </summary>
     IObservable<bool> AutoSaveEnabledObservable { get; }
@@ -48,6 +53,11 @@ public interface ISettingsService
     IObservable<int> EditorTabWidthObservable { get; }
 
     /// <summary>
+    /// Gets an observable stream that emits when the heading color palette changes.
+    /// </summary>
+    IObservable<Valeria.Src.Core.Domain.Enums.HeadingColorPalette> HeadingPaletteObservable { get; }
+
+    /// <summary>
     /// Updates the global AutoSave setting and persists it.
     /// </summary>
     void SetAutoSaveEnabled(bool enabled);
@@ -66,4 +76,9 @@ public interface ISettingsService
     /// Updates the markdown editor tab indentation width and persists it.
     /// </summary>
     void SetEditorTabWidth(int tabWidth);
+
+    /// <summary>
+    /// Updates the heading color palette and persists it.
+    /// </summary>
+    void SetHeadingPalette(Valeria.Src.Core.Domain.Enums.HeadingColorPalette palette);
 }

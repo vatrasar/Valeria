@@ -13,6 +13,9 @@ public sealed record SettingsState
 
     public int EditorTabWidth { get; init; } = 4;
 
+    public Valeria.Src.Core.Domain.Enums.HeadingColorPalette HeadingPalette { get; init; } =
+        Valeria.Src.Core.Domain.Enums.HeadingColorPalette.Cool;
+
     public bool HasUnsavedChanges { get; init; }
 
     public bool IsSavedFeedbackVisible { get; init; }
