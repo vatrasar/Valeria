@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Microsoft.Extensions.Options;
@@ -67,7 +68,8 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         _pendingTargets = [];
         _currentBaseDirectory = baseDirectory;
 
-        IReadOnlyList<Control> blocks = content.Blocks.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
+        ImmutableList<MarkdownBlock> blocksToRender = EnsureNumbered(content.Blocks);
+        IReadOnlyList<Control> blocks = blocksToRender.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
 
         return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
     }
@@ -87,7 +89,8 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         _pendingTargets = [];
         _currentBaseDirectory = baseDirectory;
 
-        IReadOnlyList<Control> blocks = chunk.Blocks.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
+        ImmutableList<MarkdownBlock> blocksToRender = EnsureNumbered(chunk.Blocks);
+        IReadOnlyList<Control> blocks = blocksToRender.Select(block => BuildBlock(block, theme, brushes, onTaskToggled)).ToList();
 
         return new PreviewBuildResult(blocks, _pendingTargets.ToImmutableList());
     }
@@ -109,17 +112,18 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         _pendingTargets = [];
         _currentBaseDirectory = baseDirectory;
 
+        ImmutableList<MarkdownBlock> blocksToRender = EnsureNumbered(content.Blocks);
         const int batchSize = 40;
-        List<Control> blocks = new(content.Blocks.Count);
+        List<Control> blocks = new(blocksToRender.Count);
 
-        for (int index = 0; index < content.Blocks.Count; index++)
+        for (int index = 0; index < blocksToRender.Count; index++)
         {
             if (cancellationToken.IsCancellationRequested)
                 return new PreviewBuildResult([], ImmutableList<CodeHighlightTarget>.Empty);
 
-            blocks.Add(BuildBlock(content.Blocks[index], theme, brushes, onTaskToggled));
+            blocks.Add(BuildBlock(blocksToRender[index], theme, brushes, onTaskToggled));
 
-            if (ShouldYield(index, content.Blocks.Count, batchSize))
+            if (ShouldYield(index, blocksToRender.Count, batchSize))
                 await YieldToDispatcherAsync();
         }
 
@@ -180,10 +184,47 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         text.FontWeight = FontWeight.Bold;
         text.Margin = new Thickness(0, 12, 0, 6);
 
-        _inlineRenderer.AppendInlines(heading.Inlines, text.Inlines, theme, brushes, fontSize, _currentBaseDirectory);
+        AppendHeadingInlines(heading, text, theme, brushes, fontSize);
         MarkdownLinkHandler.Attach(text);
 
         return text;
+    }
+
+    private void AppendHeadingInlines(
+        HeadingBlock heading,
+        SelectableTextBlock text,
+        ThemeResources theme,
+        BrushSet brushes,
+        double fontSize)
+    {
+        if (!string.IsNullOrEmpty(heading.SectionNumber))
+        {
+            string numberPrefix = heading.Inlines.Count > 0
+                ? $"{heading.SectionNumber} "
+                : heading.SectionNumber;
+            text.Inlines?.Add(new Run(numberPrefix));
+        }
+
+        _inlineRenderer.AppendInlines(heading.Inlines, text.Inlines, theme, brushes, fontSize, _currentBaseDirectory);
+    }
+
+    private static ImmutableList<MarkdownBlock> EnsureNumbered(ImmutableList<MarkdownBlock> blocks)
+    {
+        if (blocks.Count == 0 || HasNumberedHeadings(blocks))
+            return blocks;
+
+        return MarkdownHeadingNumberer.ApplyNumbering(blocks);
+    }
+
+    private static bool HasNumberedHeadings(ImmutableList<MarkdownBlock> blocks)
+    {
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            if (blocks[i] is HeadingBlock heading && heading.Level >= 2)
+                return !string.IsNullOrEmpty(heading.SectionNumber);
+        }
+
+        return false;
     }
 
     private Control BuildParagraph(ParagraphBlock paragraph, ThemeResources theme, BrushSet brushes, double fontSize)

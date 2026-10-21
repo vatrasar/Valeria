@@ -250,7 +250,9 @@ public sealed class EditorPreviewCoordinator
 
         container.UpdateChunk(newChunk);
 
-        if (!sameHash && container.IsRealized)
+        bool headingsChanged = MarkdownHeadingNumberer.HeadingNumbersChanged(oldChunk.Blocks, newChunk.Blocks);
+
+        if ((!sameHash || headingsChanged) && container.IsRealized)
         {
             PreviewBuildResult result = _previewBuilder.BuildChunkBlocks(newChunk, _onTaskToggled, _activeBaseDirectory);
             container.RefreshRealized(result.Blocks);

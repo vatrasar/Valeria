@@ -37,7 +37,8 @@ public static class MarkdownParser
 
         int taskIndex = 0;
 
-        return new MarkdownContent(ParseBlocks(document, ref taskIndex, lineOffsets, markdown.Length));
+        ImmutableList<MarkdownBlock> blocks = ParseBlocks(document, ref taskIndex, lineOffsets, markdown.Length);
+        return new MarkdownContent(MarkdownHeadingNumberer.ApplyNumbering(blocks));
     }
 
     private static ImmutableList<MarkdownBlock> ParseBlocks(MdSyntax.ContainerBlock container, ref int taskIndex, int[] lineOffsets, int markdownLength)

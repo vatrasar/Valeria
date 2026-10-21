@@ -48,7 +48,10 @@ public abstract record MarkdownBlock
 }
 
 /// <summary>Heading with level 1-6 and formatted inline content.</summary>
-public sealed record HeadingBlock(int Level, ImmutableList<MarkdownInline> Inlines) : MarkdownBlock;
+public sealed record HeadingBlock(int Level, ImmutableList<MarkdownInline> Inlines) : MarkdownBlock
+{
+    public string? SectionNumber { get; init; }
+}
 
 /// <summary>Regular paragraph with formatted inline content.</summary>
 public sealed record ParagraphBlock(ImmutableList<MarkdownInline> Inlines) : MarkdownBlock;

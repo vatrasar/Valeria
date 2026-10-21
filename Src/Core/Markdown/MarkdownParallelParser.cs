@@ -70,7 +70,7 @@ public static class MarkdownParallelParser
             chunks[index] = ParseSlice(slices[index], metrics);
         });
 
-        return ImmutableList.CreateRange(chunks);
+        return MarkdownHeadingNumberer.ApplyNumberingToChunks(chunks);
     }
 
     private static MarkdownChunk CreateEmptyChunk(TextChunkSlice slice)

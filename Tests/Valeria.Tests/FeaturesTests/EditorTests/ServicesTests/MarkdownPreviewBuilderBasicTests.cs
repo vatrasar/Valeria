@@ -94,6 +94,28 @@ public sealed class MarkdownPreviewBuilderBasicTests
     }
 
     [Fact]
+    public async Task BuildBlocks_Headings_RenderWithLatexStyleNumbering()
+    {
+        (string titleText, string secText, string subText) = await MarkdownPreviewTestHelpers.EvaluateAsync(() =>
+        {
+            List<SelectableTextBlock> texts = Build("# Document Title\n\n## Section One\n\n### Sub Section")
+                .SelectMany(MarkdownPreviewTestHelpers.Descendants<SelectableTextBlock>)
+                .Where(t => t.FontWeight == FontWeight.Bold)
+                .ToList();
+
+            string text0 = string.Concat(texts[0].Inlines!.Select(i => (i as Run)?.Text ?? string.Empty));
+            string text1 = string.Concat(texts[1].Inlines!.Select(i => (i as Run)?.Text ?? string.Empty));
+            string text2 = string.Concat(texts[2].Inlines!.Select(i => (i as Run)?.Text ?? string.Empty));
+
+            return (text0, text1, text2);
+        });
+
+        Assert.Equal("Document Title", titleText);
+        Assert.Equal("1. Section One", secText);
+        Assert.Equal("1.1 Sub Section", subText);
+    }
+
+    [Fact]
     public async Task BuildBlocks_FencedCSharp_ReturnsSelectableTextWithCodeAndHeader()
     {
         (string? code, bool hasLanguageLabel) = await MarkdownPreviewTestHelpers.EvaluateAsync(() =>
