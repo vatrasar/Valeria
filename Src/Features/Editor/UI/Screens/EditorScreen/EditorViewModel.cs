@@ -62,7 +62,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
         ISettingsService settings,
         IOptions<AppConfig> config,
         string initialFilePath,
-        IFilesDockService? filesDockService = null)
+        IFilesDockService? filesDockService = null,
+        IMarkdownImageLoader? imageLoader = null)
         : base(new EditorState
         {
             EditorFontSize = settings.EditorFontSize,
@@ -99,7 +100,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
             FilesDock,
             () => State,
             UpdateState,
-            () => _previewCoordinator.ProcessPreviewAsync(CancellationToken.None));
+            () => _previewCoordinator.ProcessPreviewAsync(CancellationToken.None),
+            imageLoader);
 
         FilesDock.FileSelected
             .Select(path => Observable.FromAsync(ct => _documentCoordinator.OpenFileFromPathAsync(path, ct)))

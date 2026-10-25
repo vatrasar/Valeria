@@ -148,12 +148,38 @@ public sealed class EditorAutoSaveTests
         Assert.Equal(1, dockService.RecordFileOpenCallCount);
     }
 
+    [Fact]
+    public async Task OpenFileFromPathAsync_ClearsDecodedImageCache()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        FakeEditorFileService files = new("some content");
+        FakeSettingsService settings = new(false);
+        FakeImageLoader imageLoader = new();
+        EditorViewModel editor = CreateEditor(files, settings, "/path/to/test.md", imageLoader: imageLoader);
+
+        await session.Dispatch(async () =>
+        {
+            await editor.InitializeAsync(CancellationToken.None);
+        }, CancellationToken.None);
+
+        int countAfterInit = imageLoader.ClearCacheCallCount;
+        Assert.True(countAfterInit > 0);
+
+        await session.Dispatch(async () =>
+        {
+            await editor.OpenFileFromPathAsync("/path/to/another.md", CancellationToken.None);
+        }, CancellationToken.None);
+
+        Assert.Equal(countAfterInit + 1, imageLoader.ClearCacheCallCount);
+    }
+
     private static EditorViewModel CreateEditor(
         FakeEditorFileService files,
         FakeSettingsService settings,
         string initialFilePath,
         IScreen? hostScreen = null,
-        IFilesDockService? filesDockService = null)
+        IFilesDockService? filesDockService = null,
+        IMarkdownImageLoader? imageLoader = null)
     {
         IOptions<AppConfig> config = Options.Create(new AppConfig
         {
@@ -174,7 +200,8 @@ public sealed class EditorAutoSaveTests
             settings,
             config,
             initialFilePath,
-            filesDockService);
+            filesDockService,
+            imageLoader);
     }
 
     private static async Task WaitForConditionAsync(HeadlessUnitTestSession session, Func<bool> condition, int timeoutMilliseconds)
@@ -370,5 +397,24 @@ public sealed class EditorAutoSaveTests
 
         public Task<RecentFile?> GetLastOpenedNonFavoriteAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<RecentFile?>(null);
+    }
+
+    private sealed class FakeImageLoader : IMarkdownImageLoader
+    {
+        public int ClearCacheCallCount { get; private set; }
+
+        public Task<Avalonia.Media.Imaging.Bitmap?> LoadImageAsync(string url, string? baseDirectory = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(null);
+
+        public bool TryGetCached(string url, string? baseDirectory, out Avalonia.Media.Imaging.Bitmap? bitmap)
+        {
+            bitmap = null;
+            return false;
+        }
+
+        public void ClearCache()
+        {
+            ClearCacheCallCount++;
+        }
     }
 }

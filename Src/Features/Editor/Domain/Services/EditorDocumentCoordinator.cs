@@ -25,6 +25,7 @@ public sealed class EditorDocumentCoordinator
     private readonly Func<EditorState> _getState;
     private readonly Action<Func<EditorState, EditorState>> _updateState;
     private readonly Func<Task> _triggerPreview;
+    private readonly IMarkdownImageLoader? _imageLoader;
     private readonly SemaphoreSlim _saveGate = new(1, 1);
     private string _savedSnapshot = string.Empty;
 
@@ -37,7 +38,8 @@ public sealed class EditorDocumentCoordinator
         FilesDockViewModel filesDock,
         Func<EditorState> getState,
         Action<Func<EditorState, EditorState>> updateState,
-        Func<Task> triggerPreview)
+        Func<Task> triggerPreview,
+        IMarkdownImageLoader? imageLoader = null)
     {
         _files = files;
         _dialogs = dialogs;
@@ -46,6 +48,7 @@ public sealed class EditorDocumentCoordinator
         _getState = getState;
         _updateState = updateState;
         _triggerPreview = triggerPreview;
+        _imageLoader = imageLoader;
     }
 
     public async Task OpenFileAsync(CancellationToken cancellationToken)
@@ -139,8 +142,13 @@ public sealed class EditorDocumentCoordinator
         }
     }
 
+    /// <summary>
+    /// Applies loaded document content to the editor state and clears decoded image cache.
+    /// Invoked by EditorDocumentCoordinator and EditorViewModel.
+    /// </summary>
     public void ApplyLoadedDocument(string content, string? path)
     {
+        _imageLoader?.ClearCache();
         _savedSnapshot = content ?? string.Empty;
 
         _updateState(state => state with
