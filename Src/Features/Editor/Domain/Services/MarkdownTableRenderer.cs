@@ -8,6 +8,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Features.Editor.Domain.Models;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
@@ -221,9 +222,9 @@ internal sealed class MarkdownTableRenderer
         };
     }
 
-    private static SelectableTextBlock CreateEmptyCellTextBlock(ThemeResources theme, IBrush foreground)
+    private static PreviewTextBlock CreateEmptyCellTextBlock(ThemeResources theme, IBrush foreground)
     {
-        return new SelectableTextBlock
+        return new PreviewTextBlock
         {
             FontFamily = theme.ProseFont,
             FontSize = theme.BodyFontSize,

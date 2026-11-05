@@ -479,4 +479,109 @@ public sealed class EditorScreenSyncIntegrationTests
                 }, CancellationToken.None);
         }
     }
+
+    [Fact]
+    public async Task ClickInPreview_WhenEditorIsHidden_DoesNotApplyHighlightOrSyncEditor()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+
+        try
+        {
+            (window, EditorViewModel editor) = await EditorScreenTestHelpers.SetupEditorAsync(session);
+
+            string doc = "# First Heading\n\nThis is a paragraph that user tries to select.\n\n```csharp\nint x = 42;\n```";
+
+            await session.Dispatch(() =>
+            {
+                editor.SetMarkdownText(doc);
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            await Task.Delay(EditorScreenTestHelpers.PreviewWaitMilliseconds);
+            await EditorScreenTestHelpers.WaitForPreviewAsync(session, editor);
+
+            (bool isEditorVisible, bool highlightFound, int selectionLength) = await session.Dispatch(() =>
+            {
+                EditorView view = EditorScreenTestHelpers.RequireView(window);
+                TextEditor source = EditorScreenTestHelpers.RequireSourceEditor(view);
+
+                Control paragraphBlock = editor.State.PreviewBlocks[1];
+                BlockSourceSpan span = (BlockSourceSpan)paragraphBlock.Tag!;
+
+                view.HandlePreviewBlockClicked(paragraphBlock, span, new Point(50, 10));
+                Dispatcher.UIThread.RunJobs();
+
+                bool hasHighlight = paragraphBlock.Classes.Contains("sync-highlight");
+                return (editor.State.IsEditorVisible, hasHighlight, source.SelectionLength);
+            }, CancellationToken.None);
+
+            Assert.False(isEditorVisible);
+            Assert.False(highlightFound);
+            Assert.Equal(0, selectionLength);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task HidingEditor_ClearsActivePreviewHighlight()
+    {
+        HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
+        Window? window = null;
+
+        try
+        {
+            (window, EditorViewModel editor) = await EditorScreenTestHelpers.SetupEditorAsync(session);
+
+            string doc = "# First Heading\n\nParagraph with text.";
+
+            await session.Dispatch(() =>
+            {
+                editor.ToggleEditorCommand.Execute().Subscribe();
+                editor.SetMarkdownText(doc);
+                Dispatcher.UIThread.RunJobs();
+            }, CancellationToken.None);
+
+            await Task.Delay(EditorScreenTestHelpers.PreviewWaitMilliseconds);
+            await EditorScreenTestHelpers.WaitForPreviewAsync(session, editor);
+
+            (bool hadHighlight, bool hasHighlightAfterHide) = await session.Dispatch(() =>
+            {
+                EditorView view = EditorScreenTestHelpers.RequireView(window);
+                Control paragraphBlock = editor.State.PreviewBlocks[1];
+                BlockSourceSpan span = (BlockSourceSpan)paragraphBlock.Tag!;
+
+                view.HandlePreviewBlockClicked(paragraphBlock, span, new Point(10, 10));
+                Dispatcher.UIThread.RunJobs();
+
+                bool initialHighlight = paragraphBlock.Classes.Contains("sync-highlight");
+
+                editor.ToggleEditorCommand.Execute().Subscribe();
+                Dispatcher.UIThread.RunJobs();
+
+                bool highlightAfterHide = paragraphBlock.Classes.Contains("sync-highlight");
+                return (initialHighlight, highlightAfterHide);
+            }, CancellationToken.None);
+
+            Assert.True(hadHighlight);
+            Assert.False(hasHighlightAfterHide);
+        }
+        finally
+        {
+            if (window is not null)
+                await session.Dispatch(() =>
+                {
+                    window.Close();
+                    Dispatcher.UIThread.RunJobs();
+                }, CancellationToken.None);
+        }
+    }
 }

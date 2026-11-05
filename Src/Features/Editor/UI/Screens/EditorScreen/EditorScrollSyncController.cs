@@ -43,6 +43,9 @@ public sealed class EditorScrollSyncController
         _getViewModel = getViewModel;
     }
 
+    /// <summary>
+    /// Attaches pointer event handlers for two-way synchronization to the provided disposable container.
+    /// </summary>
     public void Attach(CompositeDisposable disposables)
     {
         _sourceEditor.TextArea.AddHandler(InputElement.PointerReleasedEvent, OnEditorPointerReleased, RoutingStrategies.Bubble, handledEventsToo: true);
@@ -58,6 +61,9 @@ public sealed class EditorScrollSyncController
         }).DisposeWith(disposables);
     }
 
+    /// <summary>
+    /// Synchronizes the preview scroll position and highlight to the specified editor caret line or offset.
+    /// </summary>
     public void HandleEditorPointerReleased(int caretLineOrOffset)
     {
         if (_sourceEditor.Document is not null && caretLineOrOffset >= 1 && caretLineOrOffset <= _sourceEditor.Document.LineCount)
@@ -70,8 +76,14 @@ public sealed class EditorScrollSyncController
         SyncPreviewToOffset(caretLineOrOffset);
     }
 
+    /// <summary>
+    /// Handles a click on a preview block using line range coordinates, scrolling the editor and applying a pulse highlight when the editor is visible.
+    /// </summary>
     public void HandlePreviewBlockClicked(Control clickedControl, BlockLineRange range, Point positionInBlock)
     {
+        if (_getViewModel()?.State.IsEditorVisible != true)
+            return;
+
         BlockSourceSpan span = EditorSyncResolver.TryGetBlockSpan(clickedControl, out BlockSourceSpan resolved)
             ? resolved
             : new BlockSourceSpan(0, 0, range.StartLine, range.EndLine);
@@ -79,11 +91,33 @@ public sealed class EditorScrollSyncController
         HandlePreviewBlockClicked(clickedControl, span, positionInBlock);
     }
 
+    /// <summary>
+    /// Handles a click on a preview block using character source span coordinates, scrolling the editor and applying a pulse highlight when the editor is visible.
+    /// </summary>
     public void HandlePreviewBlockClicked(Control clickedControl, BlockSourceSpan span, Point positionInBlock)
     {
+        if (_getViewModel()?.State.IsEditorVisible != true)
+            return;
+
         int targetOffset = EditorSyncResolver.CalculateIntraBlockOffset(clickedControl, span, positionInBlock, _sourceEditor);
         JumpEditorToOffset(targetOffset, span);
         ApplyPreviewHighlight(clickedControl);
+    }
+
+    /// <summary>
+    /// Cancels active highlight timers and removes the sync highlight class from any highlighted preview control.
+    /// </summary>
+    public void ClearHighlight()
+    {
+        _highlightCts?.Cancel();
+        _highlightCts?.Dispose();
+        _highlightCts = null;
+
+        if (_currentHighlightedControl is not null)
+        {
+            _currentHighlightedControl.Classes.Remove("sync-highlight");
+            _currentHighlightedControl = null;
+        }
     }
 
     private void OnEditorPointerReleased(object? sender, PointerReleasedEventArgs args)
@@ -96,6 +130,9 @@ public sealed class EditorScrollSyncController
 
     private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs args)
     {
+        if (_getViewModel()?.State.IsEditorVisible != true)
+            return;
+
         if (args.Source is not Visual sourceVisual || EditorSyncResolver.IsInteractiveChild(sourceVisual) || EditorSyncResolver.IsWithinSearchPane(sourceVisual))
             return;
 
@@ -150,6 +187,9 @@ public sealed class EditorScrollSyncController
 
     private void ApplyPreviewHighlight(Control block)
     {
+        if (_getViewModel()?.State.IsEditorVisible != true)
+            return;
+
         if (_currentHighlightedControl is not null && _currentHighlightedControl != block)
             _currentHighlightedControl.Classes.Remove("sync-highlight");
 

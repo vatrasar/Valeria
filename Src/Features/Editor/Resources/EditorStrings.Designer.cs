@@ -69,6 +69,7 @@ public static class EditorStrings
     public static string InsertTable => ResourceManager.GetString("InsertTable", _resourceCulture)!;
 
     public static string CopyCode => ResourceManager.GetString("CopyCode", _resourceCulture)!;
+    public static string Copy => ResourceManager.GetString("Copy", _resourceCulture)!;
 
     public static string PlainText => ResourceManager.GetString("PlainText", _resourceCulture)!;
 

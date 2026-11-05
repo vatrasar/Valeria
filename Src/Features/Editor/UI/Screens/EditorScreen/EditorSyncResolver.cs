@@ -40,6 +40,9 @@ public static class EditorSyncResolver
         return (null, BlockSourceSpan.Empty);
     }
 
+    /// <summary>
+    /// Searches upward from the specified visual to find the nearest ancestor control with a valid block source span.
+    /// </summary>
     public static (Control? Control, BlockSourceSpan Span) FindClickedBlock(Visual sourceVisual)
     {
         Visual? current = sourceVisual;
@@ -49,7 +52,7 @@ public static class EditorSyncResolver
             if (current is Control candidate && TryGetBlockSpan(candidate, out BlockSourceSpan span))
                 return (candidate, span);
 
-            current = current.GetVisualParent();
+            current = current.GetVisualParent() ?? (current as Control)?.Parent as Visual;
         }
 
         return (null, BlockSourceSpan.Empty);

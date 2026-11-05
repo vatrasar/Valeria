@@ -171,6 +171,10 @@
     <Setter Property="TextAlignment" Value="Center" />
   </Style>
 
+  <Style Selector="SelectableTextBlock">
+    <Setter Property="SelectionBrush" Value="{DynamicResource EditorSelectionBrush}" />
+  </Style>
+
   <Style Selector="SelectableTextBlock.sync-highlight">
     <Style.Animations>
       <Animation Duration="0:0:1.0">

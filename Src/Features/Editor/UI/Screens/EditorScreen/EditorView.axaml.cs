@@ -30,16 +30,17 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// quote, code fence, table), Ctrl+Enter list continuation, automatic renumbering of
 /// ordered lists when an item is deleted, editor panel
 /// toggle, two-way click-to-sync navigation between source editor and preview panel
-/// with intra-block character offset and line resolution and animated pulse highlights,
+/// with intra-block character offset and line resolution and animated pulse highlights (active when editor panel is visible),
 /// automatic closing of markdown code fences, language suggestions
 /// after opening a fenced code block, live word count and caret readout,
 /// preview panel text search with Ctrl+F, match navigation with Enter/Shift+Enter/F3,
 /// case sensitivity toggle, live match highlighting with automatic scrolling,
+/// cross-block continuous preview text selection from top to bottom with Ctrl+C and context menu copying,
 /// debounced background AutoSave, and navigation to application settings.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
 /// (ItemsControl), PreviewScroller (ScrollViewer), PreviewSearchBar, PreviewSearchTextBox,
 /// SearchMatchCaseToggleButton, SearchMatchCountLabel, SearchPreviousButton,
-/// SearchNextButton, CloseSearchButton, code language completion window, EditorToggleButton,
+/// SearchNextButton, CloseSearchButton, PreviewContextMenu, PreviewCopyMenuItem, code language completion window, EditorToggleButton,
 /// SettingsButton, formatting toolbar, ToggleDockButton, FilesDockControl (FilesDockView),
 /// status bar.
 /// Navigate From: application startup, settings screen (back navigation).
@@ -56,7 +57,10 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private readonly EditorShortcutController _shortcutController;
     private readonly EditorTextEditController _textEditController;
     private readonly EditorScrollSyncController _scrollSyncController;
+    private readonly PreviewSelectionController _previewSelectionController;
     private bool _syncingEditor;
+
+    internal PreviewSelectionController PreviewSelection => _previewSelectionController;
 
     public EditorView()
         : this(Locator.Current.GetService<IPreviewSearchService>() ?? new PreviewSearchService())
@@ -66,6 +70,19 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     public EditorView(IPreviewSearchService searchService)
     {
         InitializeComponent();
+
+        _scrollSyncController = new EditorScrollSyncController(
+            SourceEditor,
+            PreviewScroller,
+            PreviewBlocksControl,
+            () => ViewModel);
+
+        _previewSelectionController = new PreviewSelectionController(
+            PreviewScroller,
+            PreviewBlocksControl,
+            () => ViewModel?.State.PreviewBlocks ?? System.Collections.Immutable.ImmutableList<Control>.Empty,
+            onSelectionStarted: () => _scrollSyncController.ClearHighlight(),
+            getMarkdownText: () => ViewModel?.State.MarkdownText ?? string.Empty);
 
         _searchController = new EditorSearchController(
             PreviewSearchBar,
@@ -84,18 +101,13 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             EditorPane,
             () => ViewModel,
             _searchController,
-            ApplyInlineWrap);
+            ApplyInlineWrap,
+            _previewSelectionController);
 
         _textEditController = new EditorTextEditController(
             SourceEditor,
             () => ViewModel,
             ApplyResult);
-
-        _scrollSyncController = new EditorScrollSyncController(
-            SourceEditor,
-            PreviewScroller,
-            PreviewBlocksControl,
-            () => ViewModel);
 
         this.WhenActivated(disposables =>
         {
@@ -106,6 +118,10 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             _searchController.Attach(disposables);
             _textEditController.Attach(disposables);
             _scrollSyncController.Attach(disposables);
+            _previewSelectionController.Attach(disposables);
+
+            PreviewCopyMenuItem.Click += OnPreviewCopyMenuItemClicked;
+            Disposable.Create(() => PreviewCopyMenuItem.Click -= OnPreviewCopyMenuItemClicked).DisposeWith(disposables);
 
             ConfigureSourceEditor(disposables);
             BindPreview(disposables);
@@ -130,6 +146,11 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     internal void HandlePreviewBlockClicked(Control clickedControl, BlockSourceSpan span, Point positionInBlock)
     {
         _scrollSyncController.HandlePreviewBlockClicked(clickedControl, span, positionInBlock);
+    }
+
+    private async void OnPreviewCopyMenuItemClicked(object? sender, RoutedEventArgs args)
+    {
+        await _previewSelectionController.CopySelectionToClipboardAsync();
     }
 
     protected override void OnKeyDown(KeyEventArgs keyEvent)
@@ -228,6 +249,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
     private void SetEditorVisibility(bool visible)
     {
+        if (!visible)
+            _scrollSyncController.ClearHighlight();
+
         EditorPane.IsVisible = visible;
         SourceEditor.IsVisible = visible;
         PaneSplitter.IsVisible = visible;

@@ -15,6 +15,7 @@ using Valeria.Src.Core.Domain.Enums;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Core.Services;
 using Valeria.Src.Features.Editor.Domain.Models;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
@@ -261,9 +262,9 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         return text;
     }
 
-    private static SelectableTextBlock CreateBodyText(ThemeResources theme, IBrush foreground, double fontSize)
+    private static PreviewTextBlock CreateBodyText(ThemeResources theme, IBrush foreground, double fontSize)
     {
-        return new SelectableTextBlock
+        return new PreviewTextBlock
         {
             FontFamily = theme.ProseFont,
             FontSize = fontSize,
@@ -419,7 +420,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
 
     private static Control BuildHtml(HtmlBlock html, ThemeResources theme)
     {
-        return new SelectableTextBlock
+        return new PreviewTextBlock
         {
             Text = html.Html,
             FontFamily = theme.MonoFont,

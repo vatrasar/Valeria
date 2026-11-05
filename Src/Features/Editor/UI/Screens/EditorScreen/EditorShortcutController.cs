@@ -19,6 +19,7 @@ public sealed class EditorShortcutController
     private readonly Func<EditorViewModel?> _getViewModel;
     private readonly EditorSearchController _searchController;
     private readonly Action<string, string> _applyInlineWrap;
+    private readonly PreviewSelectionController? _selectionController;
 
     public EditorShortcutController(
         Control view,
@@ -26,7 +27,8 @@ public sealed class EditorShortcutController
         Control editorPane,
         Func<EditorViewModel?> getViewModel,
         EditorSearchController searchController,
-        Action<string, string> applyInlineWrap)
+        Action<string, string> applyInlineWrap,
+        PreviewSelectionController? selectionController = null)
     {
         _view = view;
         _sourceEditor = sourceEditor;
@@ -34,6 +36,7 @@ public sealed class EditorShortcutController
         _getViewModel = getViewModel;
         _searchController = searchController;
         _applyInlineWrap = applyInlineWrap;
+        _selectionController = selectionController;
     }
 
     public void Attach(CompositeDisposable disposables)
@@ -84,9 +87,33 @@ public sealed class EditorShortcutController
             return;
         }
 
-        if (keyEvent.Key == Key.Escape && viewModel.State.IsPreviewSearchOpen)
+        if (keyEvent.Key == Key.Escape)
         {
-            viewModel.ClosePreviewSearchCommand.Execute().Subscribe();
+            if (viewModel.State.IsPreviewSearchOpen)
+            {
+                viewModel.ClosePreviewSearchCommand.Execute().Subscribe();
+                keyEvent.Handled = true;
+                return;
+            }
+
+            if (_selectionController?.HasSelection == true)
+            {
+                _selectionController.ClearSelection();
+                keyEvent.Handled = true;
+                return;
+            }
+        }
+
+        if (control && keyEvent.Key == Key.C && CanCopyPreviewSelection())
+        {
+            _ = _selectionController!.CopySelectionToClipboardAsync();
+            keyEvent.Handled = true;
+            return;
+        }
+
+        if (control && keyEvent.Key == Key.A && CanSelectAllPreview())
+        {
+            _selectionController!.SelectAll();
             keyEvent.Handled = true;
             return;
         }
@@ -151,6 +178,28 @@ public sealed class EditorShortcutController
 
     private bool CanOpenPreviewSearch()
     {
+        bool isEditorVisible = _editorPane.IsVisible && _sourceEditor.IsVisible;
+        bool isEditorFocused = isEditorVisible && _sourceEditor.IsFocused;
+
+        return !isEditorFocused;
+    }
+
+    private bool CanCopyPreviewSelection()
+    {
+        if (_selectionController is null || !_selectionController.HasSelection)
+            return false;
+
+        bool isEditorVisible = _editorPane.IsVisible && _sourceEditor.IsVisible;
+        bool isEditorFocused = isEditorVisible && _sourceEditor.IsFocused;
+
+        return !isEditorFocused;
+    }
+
+    private bool CanSelectAllPreview()
+    {
+        if (_selectionController is null)
+            return false;
+
         bool isEditorVisible = _editorPane.IsVisible && _sourceEditor.IsVisible;
         bool isEditorFocused = isEditorVisible && _sourceEditor.IsFocused;
 

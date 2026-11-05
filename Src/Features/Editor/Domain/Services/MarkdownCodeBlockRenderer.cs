@@ -13,6 +13,7 @@ using Material.Icons.Avalonia;
 using Valeria.Src.Core.Config;
 using Valeria.Src.Core.Markdown;
 using Valeria.Src.Features.Editor.Domain.Models;
+using Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
 namespace Valeria.Src.Features.Editor.Domain.Services;
 
@@ -122,9 +123,9 @@ internal sealed class MarkdownCodeBlockRenderer
         return null;
     }
 
-    private static SelectableTextBlock CreateCodeText(CodeBlock code, ThemeResources theme)
+    private static PreviewTextBlock CreateCodeText(CodeBlock code, ThemeResources theme)
     {
-        return new SelectableTextBlock
+        return new PreviewTextBlock
         {
             Text = code.Code.TrimEnd('\n'),
             FontFamily = theme.MonoFont,

@@ -78,6 +78,7 @@ Valeria is designed to feel right at home in your desktop environment:
 ### 📝 Dual-Pane Writing Flow
 - **Adjustable Splitter**: Drag the central divider to balance editor and preview widths, or collapse the preview completely with a single click or shortcut (<kbd>Ctrl</kbd> + <kbd>P</kbd>) for distraction-free writing.
 - **Live Styled Preview**: Headings, blockquotes, lists, strikethrough, and links format automatically as you type.
+- **Continuous Multi-Block Selection & Markdown Copy**: Freely drag and select text across multiple elements from top to bottom (spanning headings, paragraphs, and lists) in the rendered preview panel with edge auto-scrolling. Copying from the preview (<kbd>Ctrl</kbd> + <kbd>C</kbd> or right-click menu) copies the original Markdown code directly from your document, preserving headers, formatting, lists, and tables.
 
 ### ⭐️ Expandable Files Dock (Favorites & Recent Files)
 - **Collapsible Sidebar**: Slide out the left dock via the star icon in the toolbar or collapse it with smooth animated transitions.
@@ -122,7 +123,9 @@ Valeria is designed to feel right at home in your desktop environment:
 | <kbd>Ctrl</kbd> + <kbd>P</kbd> or <kbd>Ctrl</kbd> + <kbd>E</kbd> | **Toggle Preview** (expand or collapse preview pane) |
 | <kbd>Ctrl</kbd> + <kbd>F</kbd> | **Find in Preview** (open search bar) |
 | <kbd>F3</kbd> / <kbd>Shift</kbd> + <kbd>F3</kbd> | Jump to **Next / Previous Match** |
-| <kbd>Esc</kbd> | Close search bar or cancel favorite form |
+| <kbd>Ctrl</kbd> + <kbd>C</kbd> | **Copy** selected text from editor, or copy original Markdown code from preview panel |
+| <kbd>Ctrl</kbd> + <kbd>A</kbd> | **Select All** in active editor or preview panel |
+| <kbd>Esc</kbd> | Close search bar, clear preview selection, or cancel favorite form |
 | <kbd>Enter</kbd> (in dock form) | Confirm and save new favorite alias |
 | <kbd>Ctrl</kbd> + <kbd>B</kbd> | Format selected text as **Bold** |
 | <kbd>Ctrl</kbd> + <kbd>I</kbd> | Format selected text as *Italic* |

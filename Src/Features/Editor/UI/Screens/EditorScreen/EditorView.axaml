@@ -99,6 +99,11 @@
         </Border>
         <GridSplitter Grid.Column="1" x:Name="PaneSplitter" Classes="splitter" />
         <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane" Focusable="True">
+          <Border.ContextMenu>
+            <ContextMenu x:Name="PreviewContextMenu">
+              <MenuItem x:Name="PreviewCopyMenuItem" Header="{x:Static res:EditorStrings.Copy}" InputGesture="Ctrl+C" />
+            </ContextMenu>
+          </Border.ContextMenu>
           <Grid>
             <ScrollViewer x:Name="PreviewScroller">
               <ItemsControl x:Name="PreviewBlocksControl" HorizontalAlignment="Stretch" />
