@@ -92,16 +92,23 @@ public static class EditorSyncResolver
         return false;
     }
 
+    /// <summary>
+    /// Determines whether the specified visual is an interactive control or child of one, such as buttons, checkboxes, text boxes, or scrollbar components.
+    /// Used by PreviewSelectionController and EditorScrollSyncController.
+    /// </summary>
     public static bool IsInteractiveChild(Visual visual)
     {
         Visual? current = visual;
 
         while (current is not null)
         {
-            if (current is Button or CheckBox or TextBox or ToggleButton)
+            if (current is Button or CheckBox or TextBox or ToggleButton or ScrollBar or Thumb or Track)
                 return true;
 
-            current = current.GetVisualParent();
+            if (current is Control control && control.Name == "PART_ScrollBarsSeparator")
+                return true;
+
+            current = current.GetVisualParent() ?? (current as Control)?.Parent as Visual;
         }
 
         return false;

@@ -339,6 +339,82 @@ public sealed class PreviewSelectionControllerTests
         }
     }
 
+    [Fact]
+    public async Task IsInteractiveChild_ScrollBarAndTrackAndThumb_IdentifiedAsInteractive()
+    {
+        await EvaluateAsync(() =>
+        {
+            Avalonia.Controls.Primitives.ScrollBar scrollBar = new();
+            Avalonia.Controls.Primitives.Thumb thumb = new();
+            Avalonia.Controls.Primitives.Track track = new();
+            RepeatButton repeatButton = new();
+            Border childInsideRepeatButton = new();
+            repeatButton.Content = childInsideRepeatButton;
+
+            PreviewTextBlock textBlock = new() { Text = "Markdown Content" };
+
+            Assert.True(EditorSyncResolver.IsInteractiveChild(scrollBar));
+            Assert.True(EditorSyncResolver.IsInteractiveChild(thumb));
+            Assert.True(EditorSyncResolver.IsInteractiveChild(track));
+            Assert.True(EditorSyncResolver.IsInteractiveChild(childInsideRepeatButton));
+            Assert.False(EditorSyncResolver.IsInteractiveChild(textBlock));
+        });
+    }
+
+    [Fact]
+    public async Task PointerPressAndDrag_OnScrollBar_DoesNotTriggerSelectionOrStealCapture()
+    {
+        await EvaluateAsync(() =>
+        {
+            ScrollViewer scroller = new();
+            ItemsControl blocksControl = new();
+            PreviewTextBlock block = new() { Text = "Sample preview paragraph" };
+            blocksControl.ItemsSource = new[] { block };
+            scroller.Content = blocksControl;
+
+            Avalonia.Controls.Primitives.ScrollBar scrollBar = new();
+
+            PreviewSelectionController controller = new(scroller, blocksControl, () => [block]);
+            using System.Reactive.Disposables.CompositeDisposable disposables = new();
+            controller.Attach(disposables);
+
+            block.SetSelectionRange(0, 6);
+            Assert.True(controller.HasSelection);
+
+            Avalonia.Input.Pointer mousePointer = new(0, PointerType.Mouse, true);
+            PointerPointProperties pressProps = new(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed);
+            PointerPressedEventArgs press = new(
+                scrollBar,
+                mousePointer,
+                scroller,
+                new Point(100, 100),
+                0,
+                pressProps,
+                KeyModifiers.None);
+
+            scroller.RaiseEvent(press);
+
+            Assert.True(controller.HasSelection);
+            Assert.Equal("Sample", block.GetSelectedPlainText());
+
+            PointerPointProperties moveProps = new(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other);
+            PointerEventArgs move = new(
+                InputElement.PointerMovedEvent,
+                scroller,
+                mousePointer,
+                scroller,
+                new Point(100, 150),
+                0,
+                moveProps,
+                KeyModifiers.None);
+
+            scroller.RaiseEvent(move);
+
+            Assert.Equal("Sample", block.GetSelectedPlainText());
+            Assert.False(move.Handled);
+        });
+    }
+
     private static Task EvaluateAsync(Action evaluate)
     {
         HeadlessUnitTestSession session = HeadlessUnitTestSession.GetOrStartForAssembly(Assembly.GetExecutingAssembly());
