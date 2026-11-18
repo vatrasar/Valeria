@@ -51,6 +51,8 @@ public abstract record MarkdownBlock
 public sealed record HeadingBlock(int Level, ImmutableList<MarkdownInline> Inlines) : MarkdownBlock
 {
     public string? SectionNumber { get; init; }
+
+    public string? AnchorId { get; init; }
 }
 
 /// <summary>Regular paragraph with formatted inline content.</summary>

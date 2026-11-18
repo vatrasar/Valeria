@@ -198,6 +198,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         text.Margin = GetHeadingMargin(heading.Level);
 
         AppendHeadingInlines(heading, text, theme, brushes, fontSize);
+        MarkdownLink.SetAnchorId(text, heading.AnchorId);
         MarkdownLinkHandler.Attach(text);
 
         return text;

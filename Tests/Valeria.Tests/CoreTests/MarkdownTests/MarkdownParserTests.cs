@@ -1,4 +1,6 @@
 using System.Linq;
+using Markdig;
+using Markdig.Renderers.Html;
 using Valeria.Src.Core.Markdown;
 using Xunit;
 

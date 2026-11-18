@@ -105,7 +105,7 @@ Valeria is designed to feel right at home in your desktop environment:
 - **Images Built-in**: Supports web images (`https://`), local images from your hard drive, and embedded data images with intelligent caching for smooth scrolling.
 - **Clean Tables**: Formatted tables with aligned columns, distinct header rows, and alternating row styling.
 - **Interactive Checklists**: Full support for task lists (`- [x]` and `- [ ]`).
-- **Clickable Links**: Hyperlinks open directly in your favorite default web browser.
+- **Clickable Links & Anchor Navigation**: External hyperlinks open directly in your default web browser, while table-of-contents and in-document anchor links (`#section`) instantly jump to the corresponding heading with an animated pulse highlight, keeping your editor and preview in perfect sync.
 
 ### 🛠️ One-Click Formatting Toolbar
 - Quick-access toolbar buttons for Bold, Italic, Strikethrough, Headers (H1–H3), Lists, Quotes, Code Fences, Links, and Tables.

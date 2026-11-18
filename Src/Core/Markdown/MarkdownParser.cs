@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Markdig;
+using Markdig.Extensions.AutoIdentifiers;
 using Markdig.Extensions.Mathematics;
 using Markdig.Extensions.TaskLists;
+using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using MdSyntax = Markdig.Syntax;
 using MdInlines = Markdig.Syntax.Inlines;
@@ -19,6 +21,7 @@ namespace Valeria.Src.Core.Markdown;
 public static class MarkdownParser
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .UseAdvancedExtensions()
         .UsePreciseSourceLocation()
         .Build();
@@ -59,7 +62,8 @@ public static class MarkdownParser
             MdSyntax.HeadingBlock heading => ImmutableList.Create<MarkdownBlock>(
                 new HeadingBlock(NormalizeHeadingLevel(heading.Level), ParseInlines(heading.Inline))
                 {
-                    SourceSpan = ResolveSourceSpan(heading, lineOffsets, markdownLength)
+                    SourceSpan = ResolveSourceSpan(heading, lineOffsets, markdownLength),
+                    AnchorId = ResolveHeadingAnchorId(heading)
                 }),
             MdSyntax.ParagraphBlock paragraph => ImmutableList.Create<MarkdownBlock>(
                 new ParagraphBlock(ParseInlines(paragraph.Inline))
@@ -101,6 +105,15 @@ public static class MarkdownParser
     private static int NormalizeHeadingLevel(int level)
     {
         return Math.Clamp(level, 1, 6);
+    }
+
+    private static string? ResolveHeadingAnchorId(MdSyntax.HeadingBlock heading)
+    {
+        string? id = heading.GetAttributes().Id;
+        if (!string.IsNullOrEmpty(id))
+            return id;
+
+        return HeadingAnchorHelper.GenerateSlug(heading.Lines.ToString());
     }
 
     private static string? NormalizeLanguage(string? info)

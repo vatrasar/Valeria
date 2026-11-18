@@ -35,6 +35,7 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// after opening a fenced code block, live word count and caret readout,
 /// preview panel text search with Ctrl+F, match navigation with Enter/Shift+Enter/F3,
 /// case sensitivity toggle, live match highlighting with automatic scrolling,
+/// in-document anchor and table-of-contents jump navigation with pulse highlight and editor synchronization,
 /// cross-block continuous preview text selection from top to bottom with Ctrl+C and context menu copying,
 /// debounced background AutoSave, and navigation to application settings.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
@@ -58,6 +59,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private readonly EditorTextEditController _textEditController;
     private readonly EditorScrollSyncController _scrollSyncController;
     private readonly PreviewSelectionController _previewSelectionController;
+    private readonly EditorAnchorNavigator _anchorNavigator;
     private bool _syncingEditor;
 
     internal PreviewSelectionController PreviewSelection => _previewSelectionController;
@@ -109,6 +111,12 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             () => ViewModel,
             ApplyResult);
 
+        _anchorNavigator = new EditorAnchorNavigator(
+            PreviewScroller,
+            PreviewBlocksControl,
+            _scrollSyncController,
+            () => ViewModel);
+
         this.WhenActivated(disposables =>
         {
             FilesDockControl.ViewModel = ViewModel?.FilesDock;
@@ -122,6 +130,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
 
             PreviewCopyMenuItem.Click += OnPreviewCopyMenuItemClicked;
             Disposable.Create(() => PreviewCopyMenuItem.Click -= OnPreviewCopyMenuItemClicked).DisposeWith(disposables);
+
+            AddHandler(MarkdownLinkHandler.AnchorNavigationEvent, OnAnchorNavigated);
+            Disposable.Create(() => RemoveHandler(MarkdownLinkHandler.AnchorNavigationEvent, OnAnchorNavigated)).DisposeWith(disposables);
 
             ConfigureSourceEditor(disposables);
             BindPreview(disposables);
@@ -151,6 +162,12 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private async void OnPreviewCopyMenuItemClicked(object? sender, RoutedEventArgs args)
     {
         await _previewSelectionController.CopySelectionToClipboardAsync();
+    }
+
+    private void OnAnchorNavigated(object? sender, AnchorNavigationEventArgs args)
+    {
+        _anchorNavigator.NavigateToAnchor(args.Anchor);
+        args.Handled = true;
     }
 
     protected override void OnKeyDown(KeyEventArgs keyEvent)

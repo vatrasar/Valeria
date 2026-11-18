@@ -49,6 +49,65 @@ public sealed class EditorPreviewCoordinator
             _metrics = ThemeResources.Resolve().CreateMetrics();
     }
 
+    public bool IsChunkedMode => _isChunkedMode;
+
+    public IReadOnlyList<PreviewChunkContainer> ChunkContainers => _chunkContainers;
+
+    /// <summary>
+    /// Forces realization of a virtualized chunk container, ensuring its child controls exist in the visual tree.
+    /// Used by EditorAnchorNavigator when jumping to an anchor in a distant unmaterialized chunk.
+    /// </summary>
+    public void RealizeContainer(PreviewChunkContainer container)
+    {
+        if (container.IsRealized)
+            return;
+
+        List<CodeHighlightTarget> newTargets = [];
+        TryRealizeChunk(container, newTargets);
+
+        if (newTargets.Count > 0)
+            _ = HighlightCodeTargetsAsync(newTargets, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Searches virtualized chunk containers to find the chunk and heading matching the specified anchor.
+    /// Used by EditorAnchorNavigator to resolve anchor jump targets.
+    /// </summary>
+    public (PreviewChunkContainer? Container, HeadingBlock? Heading, int ContainerIndex) FindHeadingByAnchor(string anchor)
+    {
+        string normalized = HeadingAnchorHelper.NormalizeAnchor(anchor);
+        if (string.IsNullOrEmpty(normalized))
+            return (null, null, -1);
+
+        for (int i = 0; i < _chunkContainers.Count; i++)
+        {
+            PreviewChunkContainer container = _chunkContainers[i];
+            HeadingBlock? matched = FindHeadingInBlocks(container.Chunk.Blocks, normalized);
+            if (matched is not null)
+                return (container, matched, i);
+        }
+
+        return (null, null, -1);
+    }
+
+    private static HeadingBlock? FindHeadingInBlocks(IEnumerable<MarkdownBlock> blocks, string normalizedTarget)
+    {
+        foreach (MarkdownBlock block in blocks)
+        {
+            if (block is HeadingBlock heading && HeadingAnchorHelper.IsMatch(heading, normalizedTarget))
+                return heading;
+
+            if (block is QuoteBlock quote)
+            {
+                HeadingBlock? nested = FindHeadingInBlocks(quote.Blocks, normalizedTarget);
+                if (nested is not null)
+                    return nested;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Clears virtualized chunk containers forcing complete re-rendering on next preview update.
     /// Used by EditorViewModel when global typography or palette settings change.

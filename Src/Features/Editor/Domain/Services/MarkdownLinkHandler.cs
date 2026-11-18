@@ -23,6 +23,9 @@ public static class MarkdownLink
     public static readonly AttachedProperty<IBrush?> HoverForegroundProperty =
         AvaloniaProperty.RegisterAttached<Inline, IBrush?>("HoverForeground", typeof(MarkdownLink));
 
+    public static readonly AttachedProperty<string?> AnchorIdProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("AnchorId", typeof(MarkdownLink));
+
     /// <summary>
     /// Gets the destination URL associated with the specified inline element.
     /// Used by MarkdownLinkHandler to resolve navigation targets.
@@ -39,6 +42,22 @@ public static class MarkdownLink
     public static void SetUrl(Inline inline, string? value)
     {
         inline.SetValue(UrlProperty, value);
+    }
+
+    /// <summary>
+    /// Gets the anchor identifier associated with the specified preview heading control.
+    /// </summary>
+    public static string? GetAnchorId(Control control)
+    {
+        return control.GetValue(AnchorIdProperty);
+    }
+
+    /// <summary>
+    /// Sets the anchor identifier associated with the specified preview heading control.
+    /// </summary>
+    public static void SetAnchorId(Control control, string? value)
+    {
+        control.SetValue(AnchorIdProperty, value);
     }
 
     /// <summary>
@@ -71,10 +90,29 @@ public readonly record struct MarkdownLinkRange(
     IBrush? HoverForeground);
 
 /// <summary>
+/// Event arguments for in-document anchor navigation clicks.
+/// </summary>
+public sealed class AnchorNavigationEventArgs : RoutedEventArgs
+{
+    public string Anchor { get; }
+
+    public AnchorNavigationEventArgs(RoutedEvent? routedEvent, string anchor)
+        : base(routedEvent)
+    {
+        Anchor = anchor;
+    }
+}
+
+/// <summary>
 /// Manages hit-testing, mouse cursor, tooltips and click handling for native text links.
 /// </summary>
 public sealed class MarkdownLinkHandler
 {
+    public static readonly RoutedEvent<AnchorNavigationEventArgs> AnchorNavigationEvent =
+        RoutedEvent.Register<SelectableTextBlock, AnchorNavigationEventArgs>(
+            nameof(AnchorNavigationEvent),
+            RoutingStrategies.Bubble);
+
     private const double ClickTolerance = 4.0;
 
     private readonly SelectableTextBlock _textBlock;
@@ -85,6 +123,8 @@ public sealed class MarkdownLinkHandler
     private IBrush? _savedForeground;
 
     internal static Action<string>? UrlOpenerOverride { get; set; }
+
+    internal static Action<string>? AnchorNavigatorOverride { get; set; }
 
     private MarkdownLinkHandler(SelectableTextBlock textBlock, IReadOnlyList<MarkdownLinkRange> linkRanges)
     {
@@ -352,6 +392,13 @@ public sealed class MarkdownLinkHandler
 
     private void TryOpenUrl(string url)
     {
+        string trimmed = url.Trim();
+        if (trimmed.StartsWith('#'))
+        {
+            HandleAnchorNavigation(trimmed);
+            return;
+        }
+
         string normalizedUrl = NormalizeUrl(url);
         if (!Uri.TryCreate(normalizedUrl, UriKind.Absolute, out Uri? uri))
             return;
@@ -373,6 +420,23 @@ public sealed class MarkdownLinkHandler
         }
 
         OpenWithSystemDefault(normalizedUrl);
+    }
+
+    private void HandleAnchorNavigation(string anchor)
+    {
+        if (UrlOpenerOverride is not null)
+        {
+            UrlOpenerOverride(anchor);
+            return;
+        }
+
+        if (AnchorNavigatorOverride is not null)
+        {
+            AnchorNavigatorOverride(anchor);
+            return;
+        }
+
+        _textBlock.RaiseEvent(new AnchorNavigationEventArgs(AnchorNavigationEvent, anchor));
     }
 
     private static async void LaunchWithLauncher(ILauncher launcher, Uri uri, string fallbackUrl)

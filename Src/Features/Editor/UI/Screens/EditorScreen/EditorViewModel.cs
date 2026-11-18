@@ -53,6 +53,8 @@ public partial class EditorViewModel : ViewModelBase<EditorState>, IRoutableView
 
     public FilesDockViewModel FilesDock { get; }
 
+    public EditorPreviewCoordinator PreviewCoordinator => _previewCoordinator;
+
     public EditorViewModel(
         IScreen hostScreen,
         IEditorFileService files,

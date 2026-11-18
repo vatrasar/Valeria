@@ -185,9 +185,9 @@ public sealed class EditorScrollSyncController
         }
     }
 
-    private void ApplyPreviewHighlight(Control block)
+    internal void ApplyPreviewHighlight(Control block, bool force = false)
     {
-        if (_getViewModel()?.State.IsEditorVisible != true)
+        if (!force && _getViewModel()?.State.IsEditorVisible != true)
             return;
 
         if (_currentHighlightedControl is not null && _currentHighlightedControl != block)
@@ -217,7 +217,7 @@ public sealed class EditorScrollSyncController
         }, TaskScheduler.Default);
     }
 
-    private void JumpEditorToOffset(int targetOffset, BlockSourceSpan span)
+    internal void JumpEditorToOffset(int targetOffset, BlockSourceSpan span)
     {
         if (_sourceEditor.Document is null)
             return;

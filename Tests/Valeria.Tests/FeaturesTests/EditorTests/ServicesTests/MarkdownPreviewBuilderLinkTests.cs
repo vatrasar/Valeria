@@ -294,6 +294,76 @@ public sealed class MarkdownPreviewBuilderLinkTests
         Assert.Equal("https://www.example.com", openedUrl);
     }
 
+    [Fact]
+    public async Task BuildBlocks_AnchorLink_ClickInvokesAnchorNavigatorOverride()
+    {
+        string? capturedAnchor = null;
+        await MarkdownPreviewTestHelpers.EvaluateAsync(() =>
+        {
+            MarkdownLinkHandler.AnchorNavigatorOverride = anchor => capturedAnchor = anchor;
+
+            try
+            {
+                SelectableTextBlock textBlock = Build("Jump to [Section](#my-section)")
+                    .SelectMany(MarkdownPreviewTestHelpers.Descendants<SelectableTextBlock>)
+                    .First();
+
+                textBlock.Measure(new Size(800, 600));
+                textBlock.Arrange(new Rect(0, 0, 800, 600));
+
+                var linkHit = textBlock.TextLayout.HitTestTextPosition(10);
+                Pointer mousePointer = new(0, PointerType.Mouse, true);
+                PointerPointProperties pressProperties = new(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed);
+
+                var pressedArgs = new PointerPressedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    pressProperties,
+                    KeyModifiers.None);
+
+                textBlock.RaiseEvent(pressedArgs);
+
+                PointerPointProperties releaseProperties = new(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased);
+                var releasedArgs = new PointerReleasedEventArgs(
+                    textBlock,
+                    mousePointer,
+                    textBlock,
+                    new Point(linkHit.Left + 2, linkHit.Top + 2),
+                    0,
+                    releaseProperties,
+                    KeyModifiers.None,
+                    MouseButton.Left);
+
+                textBlock.RaiseEvent(releasedArgs);
+                return capturedAnchor;
+            }
+            finally
+            {
+                MarkdownLinkHandler.AnchorNavigatorOverride = null;
+            }
+        });
+
+        Assert.Equal("#my-section", capturedAnchor);
+    }
+
+    [Fact]
+    public async Task BuildBlocks_Heading_HasAnchorIdAttached()
+    {
+        string? anchorId = await MarkdownPreviewTestHelpers.EvaluateAsync(() =>
+        {
+            SelectableTextBlock headingBlock = Build("# Rozdział 1: Executive Summary & Diagnostic Dossier")
+                .SelectMany(MarkdownPreviewTestHelpers.Descendants<SelectableTextBlock>)
+                .First();
+
+            return MarkdownLink.GetAnchorId(headingBlock);
+        });
+
+        Assert.Equal("rozdział-1-executive-summary--diagnostic-dossier", anchorId);
+    }
+
     private IReadOnlyList<Control> Build(string markdown)
     {
         return _builder.BuildBlocks(MarkdownParser.Parse(markdown)).Blocks;
