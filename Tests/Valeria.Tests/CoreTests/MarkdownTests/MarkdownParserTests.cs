@@ -300,4 +300,51 @@ public sealed class MarkdownParserTests
         Assert.Equal("yaml", code.Language);
         Assert.Contains("name: poteto-help", code.Code);
     }
+
+    [Fact]
+    public void Parse_MidDocumentThematicBreak_IsNotParsedAsFrontMatter()
+    {
+        string markdown = """
+            # Forensic Chat Analysis
+
+            Introduction text.
+
+            ---
+
+            ## 1. Global Call Tree
+
+            ```
+            [Coordinator]
+            ```
+
+            ---
+
+            ## 2. Chronological Pipeline Stages
+            """;
+
+        MarkdownContent content = MarkdownParser.Parse(markdown);
+
+        Assert.DoesNotContain(content.Blocks, b => b is FrontMatterBlock);
+        Assert.Equal(2, content.Blocks.Count(b => b is ThematicBreakBlock));
+        Assert.Equal(3, content.Blocks.Count(b => b is HeadingBlock));
+    }
+
+    [Fact]
+    public void Parse_InvalidFrontMatterWithHeadings_FallsBackToThematicBreaks()
+    {
+        string markdown = """
+            ---
+            ## Invalid YAML Heading
+
+            - List item
+            ---
+
+            # Heading After
+            """;
+
+        MarkdownContent content = MarkdownParser.Parse(markdown);
+
+        Assert.DoesNotContain(content.Blocks, b => b is FrontMatterBlock);
+        Assert.Contains(content.Blocks, b => b is ThematicBreakBlock);
+    }
 }

@@ -40,7 +40,8 @@ public static class MarkdownParallelParser
     /// </summary>
     public static MarkdownChunk ParseSlice(TextChunkSlice slice, PreviewLayoutMetrics metrics)
     {
-        MarkdownContent content = MarkdownParser.Parse(slice.Text);
+        bool allowFrontMatter = slice.ChunkIndex == 0 && slice.StartLine <= 1;
+        MarkdownContent content = MarkdownParser.Parse(slice.Text, allowFrontMatter);
         if (content.Blocks.Count == 0)
             return CreateEmptyChunk(slice);
 

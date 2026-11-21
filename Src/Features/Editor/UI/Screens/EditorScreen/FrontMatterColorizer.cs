@@ -2,6 +2,7 @@ using System;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
+using Valeria.Src.Core.Markdown;
 
 namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 
@@ -55,7 +56,15 @@ public sealed class FrontMatterColorizer : DocumentColorizingTransformer
         {
             DocumentLine currentLine = document.GetLineByNumber(i);
             if (document.GetText(currentLine).Trim() == "---")
-                return i;
+            {
+                int startOffset = line1.EndOffset;
+                int endOffset = currentLine.Offset;
+                string candidateYaml = document.GetText(startOffset, endOffset - startOffset);
+                if (FrontMatterParser.IsValid(candidateYaml))
+                    return i;
+
+                return 0;
+            }
         }
 
         return 0;

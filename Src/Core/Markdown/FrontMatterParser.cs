@@ -33,6 +33,39 @@ public static class FrontMatterParser
         return BuildMetadata(entries);
     }
 
+    /// <summary>
+    /// Checks whether the raw frontmatter text represents valid YAML metadata rather than Markdown content.
+    /// </summary>
+    public static bool IsValid(string? rawYaml)
+    {
+        if (string.IsNullOrWhiteSpace(rawYaml))
+            return false;
+
+        string[] lines = rawYaml.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+        bool hasAtLeastOneKey = false;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            string trimmed = line.Trim();
+
+            if (trimmed.Length == 0)
+                continue;
+
+            if (trimmed.StartsWith("```") || trimmed.StartsWith("~~~"))
+                return false;
+
+            if (trimmed.StartsWith("# ") || trimmed.StartsWith("## ") || trimmed.StartsWith("### ") ||
+                trimmed.StartsWith("#### ") || trimmed.StartsWith("##### ") || trimmed.StartsWith("###### "))
+                return false;
+
+            if (IsNewKeyLine(line))
+                hasAtLeastOneKey = true;
+        }
+
+        return hasAtLeastOneKey;
+    }
+
     private static List<RawEntry> CollectEntries(string[] lines)
     {
         List<RawEntry> entries = [];
@@ -60,7 +93,11 @@ public static class FrontMatterParser
 
     private static bool IsNewKeyLine(string line)
     {
-        return line.Length > 0 && !char.IsWhiteSpace(line[0]) && line.Contains(':');
+        if (line.Length == 0 || char.IsWhiteSpace(line[0]) || !line.Contains(':'))
+            return false;
+
+        char first = line[0];
+        return char.IsLetterOrDigit(first) || first == '_';
     }
 
     private static RawEntry ProcessNewKeyLine(string line, List<RawEntry> entries)

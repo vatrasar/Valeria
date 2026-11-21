@@ -84,4 +84,24 @@ public sealed class MarkdownParallelParserTests
         Assert.True(chunk.Span.StartOffset >= 5000);
         Assert.Equal(101, chunk.Blocks[0].SourceSpan.StartLine);
     }
+
+    [Fact]
+    public void ParseSlice_LaterChunkStartingWithHorizontalRule_DoesNotParseAsFrontMatter()
+    {
+        PreviewLayoutMetrics metrics = PreviewLayoutMetrics.CreateDefault();
+        TextChunkSlice slice = new(
+            ChunkIndex: 1,
+            StartLine: 38,
+            EndLine: 70,
+            StartOffset: 1200,
+            EndOffset: 2500,
+            Text: "---\n\n## 1. Global Call Tree\n\n```\n[Coordinator]\n```\n\n---\n\n## 2. Chronological Pipeline Stages",
+            OrderedListStart: null);
+
+        MarkdownChunk chunk = MarkdownParallelParser.ParseSlice(slice, metrics);
+
+        Assert.DoesNotContain(chunk.Blocks, b => b is FrontMatterBlock);
+        Assert.Contains(chunk.Blocks, b => b is ThematicBreakBlock);
+        Assert.Contains(chunk.Blocks, b => b is HeadingBlock);
+    }
 }

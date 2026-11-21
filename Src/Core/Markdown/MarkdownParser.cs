@@ -21,10 +21,16 @@ namespace Valeria.Src.Core.Markdown;
 /// </summary>
 public static class MarkdownParser
 {
-    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+    private static readonly MarkdownPipeline DefaultPipeline = new MarkdownPipelineBuilder()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .UseAdvancedExtensions()
         .UseYamlFrontMatter()
+        .UsePreciseSourceLocation()
+        .Build();
+
+    private static readonly MarkdownPipeline NoFrontMatterPipeline = new MarkdownPipelineBuilder()
+        .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
+        .UseAdvancedExtensions()
         .UsePreciseSourceLocation()
         .Build();
 
@@ -34,30 +40,50 @@ public static class MarkdownParser
     /// </summary>
     public static MarkdownContent Parse(string? markdown)
     {
+        return Parse(markdown, allowFrontMatter: true);
+    }
+
+    /// <summary>
+    /// Parses markdown source into intermediate content with optional frontmatter support.
+    /// Used by parallel chunk parser where chunks after line 1 must not recognize frontmatter.
+    /// </summary>
+    public static MarkdownContent Parse(string? markdown, bool allowFrontMatter)
+    {
         if (string.IsNullOrEmpty(markdown))
             return MarkdownContent.Empty;
 
-        MdSyntax.MarkdownDocument document = Markdig.Markdown.Parse(markdown, Pipeline);
+        MarkdownPipeline pipeline = allowFrontMatter ? DefaultPipeline : NoFrontMatterPipeline;
+        MdSyntax.MarkdownDocument document = Markdig.Markdown.Parse(markdown, pipeline);
         int[] lineOffsets = BuildLineOffsets(markdown);
 
         int taskIndex = 0;
 
-        ImmutableList<MarkdownBlock> blocks = ParseBlocks(document, ref taskIndex, lineOffsets, markdown.Length);
+        ImmutableList<MarkdownBlock> blocks = ParseBlocks(document, ref taskIndex, lineOffsets, markdown.Length, allowFrontMatter);
         return new MarkdownContent(MarkdownHeadingNumberer.ApplyNumbering(blocks));
     }
 
-    private static ImmutableList<MarkdownBlock> ParseBlocks(MdSyntax.ContainerBlock container, ref int taskIndex, int[] lineOffsets, int markdownLength)
+    private static ImmutableList<MarkdownBlock> ParseBlocks(
+        MdSyntax.ContainerBlock container,
+        ref int taskIndex,
+        int[] lineOffsets,
+        int markdownLength,
+        bool allowFrontMatter)
     {
         ImmutableList<MarkdownBlock>.Builder builder = ImmutableList.CreateBuilder<MarkdownBlock>();
 
         foreach (MdSyntax.Block? block in container)
-            foreach (MarkdownBlock parsed in ParseBlock(block, ref taskIndex, lineOffsets, markdownLength))
+            foreach (MarkdownBlock parsed in ParseBlock(block, ref taskIndex, lineOffsets, markdownLength, allowFrontMatter))
                 builder.Add(parsed);
 
         return builder.ToImmutable();
     }
 
-    private static ImmutableList<MarkdownBlock> ParseBlock(MdSyntax.Block? block, ref int taskIndex, int[] lineOffsets, int markdownLength)
+    private static ImmutableList<MarkdownBlock> ParseBlock(
+        MdSyntax.Block? block,
+        ref int taskIndex,
+        int[] lineOffsets,
+        int markdownLength,
+        bool allowFrontMatter)
     {
         return block switch
         {
@@ -67,8 +93,7 @@ public static class MarkdownParser
                     SourceSpan = ResolveSourceSpan(heading, lineOffsets, markdownLength),
                     AnchorId = ResolveHeadingAnchorId(heading)
                 }),
-            MdYaml.YamlFrontMatterBlock yaml => ImmutableList.Create<MarkdownBlock>(
-                ParseFrontMatter(yaml, lineOffsets, markdownLength)),
+            MdYaml.YamlFrontMatterBlock yaml => ParseFrontMatter(yaml, lineOffsets, markdownLength, allowFrontMatter),
             MdSyntax.ParagraphBlock paragraph => ImmutableList.Create<MarkdownBlock>(
                 new ParagraphBlock(ParseInlines(paragraph.Inline))
                 {
@@ -85,7 +110,7 @@ public static class MarkdownParser
                     SourceSpan = ResolveSourceSpan(code, lineOffsets, markdownLength)
                 }),
             MdSyntax.QuoteBlock quote => ImmutableList.Create<MarkdownBlock>(
-                new QuoteBlock(ParseBlocks(quote, ref taskIndex, lineOffsets, markdownLength))
+                new QuoteBlock(ParseBlocks(quote, ref taskIndex, lineOffsets, markdownLength, allowFrontMatter))
                 {
                     SourceSpan = ResolveSourceSpan(quote, lineOffsets, markdownLength)
                 }),
@@ -101,20 +126,43 @@ public static class MarkdownParser
                     SourceSpan = ResolveSourceSpan(html, lineOffsets, markdownLength)
                 }),
             MdSyntax.LeafBlock leaf => ParseLeafFallback(leaf, lineOffsets, markdownLength),
-            MdSyntax.ContainerBlock nested => ParseBlocks(nested, ref taskIndex, lineOffsets, markdownLength),
+            MdSyntax.ContainerBlock nested => ParseBlocks(nested, ref taskIndex, lineOffsets, markdownLength, allowFrontMatter),
             _ => ImmutableList<MarkdownBlock>.Empty
         };
     }
 
-    private static MarkdownBlock ParseFrontMatter(MdYaml.YamlFrontMatterBlock yaml, int[] lineOffsets, int markdownLength)
+    private static ImmutableList<MarkdownBlock> ParseFrontMatter(
+        MdYaml.YamlFrontMatterBlock yaml,
+        int[] lineOffsets,
+        int markdownLength,
+        bool allowFrontMatter)
     {
         string rawYaml = yaml.Lines.ToString();
-        FrontMatterMetadata metadata = FrontMatterParser.Parse(rawYaml);
 
-        return new FrontMatterBlock(rawYaml, metadata)
+        if (!allowFrontMatter || !FrontMatterParser.IsValid(rawYaml))
+            return FallbackToThematicBreaks(yaml, lineOffsets, markdownLength);
+
+        FrontMatterMetadata metadata = FrontMatterParser.Parse(rawYaml);
+        return ImmutableList.Create<MarkdownBlock>(new FrontMatterBlock(rawYaml, metadata)
         {
             SourceSpan = ResolveSourceSpan(yaml, lineOffsets, markdownLength)
-        };
+        });
+    }
+
+    private static ImmutableList<MarkdownBlock> FallbackToThematicBreaks(
+        MdYaml.YamlFrontMatterBlock yaml,
+        int[] lineOffsets,
+        int markdownLength)
+    {
+        string rawContent = yaml.Lines.ToString();
+        MarkdownContent parsedInside = Parse(rawContent, allowFrontMatter: false);
+
+        ImmutableList<MarkdownBlock>.Builder builder = ImmutableList.CreateBuilder<MarkdownBlock>();
+        builder.Add(new ThematicBreakBlock());
+        builder.AddRange(parsedInside.Blocks);
+        builder.Add(new ThematicBreakBlock());
+
+        return builder.ToImmutable();
     }
 
     private static int NormalizeHeadingLevel(int level)
@@ -222,7 +270,7 @@ public static class MarkdownParser
                 });
         }
 
-        return ParseBlock(child, ref taskIndex, lineOffsets, markdownLength);
+        return ParseBlock(child, ref taskIndex, lineOffsets, markdownLength, allowFrontMatter: false);
     }
 
     private static ImmutableList<MarkdownInline> ParseItemParagraphInlines(
