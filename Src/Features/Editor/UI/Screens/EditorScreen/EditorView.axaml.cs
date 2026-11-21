@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -132,6 +133,9 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
             PreviewCopyMenuItem.Click += OnPreviewCopyMenuItemClicked;
             Disposable.Create(() => PreviewCopyMenuItem.Click -= OnPreviewCopyMenuItemClicked).DisposeWith(disposables);
 
+            PreviewContextMenu.Opening += OnPreviewContextMenuOpening;
+            Disposable.Create(() => PreviewContextMenu.Opening -= OnPreviewContextMenuOpening).DisposeWith(disposables);
+
             AddHandler(MarkdownLinkHandler.AnchorNavigationEvent, OnAnchorNavigated);
             Disposable.Create(() => RemoveHandler(MarkdownLinkHandler.AnchorNavigationEvent, OnAnchorNavigated)).DisposeWith(disposables);
 
@@ -163,6 +167,11 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
     private async void OnPreviewCopyMenuItemClicked(object? sender, RoutedEventArgs args)
     {
         await _previewSelectionController.CopySelectionToClipboardAsync();
+    }
+
+    private void OnPreviewContextMenuOpening(object? sender, CancelEventArgs args)
+    {
+        PreviewCopyMenuItem.IsEnabled = _previewSelectionController.HasSelection;
     }
 
     private void OnAnchorNavigated(object? sender, AnchorNavigationEventArgs args)

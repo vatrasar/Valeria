@@ -16,6 +16,67 @@ namespace Valeria.Tests.FeaturesTests.EditorTests.ServicesTests;
 public sealed class PreviewSelectionControllerTests
 {
     [Fact]
+    public async Task PreviewTextBlock_SuppressesContextFlyout_AndBubblesContextRequestedToParentMenu()
+    {
+        await EvaluateAsync(() =>
+        {
+            Window window = new();
+            try
+            {
+                ContextMenu contextMenu = new();
+                MenuItem copyItem = new() { Header = "Copy" };
+                contextMenu.Items.Add(copyItem);
+
+                Border parent = new()
+                {
+                    ContextMenu = contextMenu
+                };
+
+                PreviewTextBlock block = new() { Text = "Test selection" };
+                parent.Child = block;
+                window.Content = parent;
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Null(block.ContextFlyout);
+
+                block.SetSelectionRange(0, 4);
+                Assert.Equal("Test", block.GetSelectedPlainText());
+
+                bool openingTriggered = false;
+                contextMenu.Opening += (_, _) => openingTriggered = true;
+
+                Avalonia.Input.Pointer mousePointer = new(0, PointerType.Mouse, true);
+                PointerPointProperties rightPressProps = new(RawInputModifiers.RightMouseButton, PointerUpdateKind.RightButtonPressed);
+                PointerPressedEventArgs rightPress = new(
+                    block,
+                    mousePointer,
+                    block,
+                    new Point(10, 5),
+                    0,
+                    rightPressProps,
+                    KeyModifiers.None);
+
+                block.RaiseEvent(rightPress);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal("Test", block.GetSelectedPlainText());
+
+                block.RaiseEvent(new ContextRequestedEventArgs());
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.True(openingTriggered);
+                Assert.Equal("Test", block.GetSelectedPlainText());
+            }
+            finally
+            {
+                window.Close();
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+    }
+
+    [Fact]
     public async Task PreviewTextBlock_PlainAndSelectedText_ExtractsCorrectly()
     {
         await EvaluateAsync(() =>

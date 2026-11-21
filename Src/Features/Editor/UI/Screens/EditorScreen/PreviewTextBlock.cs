@@ -25,6 +25,15 @@ public class PreviewTextBlock : SelectableTextBlock
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="PreviewTextBlock"/> class,
+    /// suppressing default single-block context flyouts in favor of preview pane context actions.
+    /// </summary>
+    public PreviewTextBlock()
+    {
+        ContextFlyout = null;
+    }
+
+    /// <summary>
     /// Gets or sets a value indicating whether text selection should be retained when focus is lost.
     /// </summary>
     public bool RetainSelectionOnLostFocus { get; set; } = true;
@@ -107,6 +116,8 @@ public class PreviewTextBlock : SelectableTextBlock
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+
+        ContextFlyout = null;
 
         if (this.TryFindResource("EditorSelectionBrush", out object? brush) && brush is IBrush selectionBrush)
             SelectionBrush = selectionBrush;
