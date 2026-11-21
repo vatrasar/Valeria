@@ -242,4 +242,62 @@ public sealed class MarkdownParserTests
             _ => string.Empty
         }));
     }
+
+    [Fact]
+    public void Parse_YamlFrontMatter_DoesNotProduceSetextHeading()
+    {
+        string markdown = """
+            ---
+            name: poteto-help
+            description: Guides users through pstack setup
+            disable-model-invocation: true
+            ---
+
+            # Poteto help
+
+            Answer the user's question
+            """;
+
+        MarkdownContent content = MarkdownParser.Parse(markdown);
+
+        Assert.Equal(3, content.Blocks.Count);
+
+        FrontMatterBlock frontMatter = Assert.IsType<FrontMatterBlock>(content.Blocks[0]);
+        Assert.Equal("poteto-help", frontMatter.Metadata.Name);
+        Assert.Equal("Guides users through pstack setup", frontMatter.Metadata.Description);
+        Assert.Single(frontMatter.Metadata.Flags);
+        Assert.True(frontMatter.Metadata.Flags[0].Value);
+
+        HeadingBlock heading = Assert.IsType<HeadingBlock>(content.Blocks[1]);
+        Assert.Equal(1, heading.Level);
+        Assert.Equal("Poteto help", FlattenText(heading.Inlines));
+
+        ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(content.Blocks[2]);
+        Assert.Equal("Answer the user's question", FlattenText(paragraph.Inlines));
+    }
+
+    [Fact]
+    public void Parse_YamlCodeBlock_IsTreatedAsCodeBlockNotFrontMatter()
+    {
+        string markdown = """
+            ---
+            name: my-skill
+            description: skill desc
+            ---
+
+            ```yaml
+            name: poteto-help
+            description: Guides users through pstack setup
+            disable-model-invocation: true
+            ```
+            """;
+
+        MarkdownContent content = MarkdownParser.Parse(markdown);
+
+        Assert.Equal(2, content.Blocks.Count);
+        Assert.IsType<FrontMatterBlock>(content.Blocks[0]);
+        CodeBlock code = Assert.IsType<CodeBlock>(content.Blocks[1]);
+        Assert.Equal("yaml", code.Language);
+        Assert.Contains("name: poteto-help", code.Code);
+    }
 }

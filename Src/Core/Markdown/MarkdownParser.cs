@@ -11,6 +11,7 @@ using Markdig.Syntax;
 using MdSyntax = Markdig.Syntax;
 using MdInlines = Markdig.Syntax.Inlines;
 using MdTables = Markdig.Extensions.Tables;
+using MdYaml = Markdig.Extensions.Yaml;
 
 namespace Valeria.Src.Core.Markdown;
 
@@ -23,6 +24,7 @@ public static class MarkdownParser
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .UseAdvancedExtensions()
+        .UseYamlFrontMatter()
         .UsePreciseSourceLocation()
         .Build();
 
@@ -65,6 +67,8 @@ public static class MarkdownParser
                     SourceSpan = ResolveSourceSpan(heading, lineOffsets, markdownLength),
                     AnchorId = ResolveHeadingAnchorId(heading)
                 }),
+            MdYaml.YamlFrontMatterBlock yaml => ImmutableList.Create<MarkdownBlock>(
+                ParseFrontMatter(yaml, lineOffsets, markdownLength)),
             MdSyntax.ParagraphBlock paragraph => ImmutableList.Create<MarkdownBlock>(
                 new ParagraphBlock(ParseInlines(paragraph.Inline))
                 {
@@ -99,6 +103,17 @@ public static class MarkdownParser
             MdSyntax.LeafBlock leaf => ParseLeafFallback(leaf, lineOffsets, markdownLength),
             MdSyntax.ContainerBlock nested => ParseBlocks(nested, ref taskIndex, lineOffsets, markdownLength),
             _ => ImmutableList<MarkdownBlock>.Empty
+        };
+    }
+
+    private static MarkdownBlock ParseFrontMatter(MdYaml.YamlFrontMatterBlock yaml, int[] lineOffsets, int markdownLength)
+    {
+        string rawYaml = yaml.Lines.ToString();
+        FrontMatterMetadata metadata = FrontMatterParser.Parse(rawYaml);
+
+        return new FrontMatterBlock(rawYaml, metadata)
+        {
+            SourceSpan = ResolveSourceSpan(yaml, lineOffsets, markdownLength)
         };
     }
 

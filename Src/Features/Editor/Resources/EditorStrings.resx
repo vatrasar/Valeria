@@ -181,4 +181,19 @@
   <data name="CollapseDock" xml:space="preserve">
     <value>Collapse dock</value>
   </data>
+  <data name="CopySkillName" xml:space="preserve">
+    <value>Copy skill name</value>
+  </data>
+  <data name="Copied" xml:space="preserve">
+    <value>Copied!</value>
+  </data>
+  <data name="SkillMetadata" xml:space="preserve">
+    <value>Skill Metadata</value>
+  </data>
+  <data name="Metadata" xml:space="preserve">
+    <value>Metadata</value>
+  </data>
+  <data name="AdditionalProperties" xml:space="preserve">
+    <value>Additional properties</value>
+  </data>
 </root>

@@ -96,6 +96,12 @@ Valeria is designed to feel right at home in your desktop environment:
 - **50+ Languages Highlighted**: Formats code snippets cleanly across Python, C#, Rust, JavaScript, Go, Bash, SQL, JSON, YAML, and dozens more.
 - **1-Click Copy**: Convenient copy button on code snippets to grab code without messy manual selection.
 
+### 🤖 AI Skill & Frontmatter Cards
+- **Semantic Metadata Header**: Documents beginning with YAML frontmatter (such as AI agent skills, playbooks, prompts, or notes) are rendered into a dedicated, elegant header card rather than being treated as document headings.
+- **Skill Overview at a Glance**: Highlights the skill name in monospace with a 1-click copy button, displays boolean flags as compact status badges (e.g., execution guards), renders the description across the full width as a readable lead, and styles lists (tags, allowed tools) as rounded pills.
+- **Expandable Properties**: Additional custom metadata keys are tucked into a collapsible inspector to keep the focus on reading the instructions.
+- **Universal Metadata Fallback**: Plain notes with general frontmatter (e.g. author, date, categories) display all properties in an aligned, readable properties card.
+
 ### ⌨️ Smart Typing Ergonomics
 - **Automatic Lists**: Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to continue bullet or numbered lists effortlessly.
 - **Auto-Closing Pairs**: Automatically closes brackets `()`, `[]`, `{}`, quotes `""`, `''`, and code backticks.

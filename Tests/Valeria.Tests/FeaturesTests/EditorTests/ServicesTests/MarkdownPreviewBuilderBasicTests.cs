@@ -258,6 +258,33 @@ public sealed class MarkdownPreviewBuilderBasicTests
         Assert.Equal(FontWeight.SemiBold, weights[5]);
     }
 
+    [Fact]
+    public async Task Build_FrontMatterBlock_RendersSemanticCard()
+    {
+        (int controlCount, bool isBorder, int childCount) = await MarkdownPreviewTestHelpers.EvaluateAsync(() =>
+        {
+            string md = """
+                ---
+                name: poteto-help
+                description: Guides users through pstack setup
+                disable-model-invocation: true
+                ---
+
+                # Heading
+                """;
+
+            IReadOnlyList<Control> controls = Build(md);
+            Border? border = controls.FirstOrDefault() as Border;
+            StackPanel? stack = border?.Child as StackPanel;
+
+            return (controls.Count, border is not null, stack?.Children.Count ?? 0);
+        });
+
+        Assert.Equal(2, controlCount);
+        Assert.True(isBorder);
+        Assert.True(childCount >= 2);
+    }
+
     private IReadOnlyList<Control> Build(string markdown, Action<int, bool>? onTaskToggled = null)
     {
         return _builder.BuildBlocks(MarkdownParser.Parse(markdown), onTaskToggled).Blocks;

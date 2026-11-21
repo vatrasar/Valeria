@@ -37,6 +37,7 @@ namespace Valeria.Src.Features.Editor.UI.Screens.EditorScreen;
 /// case sensitivity toggle, live match highlighting with automatic scrolling,
 /// in-document anchor and table-of-contents jump navigation with pulse highlight and editor synchronization,
 /// cross-block continuous preview text selection from top to bottom with Ctrl+C and context menu copying,
+/// YAML frontmatter header block syntax colorization,
 /// debounced background AutoSave, and navigation to application settings.
 /// Key UI elements: SourceEditor (AvaloniaEdit), PreviewBlocksControl
 /// (ItemsControl), PreviewScroller (ScrollViewer), PreviewSearchBar, PreviewSearchTextBox,
@@ -192,6 +193,7 @@ public partial class EditorView : ReactiveUserControl<EditorViewModel>
         SourceEditor.Options.ConvertTabsToSpaces = true;
         SourceEditor.Options.IndentationSize = ViewModel?.EditorTabWidth ?? 4;
         SourceEditor.SyntaxHighlighting = LoadMarkdownHighlighting();
+        SourceEditor.TextArea.TextView.LineTransformers.Add(new FrontMatterColorizer());
         PreviewBlocksControl.MaxWidth = ViewModel?.PreviewMaxWidth ?? 860;
 
         SourceEditor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;

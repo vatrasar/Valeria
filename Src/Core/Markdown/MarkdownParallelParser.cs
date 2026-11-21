@@ -131,6 +131,7 @@ public static class MarkdownParallelParser
             TableBlock table => table with { SourceSpan = shifted },
             ThematicBreakBlock hr => hr with { SourceSpan = shifted },
             HtmlBlock html => html with { SourceSpan = shifted },
+            FrontMatterBlock frontMatter => frontMatter with { SourceSpan = shifted },
             _ => block with { SourceSpan = shifted }
         };
     }

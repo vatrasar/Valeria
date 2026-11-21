@@ -78,6 +78,7 @@ public static class MarkdownTextChunker
             LineSpan line = lines[i];
             string lineText = markdown.Substring(line.Offset, line.Length);
 
+            UpdateFrontMatterState(state, lineText, i);
             UpdateFenceState(state, lineText);
             TrackOrderedListState(state, lineText);
 
@@ -92,6 +93,19 @@ public static class MarkdownTextChunker
         }
 
         return slices.ToImmutable();
+    }
+
+    private static void UpdateFrontMatterState(ChunkScanState state, string lineText, int lineIndex)
+    {
+        string trimmed = lineText.Trim();
+        if (lineIndex == 0 && trimmed == "---")
+        {
+            state.InFrontMatter = true;
+            return;
+        }
+
+        if (state.InFrontMatter && lineIndex > 0 && trimmed == "---")
+            state.InFrontMatter = false;
     }
 
     private static void UpdateFenceState(ChunkScanState state, string lineText)
@@ -135,6 +149,9 @@ public static class MarkdownTextChunker
     {
         if (isLastLine)
             return true;
+
+        if (state.InFrontMatter)
+            return false;
 
         if (state.InFencedCode)
             return false;
@@ -238,6 +255,7 @@ public static class MarkdownTextChunker
 
     private sealed class ChunkScanState
     {
+        public bool InFrontMatter;
         public bool InFencedCode;
         public string? FenceDelimiter;
         public int? CurrentOrderedStart;

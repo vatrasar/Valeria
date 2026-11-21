@@ -97,6 +97,9 @@ public sealed record ThematicBreakBlock : MarkdownBlock;
 /// <summary>Raw HTML block kept as plain text for preview.</summary>
 public sealed record HtmlBlock(string Html) : MarkdownBlock;
 
+/// <summary>YAML frontmatter block containing metadata.</summary>
+public sealed record FrontMatterBlock(string RawYaml, FrontMatterMetadata Metadata) : MarkdownBlock;
+
 /// <summary>Base record of every markdown inline element.</summary>
 public abstract record MarkdownInline;
 

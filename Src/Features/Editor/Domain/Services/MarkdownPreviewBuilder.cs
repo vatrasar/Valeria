@@ -37,6 +37,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
     private readonly MarkdownInlineRenderer _inlineRenderer;
     private readonly MarkdownCodeBlockRenderer _codeBlockRenderer;
     private readonly MarkdownTableRenderer _tableRenderer;
+    private readonly MarkdownFrontMatterRenderer _frontMatterRenderer;
 
     private List<CodeHighlightTarget> _pendingTargets = [];
     private string? _currentBaseDirectory;
@@ -56,6 +57,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
         _inlineRenderer = new MarkdownInlineRenderer(_imageRenderer);
         _codeBlockRenderer = new MarkdownCodeBlockRenderer(_syntax, _options);
         _tableRenderer = new MarkdownTableRenderer(_inlineRenderer);
+        _frontMatterRenderer = new MarkdownFrontMatterRenderer();
     }
 
     /// <summary>
@@ -178,6 +180,7 @@ public sealed class MarkdownPreviewBuilder : IMarkdownPreviewBuilder
             TableBlock table => _tableRenderer.BuildTable(table, theme, brushes, _currentBaseDirectory),
             ThematicBreakBlock => BuildRule(theme),
             HtmlBlock html => BuildHtml(html, theme),
+            FrontMatterBlock frontMatter => _frontMatterRenderer.BuildFrontMatter(frontMatter, theme),
             _ => new TextBlock()
         };
 

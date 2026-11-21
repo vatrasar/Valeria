@@ -42,8 +42,28 @@ public static class PreviewLayoutEstimator
             QuoteBlock quote => EstimateBlocksHeight(quote.Blocks, metrics) + 16,
             ThematicBreakBlock => PreviewLayoutMetrics.ThematicBreakTotalHeight,
             HtmlBlock html => EstimateHtmlHeight(html, metrics),
+            FrontMatterBlock frontMatter => EstimateFrontMatterHeight(frontMatter, metrics),
             _ => metrics.BodyLineHeight
         };
+    }
+
+    private static double EstimateFrontMatterHeight(FrontMatterBlock frontMatter, PreviewLayoutMetrics metrics)
+    {
+        double height = 48.0;
+
+        if (!string.IsNullOrEmpty(frontMatter.Metadata.Description))
+            height += Math.Max(1, frontMatter.Metadata.Description.Length / 60) * metrics.BodyLineHeight;
+
+        if (!frontMatter.Metadata.Flags.IsEmpty)
+            height += 24.0;
+
+        if (!frontMatter.Metadata.Lists.IsEmpty)
+            height += 28.0;
+
+        if (!frontMatter.Metadata.CustomProperties.IsEmpty)
+            height += Math.Min(5, frontMatter.Metadata.CustomProperties.Count) * 20.0;
+
+        return height;
     }
 
     private static double EstimateParagraphHeight(ParagraphBlock paragraph, PreviewLayoutMetrics metrics)

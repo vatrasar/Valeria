@@ -40,7 +40,12 @@ public sealed class LocalizationTests
                 EditorStrings.PlaceholderItalicText,
                 EditorStrings.PlaceholderStrikeText,
                 EditorStrings.PlaceholderCodeText,
-                EditorStrings.PlaceholderLinkText
+                EditorStrings.PlaceholderLinkText,
+                EditorStrings.CopySkillName,
+                EditorStrings.Copied,
+                EditorStrings.SkillMetadata,
+                EditorStrings.Metadata,
+                EditorStrings.AdditionalProperties
             },
             value => Assert.False(string.IsNullOrWhiteSpace(value)));
     }

@@ -140,4 +140,14 @@ public static class EditorStrings
     public static string ToggleDock => ResourceManager.GetString("ToggleDock", _resourceCulture)!;
 
     public static string CollapseDock => ResourceManager.GetString("CollapseDock", _resourceCulture)!;
+ 
+    public static string CopySkillName => ResourceManager.GetString("CopySkillName", _resourceCulture)!;
+
+    public static string Copied => ResourceManager.GetString("Copied", _resourceCulture)!;
+
+    public static string SkillMetadata => ResourceManager.GetString("SkillMetadata", _resourceCulture)!;
+
+    public static string Metadata => ResourceManager.GetString("Metadata", _resourceCulture)!;
+
+    public static string AdditionalProperties => ResourceManager.GetString("AdditionalProperties", _resourceCulture)!;
 }

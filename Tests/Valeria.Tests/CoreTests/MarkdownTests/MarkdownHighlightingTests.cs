@@ -116,6 +116,13 @@ public sealed class MarkdownHighlightingTests
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public void FrontMatterColorizer_CanBeInstantiated()
+    {
+        var colorizer = new Valeria.Src.Features.Editor.UI.Screens.EditorScreen.FrontMatterColorizer();
+        Assert.NotNull(colorizer);
+    }
+
     private static IHighlightingDefinition? LoadHighlighting()
     {
         using Stream? stream = Assembly
